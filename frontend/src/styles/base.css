@@ -1,0 +1,316 @@
+/* Global utilities only — no page-specific design here. */
+body {
+  font-family: var(--font-body);
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+  color: var(--neutral-900);
+  background: var(--neutral-0);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Arabic Luxury Typography & Global RTL Rules (Noto Kufi Arabic) */
+[dir="rtl"],
+[lang="ar"],
+[dir="rtl"] body {
+  font-family: 'Noto Kufi Arabic', 'Open Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  letter-spacing: 0;
+}
+
+[dir="rtl"] .font-display,
+[dir="rtl"] h1, [dir="rtl"] h2, [dir="rtl"] h3, [dir="rtl"] h4, [dir="rtl"] h5, [dir="rtl"] h6,
+[dir="rtl"] button, [dir="rtl"] input, [dir="rtl"] select, [dir="rtl"] textarea {
+  font-family: 'Noto Kufi Arabic', 'Open Sans', sans-serif !important;
+}
+
+.font-display {
+  font-family: var(--font-display);
+  line-height: var(--lh-tight);
+}
+
+.text-meta {
+  font-size: var(--fs-meta);
+  color: var(--neutral-600);
+}
+
+.btn-brand {
+  background-color: var(--brand-primary);
+  border-color: var(--brand-primary);
+  color: #fff;
+}
+
+.btn-brand:hover {
+  background-color: var(--brand-900);
+  border-color: var(--brand-900);
+  color: #fff;
+}
+
+/* Skeleton shimmer (reused by LoadingSkeleton in PHASE-05) */
+.skeleton {
+  background: linear-gradient(90deg, var(--neutral-100) 25%, var(--neutral-200) 50%, var(--neutral-100) 75%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.4s ease infinite;
+  border-radius: var(--border-radius-sm);
+}
+
+@keyframes skeleton-shimmer {
+  from {
+    background-position: 200% 0;
+  }
+
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+  }
+
+  html {
+    scroll-behavior: auto;
+  }
+
+  .page-enter {
+    animation: none;
+  }
+
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  .btn:hover:not(:disabled) {
+    transform: none;
+  }
+
+  .hero-poster {
+    animation: none;
+  }
+
+  .toast-item,
+  .modal-card,
+  .modal-backdrop,
+  .mobile-menu,
+  .sticky-bar {
+    animation: none !important;
+  }
+}
+
+/* ---------- Form standard (website.md #52) ---------- */
+.darcom-field {
+  margin-bottom: var(--space-4);
+}
+
+.darcom-field label {
+  display: block;
+  font-weight: 600;
+  font-size: 0.875rem;
+  margin-bottom: var(--space-1);
+}
+
+.darcom-field label .required {
+  color: var(--danger);
+  margin-inline-start: 2px;
+}
+
+.darcom-field .form-control.is-invalid {
+  border-color: var(--danger);
+}
+
+.darcom-field .field-error {
+  color: var(--danger);
+  font-size: var(--fs-meta);
+  margin-top: var(--space-1);
+}
+
+.darcom-field .field-hint {
+  color: var(--neutral-600);
+  font-size: var(--fs-meta);
+  margin-top: var(--space-1);
+}
+
+/* ---------- Badges ---------- */
+.badge-purpose {
+  font-size: var(--fs-meta);
+  font-weight: 600;
+  padding: 0.25rem 0.6rem;
+  border-radius: var(--border-radius-sm);
+  background: var(--brand-900);
+  color: #fff;
+}
+
+.badge-purpose.rent {
+  background: var(--info);
+}
+
+.badge-purpose.investment {
+  background: var(--warning);
+}
+
+.badge-status {
+  font-size: var(--fs-meta);
+  font-weight: 600;
+  padding: 0.25rem 0.6rem;
+  border-radius: var(--border-radius-sm);
+  background: var(--neutral-200);
+  color: var(--neutral-900);
+}
+
+.badge-status.featured {
+  background: var(--brand-accent);
+  color: var(--neutral-900);
+}
+
+.badge-status.sold,
+.badge-status.rented {
+  background: var(--neutral-600);
+  color: #fff;
+}
+
+/* ---------- State blocks (loading / empty / error) ---------- */
+.state-block {
+  text-align: center;
+  padding: var(--space-12) var(--space-4);
+  color: var(--neutral-600);
+}
+
+.state-block .state-icon {
+  font-size: 2.5rem;
+  margin-bottom: var(--space-3);
+  color: var(--neutral-400);
+}
+
+.state-block h3 {
+  color: var(--neutral-900);
+  font-size: var(--fs-h3);
+  margin-bottom: var(--space-2);
+}
+
+/* ---------- Offline banner ---------- */
+.offline-banner {
+  position: sticky;
+  top: var(--navbar-height);
+  z-index: 90;
+  background: var(--warning);
+  color: var(--neutral-900);
+  text-align: center;
+  font-size: var(--fs-meta);
+  padding: var(--space-1) var(--space-3);
+}
+
+/* ---------- RTL: mirror directional chevrons (positions already mirror via logical props) ---------- */
+[dir='rtl'] .lb-prev i,
+[dir='rtl'] .lb-next i,
+[dir='rtl'] .darcom-pagination .bi-chevron-left,
+[dir='rtl'] .darcom-pagination .bi-chevron-right,
+[dir='rtl'] .section-link .bi-arrow-right,
+[dir='rtl'] .darcom-breadcrumbs .bi {
+  display: inline-block;
+  transform: scaleX(-1);
+}
+
+/* ---------- Motion system (smooth, subtle, GPU-friendly) ---------- */
+/* Curves */
+:root {
+  --ease-out: cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* Route change: gentle fade-rise for the whole page. */
+.page-enter {
+  animation: page-in 0.35s var(--ease-out);
+}
+
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Scroll reveal (see components/Reveal). Stagger via --reveal-delay. */
+.reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition:
+    opacity 0.55s var(--ease-out),
+    transform 0.55s var(--ease-out);
+  transition-delay: var(--reveal-delay, 0ms);
+  will-change: opacity, transform;
+}
+
+.reveal.revealed {
+  opacity: 1;
+  transform: none;
+  will-change: auto;
+}
+
+/* Buttons: soft lift, never gaudy. */
+.btn {
+  transition: transform 0.15s var(--ease-out), box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+.btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+/* Cards/images zoom stays smooth (applies everywhere). */
+.property-card .property-card-media img,
+.location-tile img,
+.confirm-box img {
+  will-change: transform;
+}
+
+/* ---------- Skip link (a11y) ---------- */
+.skip-link {
+  position: absolute;
+  inset-block-start: -100px;
+  inset-inline-start: var(--space-4);
+  z-index: 3000;
+  background: var(--brand-primary);
+  color: #fff;
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--border-radius-sm);
+  text-decoration: none;
+}
+
+.skip-link:focus {
+  inset-block-start: var(--space-2);
+}
+
+/* ---------- Focus visibility (a11y baseline) ---------- */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: 2px;
+}
+
+/* Auth Cards baseline links */
+.auth-card a {
+  color: var(--brand-primary);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+.auth-card a:hover {
+  color: var(--brand-900);
+}

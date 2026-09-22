@@ -1,0 +1,264 @@
+/* ==========================================================================
+   Property Header — Luxury Presentation & Prominent Pricing
+   ========================================================================== */
+.prop-header-luxury {
+  margin-block-end: var(--space-6);
+}
+
+/* Top row: Badges + Action Buttons */
+.prop-top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-block-end: 0.85rem;
+}
+
+.prop-badges {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.badge-purpose-pill {
+  font-size: 0.76rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 0.3rem 0.8rem;
+  border-radius: 9999px;
+  background: var(--brand-primary);
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(20, 66, 79, 0.2);
+}
+
+.badge-purpose-pill.rent {
+  background: #0d9488;
+}
+
+.badge-purpose-pill.investment {
+  background: #7c3aed;
+}
+
+.badge-type-pill {
+  font-size: 0.76rem;
+  font-weight: 600;
+  padding: 0.3rem 0.8rem;
+  border-radius: 9999px;
+  border: 1px solid rgba(20, 66, 79, 0.15);
+  background: rgba(20, 66, 79, 0.05);
+  color: var(--brand-primary);
+}
+
+.badge-status-pill {
+  font-size: 0.74rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.3rem 0.75rem;
+  border-radius: 9999px;
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.badge-status-pill.featured {
+  background: linear-gradient(135deg, #fef3c7, #fde68a);
+  color: #92400e;
+  border: 1px solid rgba(201, 168, 106, 0.4);
+}
+
+.badge-verified-luxury {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.74rem;
+  font-weight: 700;
+  padding: 0.3rem 0.75rem;
+  border-radius: 9999px;
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+
+.badge-verified-luxury i {
+  color: #059669;
+}
+
+.prop-actions-cluster {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.prop-action-circle {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid var(--neutral-200);
+  background: #ffffff;
+  color: var(--neutral-800);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.05rem;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+.prop-action-circle:hover {
+  background: var(--brand-primary);
+  color: #ffffff;
+  border-color: var(--brand-primary);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(20, 66, 79, 0.25);
+}
+
+/* Main Info Row: Title & Price */
+.prop-main-info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1.5rem;
+  margin-block-end: 1.25rem;
+}
+
+.prop-title-col {
+  flex: 1;
+}
+
+.prop-luxury-title {
+  font-family: var(--font-heading, 'Noto Kufi Arabic', sans-serif);
+  font-size: clamp(1.6rem, 3.2vw, 2.45rem);
+  font-weight: 700;
+  color: var(--neutral-900);
+  line-height: 1.2;
+  margin-block-end: 0.5rem;
+  letter-spacing: -0.01em;
+}
+
+.prop-meta-subtitle {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  font-size: 0.94rem;
+  color: var(--neutral-600);
+}
+
+.prop-geo {
+  display: inline-flex;
+  align-items: center;
+}
+
+.text-gold {
+  color: var(--brand-accent) !important;
+}
+
+.prop-ref-badge {
+  display: inline-block;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.15rem 0.55rem;
+  background: var(--neutral-100);
+  border-radius: 6px;
+  color: var(--neutral-600);
+}
+
+/* Price Column */
+.prop-price-col {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  text-align: end;
+  flex-shrink: 0;
+}
+
+[dir="rtl"] .prop-price-col {
+  align-items: flex-start;
+  text-align: start;
+}
+
+.prop-price-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--neutral-500);
+}
+
+.prop-price-val {
+  font-family: var(--font-heading, 'Noto Kufi Arabic', sans-serif);
+  font-size: clamp(1.8rem, 3.5vw, 2.5rem);
+  font-weight: 800;
+  color: var(--brand-primary);
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.prop-price-sub {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--neutral-600);
+  margin-top: 0.15rem;
+}
+
+/* Quick Specs Overview Bar */
+.prop-quick-specs-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.85rem;
+  padding: 0.85rem 1.25rem;
+  background: #f8fafc;
+  border: 1px solid var(--neutral-200);
+  border-radius: 14px;
+}
+
+.quick-spec-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.9rem;
+  color: var(--neutral-800);
+}
+
+.quick-spec-item i {
+  font-size: 1.05rem;
+  color: var(--brand-accent);
+}
+
+.quick-spec-item.highlight-developer {
+  margin-inline-start: auto;
+  font-size: 0.86rem;
+  color: var(--brand-primary);
+}
+
+[dir="rtl"] .quick-spec-item.highlight-developer {
+  margin-inline-start: 0;
+  margin-inline-end: auto;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .prop-main-info-row {
+    flex-direction: column;
+    gap: 0.85rem;
+  }
+
+  .prop-price-col {
+    align-items: flex-start;
+    text-align: start;
+    padding-top: 0.35rem;
+    border-top: 1px dashed var(--neutral-200);
+    width: 100%;
+  }
+
+  .quick-spec-item.highlight-developer {
+    margin-inline-start: 0;
+    width: 100%;
+    padding-top: 0.25rem;
+    border-top: 1px dashed var(--neutral-200);
+  }
+}

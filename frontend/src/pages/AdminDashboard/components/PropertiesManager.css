@@ -1,0 +1,79 @@
+/* PropertiesManager — scoped to the admin dashboard. */
+.admin-toolbar {
+  display: flex;
+  gap: var(--space-2);
+  margin-block-end: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.admin-toolbar select {
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-sm);
+  padding: 0.4rem 0.6rem;
+  font-size: 0.9rem;
+}
+
+.admin-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-md);
+}
+
+.admin-table {
+  inline-size: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+  background: var(--neutral-0);
+}
+
+.admin-table th,
+.admin-table td {
+  text-align: start;
+  padding: var(--space-2) var(--space-3);
+  border-block-end: 1px solid var(--neutral-100);
+  white-space: nowrap;
+}
+
+.admin-table th {
+  background: var(--neutral-50);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--neutral-600);
+}
+
+.admin-table tr:last-child td { border-block-end: none; }
+
+.drawer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-block: var(--space-3);
+}
+
+.drawer-actions select {
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-sm);
+  padding: 0.3rem 0.5rem;
+  font-size: 0.85rem;
+}
+
+.drawer-media {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: var(--space-2);
+}
+
+.drawer-media-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  align-items: flex-start;
+}
+
+.drawer-media-item img {
+  inline-size: 100%;
+  block-size: 80px;
+  object-fit: cover;
+  border-radius: var(--border-radius-sm);
+}

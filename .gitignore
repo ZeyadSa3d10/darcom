@@ -1,0 +1,181 @@
+# ==============================================================================
+#  Darcom Real Estate Platform — Unified Root .gitignore
+#  Fullstack (.NET Core 8/9 Web API + React / Vite / Node.js)
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# 1. .NET / C# Build & Compiler Outputs
+# ------------------------------------------------------------------------------
+[Bb]in/
+[Oo]bj/
+**/[Bb]in/
+**/[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+**/publish/
+**/Publish/
+*.user
+*.userosscache
+*.sln.docstates
+*.suo
+*.userprefs
+*.dbmdl
+*.jfm
+*.pidb
+*.booproj
+
+# Test results & coverage
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og.*
+*_i.c
+*_p.c
+*_i.h
+*.ilk
+*.meta
+*.obj
+*.iobj
+*.pch
+*.pdb
+*.ipdb
+*.pgc
+*.pgd
+*.rsp
+*.sbr
+*.tlb
+*.tli
+*.tlh
+*.tmp
+*.tmp_proj
+*_wpftmp.csproj
+*.log
+*.binlog
+*.trx
+*.coverage
+*.coveragexml
+
+# EF Core Migration Bundles
+efbundle*
+
+# ------------------------------------------------------------------------------
+# 2. Node.js / Vite / React (Frontend)
+# ------------------------------------------------------------------------------
+node_modules/
+**/node_modules/
+dist/
+**/dist/
+dist-ssr/
+**/dist-ssr/
+
+# Package manager logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Vite & build caches
+.vite/
+**/.vite/
+.eslintcache
+.stylelintcache
+.parcel-cache
+.turbo/
+
+# ------------------------------------------------------------------------------
+# 3. Environment Variables & Sensitive Secrets (CRITICAL)
+# ------------------------------------------------------------------------------
+# Ignore all local env files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+frontend/.env
+frontend/.env.local
+frontend/.env.*.local
+
+# But NEVER ignore example env files
+!.env.example
+!frontend/.env.example
+
+# ASP.NET Core Secrets & Local Settings
+**/appsettings.Production.json
+**/appsettings.*.local.json
+**/appsettings.Development.local.json
+**/appsettings.Local.json
+*.pfx
+*.p12
+*.key
+*.pem
+
+# ------------------------------------------------------------------------------
+# 4. User Uploads & Media Storage
+# ------------------------------------------------------------------------------
+# Exclude uploaded images and user-generated files while keeping folder structures
+uploads/*
+**/uploads/*
+!**/uploads/.gitkeep
+frontend/public/uploads/*
+!frontend/public/uploads/.gitkeep
+Backend/API/uploads/*
+!Backend/API/uploads/.gitkeep
+
+# ------------------------------------------------------------------------------
+# 5. IDEs & Editors
+# ------------------------------------------------------------------------------
+# Visual Studio
+.vs/
+**/.vs/
+Generated\ Files/
+_ReSharper*/
+*.ReSharper.user
+
+# JetBrains (Rider, WebStorm, etc.)
+.idea/
+**/.idea/
+*.DotSettings.user
+
+# VS Code (ignore workspace state, keep shared settings if present)
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+
+# ------------------------------------------------------------------------------
+# 6. Database / Local Dbs / Cache
+# ------------------------------------------------------------------------------
+*.mdf
+*.ldf
+*.ndf
+*.sqlite
+*.sqlite3
+*.db
+*.db-shm
+*.db-wal
+
+# ------------------------------------------------------------------------------
+# 7. Operating System Files
+# ------------------------------------------------------------------------------
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*

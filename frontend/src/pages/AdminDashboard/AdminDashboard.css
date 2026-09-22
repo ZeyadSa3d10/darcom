@@ -1,0 +1,141 @@
+/* AdminDashboard — separate operational layout, density allowed, still clean. */
+.admin-shell {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  min-block-size: calc(100vh - var(--navbar-height));
+}
+
+/* Hide the public navbar/footer chrome inside admin? No — admin keeps them,
+   but the shell below owns its visual language. */
+.admin-sidebar {
+  background: var(--brand-900);
+  color: #fff;
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  position: sticky;
+  top: var(--navbar-height);
+  block-size: calc(100vh - var(--navbar-height));
+  overflow-y: auto;
+}
+
+.admin-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding-block-end: var(--space-3);
+  border-block-end: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.admin-brand-logo {
+  height: 38px;
+  width: auto;
+  max-width: 48px;
+  object-fit: contain;
+  display: block;
+}
+
+.admin-brand span:last-child {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.3;
+}
+
+.admin-brand em {
+  font-style: normal;
+  font-size: var(--fs-meta);
+  opacity: 0.75;
+}
+
+.admin-sidebar nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.admin-sidebar nav button {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  border: none;
+  background: none;
+  color: rgba(255, 255, 255, 0.82);
+  text-align: start;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--border-radius-sm);
+  cursor: pointer;
+  font-size: 0.92rem;
+}
+
+.admin-sidebar nav button:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.admin-sidebar nav button.active {
+  background: var(--brand-accent);
+  color: var(--neutral-900);
+  font-weight: 600;
+}
+
+.tab-badge {
+  margin-inline-start: auto;
+  background: var(--danger);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 0 0.5rem;
+}
+
+.admin-sidebar nav button.active .tab-badge {
+  background: var(--neutral-900);
+}
+
+.admin-exit {
+  margin-block-start: auto;
+  color: rgba(255, 255, 255, 0.75);
+  text-decoration: none;
+  font-size: 0.88rem;
+}
+
+.admin-exit:hover { color: #fff; }
+
+.admin-main {
+  padding: var(--space-6);
+  max-inline-size: 1200px;
+  inline-size: 100%;
+}
+
+.admin-topbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-block-end: var(--space-4);
+}
+
+.admin-topbar h1 {
+  font-size: 1.5rem;
+  margin: 0;
+}
+
+.admin-subhead {
+  font-size: 1.1rem;
+  margin-block: var(--space-6) var(--space-3);
+}
+
+@media (max-width: 992px) {
+  .admin-shell { grid-template-columns: 1fr; }
+  .admin-sidebar {
+    display: none;
+    position: fixed;
+    inset-block-start: var(--navbar-height);
+    inset-block-end: 0;
+    inset-inline-start: 0;
+    inline-size: 260px;
+    z-index: 950;
+  }
+  .admin-sidebar.open { display: flex; }
+  .admin-main { padding: var(--space-4); }
+}

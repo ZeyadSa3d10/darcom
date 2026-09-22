@@ -1,0 +1,161 @@
+/* Checkout wizard — own page CSS. Trustworthy, calm, clearly stepped. */
+.checkout-page {
+  padding-block: var(--space-8) var(--space-16);
+  max-inline-size: 760px;
+}
+
+.wizard-steps {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 var(--space-6);
+  display: flex;
+  gap: var(--space-1);
+}
+
+.wizard-steps li {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 0.82rem;
+  color: var(--neutral-400);
+  border-block-start: 3px solid var(--neutral-200);
+  padding-block-start: var(--space-2);
+}
+
+.wizard-steps li.active {
+  color: var(--brand-primary);
+  border-block-start-color: var(--brand-primary);
+  font-weight: 600;
+}
+
+.wizard-steps li.done {
+  color: var(--success);
+  border-block-start-color: var(--success);
+}
+
+.step-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 1.5rem;
+  block-size: 1.5rem;
+  border-radius: 50%;
+  background: var(--neutral-100);
+  font-size: 0.8rem;
+  flex-shrink: 0;
+}
+
+.wizard-steps li.active .step-num {
+  background: var(--brand-primary);
+  color: #fff;
+}
+
+.wizard-steps li.done .step-num {
+  background: var(--success);
+  color: #fff;
+}
+
+.wizard-card {
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-md);
+  padding: var(--space-6);
+}
+
+.wizard-card h2 {
+  font-size: 1.3rem;
+  margin-block-end: var(--space-4);
+}
+
+.confirm-box {
+  display: flex;
+  gap: var(--space-4);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-sm);
+  padding: var(--space-3);
+  margin-block-end: var(--space-4);
+}
+
+.confirm-box img {
+  inline-size: 140px;
+  block-size: 110px;
+  object-fit: cover;
+  border-radius: var(--border-radius-sm);
+  flex-shrink: 0;
+}
+
+.confirm-price {
+  font-weight: 700;
+  color: var(--brand-primary);
+  font-size: 1.15rem;
+  margin: var(--space-1) 0;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 var(--space-4);
+}
+
+.check-line {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding-block-start: 1.9rem;
+}
+
+.check-line input {
+  inline-size: 1.1rem;
+  block-size: 1.1rem;
+  accent-color: var(--brand-primary);
+}
+
+.wizard-nav {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-block-start: var(--space-6);
+}
+
+.wizard-nav.center { justify-content: center; }
+
+.review-list {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.review-list > div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding-block: var(--space-2);
+  border-block-end: 1px solid var(--neutral-100);
+}
+
+.review-list dt {
+  color: var(--neutral-600);
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.review-list dd {
+  margin: 0;
+  font-weight: 600;
+  text-align: end;
+}
+
+.wizard-card.success {
+  text-align: center;
+}
+
+.wizard-card.success > i {
+  font-size: 3rem;
+  color: var(--success);
+}
+
+@media (max-width: 576px) {
+  .form-grid { grid-template-columns: 1fr; }
+  .wizard-steps li { font-size: 0; gap: 0; }
+  .wizard-steps li .step-num { font-size: 0.8rem; }
+}

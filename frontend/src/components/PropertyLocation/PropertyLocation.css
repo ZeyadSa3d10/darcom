@@ -1,0 +1,41 @@
+/* ==========================================================================
+   Property Location — Keyless Map & Proximity Highlights
+   ========================================================================== */
+.location-lines p {
+  margin-block-end: 0.35rem;
+  font-size: 0.96rem;
+}
+
+.location-highlights {
+  list-style: none;
+  padding: 0;
+  margin: var(--space-3) 0 var(--space-4);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.location-highlights li {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 0.3rem 0.75rem;
+  border-radius: 9999px;
+  background: #f0fdfa;
+  color: #0f766e;
+  border: 1px solid #99f6e4;
+}
+
+.location-highlights i {
+  color: #0d9488;
+}
+
+.location-map {
+  inline-size: 100%;
+  block-size: 340px;
+  border: 1px solid rgba(20, 66, 79, 0.12);
+  border-radius: 18px;
+  margin-block-start: var(--space-3);
+  box-shadow: 0 8px 24px -8px rgba(14, 42, 50, 0.08);
+}

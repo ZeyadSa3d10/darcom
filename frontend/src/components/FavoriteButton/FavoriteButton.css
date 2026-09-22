@@ -1,0 +1,29 @@
+/* FavoriteButton — own scoped CSS. */
+.fav-btn {
+  position: absolute;
+  inset-block-start: var(--space-3);
+  inset-inline-end: var(--space-3);
+  inline-size: 2.25rem;
+  block-size: 2.25rem;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--neutral-900);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  z-index: 2;
+}
+
+.fav-btn:hover { transform: scale(1.06); }
+.fav-btn.active { color: #c0392b; }
+.fav-btn:disabled { opacity: 0.6; cursor: default; }
+
+/* Inline variant (headers, toolbars): in-flow circle, no absolute overlay. */
+.fav-btn.inline {
+  position: static;
+  border: 1px solid var(--border-color);
+}
+.fav-btn.inline:hover { transform: none; border-color: var(--brand-primary); }

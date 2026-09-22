@@ -1,0 +1,9 @@
+/* Favorites — own page CSS. */
+.favorites-page {
+  padding-block: var(--space-8) var(--space-16);
+}
+
+.favorites-page h1 {
+  margin-block-end: var(--space-6);
+  font-size: clamp(1.6rem, 3vw, 2.25rem);
+}

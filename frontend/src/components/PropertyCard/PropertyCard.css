@@ -1,0 +1,362 @@
+/* ==========================================================================
+   Darcom Luxe Property Card — High-End Architectural Presentation
+   ========================================================================== */
+
+.property-card {
+  position: relative;
+  border-radius: 20px;
+  background: #ffffff;
+  border: 1px solid rgba(20, 66, 79, 0.08);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.3s ease;
+  box-shadow: 0 4px 20px rgba(14, 42, 50, 0.06);
+}
+
+.property-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 24px 48px -12px rgba(14, 42, 50, 0.16),
+              0 0 0 1px rgba(201, 168, 106, 0.35) inset;
+  border-color: rgba(201, 168, 106, 0.4);
+}
+
+/* ==========================================================================
+   1. Media Section
+   ========================================================================== */
+.property-card-media {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  background: var(--neutral-100);
+}
+
+.property-media-link {
+  display: block;
+  width: 100%;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+.property-card-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.65s cubic-bezier(0.16, 1, 0.3, 1), filter 0.35s ease;
+}
+
+.property-card:hover .property-card-img {
+  transform: scale(1.08);
+}
+
+.property-media-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(14, 42, 51, 0.32) 0%,
+    transparent 35%,
+    rgba(8, 24, 29, 0.45) 100%
+  );
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+/* Top Badges Bar */
+.property-badges-top {
+  position: absolute;
+  top: 0.85rem;
+  inset-inline-start: 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.badge-luxury-featured {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.3rem 0.75rem;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, #c9a86a 0%, #a88440 100%);
+  color: #ffffff;
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  box-shadow: 0 4px 12px rgba(168, 132, 64, 0.4);
+}
+
+.text-gold-icon {
+  color: #fff !important;
+}
+
+.badge-purpose-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.3rem 0.75rem;
+  border-radius: 9999px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: #ffffff;
+  font-size: 0.76rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.badge-purpose-pill.sale {
+  background: rgba(14, 42, 51, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.badge-purpose-pill.rent {
+  background: rgba(20, 66, 79, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.badge-purpose-pill.investment {
+  background: rgba(183, 121, 31, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Favorite Button Wrap */
+.property-fav-wrapper {
+  position: absolute;
+  top: 0.85rem;
+  inset-inline-end: 0.85rem;
+  z-index: 3;
+}
+
+/* Property Type Tag at Bottom Corner of Image */
+.property-type-tag {
+  position: absolute;
+  bottom: 0.85rem;
+  inset-inline-start: 0.85rem;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.property-type-tag span {
+  display: inline-block;
+  padding: 0.25rem 0.65rem;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: var(--brand-primary);
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
+}
+
+/* ==========================================================================
+   2. Body Section
+   ========================================================================== */
+.property-card-body {
+  padding: 1.25rem 1.35rem 1.35rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  flex: 1;
+}
+
+/* Price Header */
+.property-price-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-block-end: 0.1rem;
+}
+
+.property-price-tag {
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
+}
+
+.price-num {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--brand-primary);
+  letter-spacing: -0.01em;
+  font-family: var(--font-body);
+}
+
+.price-curr {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--neutral-600);
+}
+
+.price-period {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--neutral-600);
+}
+
+.property-ref-badge {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--neutral-600);
+  background: var(--neutral-100);
+  padding: 0.15rem 0.5rem;
+  border-radius: 6px;
+  letter-spacing: 0.05em;
+}
+
+/* Title */
+.property-card-title {
+  color: var(--neutral-900);
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 700;
+  line-height: 1.35;
+  text-decoration: none;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  transition: color 0.2s ease;
+  min-height: 2.7rem;
+}
+
+.property-card-title:hover {
+  color: var(--brand-primary);
+}
+
+/* Location */
+.property-card-location {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.84rem;
+  color: var(--neutral-600);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pin-icon {
+  color: var(--brand-accent);
+  font-size: 0.95rem;
+  flex-shrink: 0;
+}
+
+/* Amenity Badges (Sea View, Pool, etc.) */
+.property-chips-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+  padding-block: 0.2rem;
+}
+
+.amenity-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 9999px;
+  background: rgba(20, 66, 79, 0.05);
+  color: var(--brand-primary);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.amenity-chip i {
+  font-size: 0.8rem;
+  color: var(--brand-500);
+}
+
+/* Specs Bar (Beds, Baths, Area + Arrow) */
+.property-card-specs {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: auto;
+  padding-block-start: 0.75rem;
+  border-block-start: 1px solid var(--neutral-200);
+}
+
+.specs-items-wrap {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.spec-unit {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.82rem;
+  color: var(--neutral-600);
+}
+
+.spec-unit i {
+  font-size: 0.95rem;
+  color: var(--brand-primary);
+}
+
+.spec-unit strong {
+  color: var(--neutral-900);
+  font-weight: 700;
+}
+
+/* Explore Arrow */
+.explore-arrow-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--neutral-50);
+  color: var(--brand-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.property-card:hover .explore-arrow-btn {
+  background: var(--brand-primary);
+  color: #ffffff;
+  transform: translate(2px, -2px);
+}
+
+[dir="rtl"] .property-card:hover .explore-arrow-btn {
+  transform: translate(-2px, -2px) rotate(-90deg);
+}
+
+/* ==========================================================================
+   3. Horizontal List Mode
+   ========================================================================= */
+.property-card.as-list {
+  flex-direction: row;
+}
+
+.property-card.as-list .property-card-media {
+  flex: 0 0 320px;
+  aspect-ratio: auto;
+  min-height: 220px;
+}
+
+.property-card.as-list .property-card-body {
+  flex: 1;
+  justify-content: space-between;
+}
+
+@media (max-width: 768px) {
+  .property-card.as-list {
+    flex-direction: column;
+  }
+  .property-card.as-list .property-card-media {
+    flex: none;
+    aspect-ratio: 16 / 10;
+  }
+}

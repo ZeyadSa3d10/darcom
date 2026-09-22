@@ -1,0 +1,37 @@
+/* LoadingSkeleton — own scoped CSS. */
+.sk-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--space-6);
+}
+
+.sk-card {
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-md);
+  overflow: hidden;
+}
+
+.sk-card-img { block-size: 200px; border-radius: 0; }
+.sk-card-body { padding: var(--space-4); }
+
+.sk-line {
+  block-size: 0.9rem;
+  margin-block-end: var(--space-2);
+}
+
+.sk-w40 { inline-size: 40%; }
+.sk-w60 { inline-size: 60%; }
+.sk-w80 { inline-size: 80%; }
+
+.sk-gallery-main { block-size: 420px; }
+.sk-gallery-thumbs {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-2);
+  margin-block-start: var(--space-2);
+}
+.sk-gallery-thumb { block-size: 90px; }
+
+@media (max-width: 768px) {
+  .sk-gallery-main { block-size: 260px; }
+}

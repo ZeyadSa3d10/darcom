@@ -1,0 +1,60 @@
+/* ==========================================================================
+   Pagination — Luxury Page Controls
+   ========================================================================== */
+.darcom-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  margin-block: var(--space-10) var(--space-6);
+}
+
+.darcom-pagination button {
+  min-inline-size: 2.5rem;
+  block-size: 2.5rem;
+  border: 1px solid var(--neutral-300);
+  background: #ffffff;
+  border-radius: 10px;
+  cursor: pointer;
+  color: var(--neutral-800);
+  font-size: 0.92rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.darcom-pagination button:hover:not(:disabled) {
+  border-color: var(--brand-primary);
+  color: var(--brand-primary);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(20, 66, 79, 0.12);
+}
+
+.darcom-pagination button.active {
+  background: var(--brand-primary);
+  border-color: var(--brand-primary);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(20, 66, 79, 0.3);
+}
+
+.darcom-pagination button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none;
+}
+
+.page-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.page-gap {
+  color: var(--neutral-400);
+  padding-inline: 0.25rem;
+  font-weight: 700;
+}

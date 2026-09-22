@@ -1,0 +1,614 @@
+/* ==========================================================================
+   Darcom Luxe Animated Hero Section — Cinematic Experience
+   ========================================================================== */
+
+.hero {
+  position: relative;
+  block-size: 100vh;
+  block-size: 100dvh;
+  min-block-size: 100vh;
+  min-block-size: 100dvh;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  overflow: hidden;
+  background: var(--brand-900);
+  /* Pull under sticky transparent navbar */
+  margin-block-start: calc(-1 * var(--navbar-height));
+  padding-block-start: calc(var(--navbar-height) + 1.25rem);
+  padding-block-end: clamp(1.5rem, 3.5vh, 2.5rem);
+}
+
+/* ==========================================================================
+   1. Slide Backgrounds, Cross-fade & Parallax Drift
+   ========================================================================== */
+.hero-slides-track {
+  position: absolute;
+  inset: -3%;
+  inline-size: 106%;
+  block-size: 106%;
+  overflow: hidden;
+  z-index: 0;
+  will-change: transform;
+  transition: transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.hero-slide {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 1.2s cubic-bezier(0.25, 1, 0.5, 1), visibility 1.2s ease;
+  will-change: opacity;
+}
+
+.hero-slide.active {
+  opacity: 1;
+  visibility: visible;
+  z-index: 1;
+}
+
+.hero-slide-img {
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+  transform: scale(1);
+  transition: transform 7.5s cubic-bezier(0.1, 1, 0.1, 1);
+}
+
+.hero-slide.active .hero-slide-img {
+  transform: scale(1.07);
+}
+
+/* Each slide carries a --slide-tint (r,g,b) so the overlay is color-graded
+   to match its location — teal Red Sea, cool Mediterranean, warm New Cairo gold. */
+.hero-slide-gradient {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 22% 18%, rgba(var(--slide-tint, 20, 66, 79), 0.38) 0%, transparent 55%),
+    linear-gradient(180deg,
+      rgba(14, 42, 51, 0.58) 0%,
+      rgba(14, 42, 51, 0.4) 40%,
+      rgba(8, 24, 29, 0.9) 100%);
+  transition: background 1.2s ease;
+}
+
+/* Ambient Radial Mesh & Vignette */
+.hero-ambient-mesh {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background: radial-gradient(circle at 20% 40%,
+      rgba(27, 107, 122, 0.28) 0%,
+      transparent 60%),
+    radial-gradient(circle at 85% 75%,
+      rgba(201, 168, 106, 0.15) 0%,
+      transparent 50%);
+  box-shadow: inset 0 0 120px rgba(0, 0, 0, 0.5);
+}
+
+/* Fine film-grain for a cinematic, non-flat finish — barely perceptible */
+.hero-grain {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  opacity: 0.05;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+}
+
+/* ==========================================================================
+   2. Hero Content Container & Orchestrated Entrance
+   ========================================================================== */
+.hero-content {
+  position: relative;
+  z-index: 10;
+  color: #fff;
+  inline-size: 100%;
+  margin-block-end: 1.5rem;
+}
+
+/* One reveal sequence on load — each element carries its own --fade-delay */
+.hero-fade-up {
+  opacity: 0;
+  transform: translateY(14px);
+}
+
+.hero-content.mounted .hero-fade-up {
+  animation: heroReveal 0.85s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation-delay: var(--fade-delay, 0s);
+}
+
+@keyframes heroReveal {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Badges Row */
+.hero-badges-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-block-end: 1.25rem;
+}
+
+.hero-pill-badge,
+.hero-slide-location-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.35rem 0.85rem;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: #ffffff;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  animation: floatSubtle 4s ease-in-out infinite alternate;
+}
+
+.hero-slide-location-pill {
+  background: rgba(20, 66, 79, 0.55);
+  border-color: rgba(201, 168, 106, 0.4);
+}
+
+@keyframes floatSubtle {
+  0% {
+    transform: translateY(0);
+  }
+
+  100% {
+    transform: translateY(-3px);
+  }
+}
+
+.badge-pulse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #10b981;
+  margin-inline-end: 0.5rem;
+  box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+  animation: pulseGreen 2s infinite;
+}
+
+@keyframes pulseGreen {
+  0% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+  }
+
+  70% {
+    box-shadow: 0 0 0 8px rgba(16, 185, 129, 0);
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+  }
+}
+
+.text-gold {
+  color: var(--brand-accent) !important;
+}
+
+/* ==========================================================================
+   3. Headline & Dynamic Words
+   ========================================================================== */
+.hero-kicker {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--brand-accent);
+  margin-block-end: 0.65rem;
+}
+
+.kicker-line {
+  display: inline-block;
+  width: 0;
+  height: 2px;
+  background: var(--brand-accent);
+  border-radius: 2px;
+  transition: width 0.7s ease 0.15s;
+}
+
+.hero-content.mounted .kicker-line {
+  width: 28px;
+}
+
+.hero-title {
+  font-size: clamp(2.4rem, 5.2vw, 4.4rem);
+  font-family: var(--font-display);
+  line-height: 1.12;
+  margin-block-end: 0.85rem;
+  max-inline-size: 16ch;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+}
+
+.hero-dynamic-word {
+  display: inline-block;
+  background: linear-gradient(120deg, #ffffff 15%, var(--brand-accent) 45%, #ffffff 75%);
+  background-size: 220% 100%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1), transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  transform: translateY(0);
+  opacity: 1;
+  animation: wordShimmer 6s ease-in-out infinite;
+}
+
+.hero-dynamic-word.fading {
+  opacity: 0;
+  transform: translateY(12px);
+}
+
+@keyframes wordShimmer {
+
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+.hero-sub {
+  font-size: clamp(1rem, 1.8vw, 1.18rem);
+  max-inline-size: 58ch;
+  color: rgba(255, 255, 255, 0.88);
+  line-height: 1.6;
+  margin-block-end: 1.5rem;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+}
+
+/* ==========================================================================
+   4. Credibility Ledger
+   ========================================================================== */
+.hero-trust-strip {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  margin-block-end: 1.5rem;
+  padding-block: 0.85rem;
+  border-block: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.trust-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.trust-value {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1;
+  background: linear-gradient(135deg, #ffffff 30%, var(--brand-accent) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.trust-label {
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.7);
+  letter-spacing: 0.01em;
+}
+
+.trust-divider {
+  width: 1px;
+  height: 28px;
+  background: rgba(255, 255, 255, 0.18);
+  flex-shrink: 0;
+}
+
+.hero-search-wrapper {
+  margin-block-start: 0.25rem;
+}
+
+/* ==========================================================================
+   5. Bottom Floating Bar (Thumbnail Progress, Arrows, Scroll Button)
+   ========================================================================== */
+.hero-bottom-controls {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding-block-start: 0.75rem;
+  border-block-start: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+/* Thumbnail Progress Tabs */
+.hero-progress-bars {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.hero-progress-tab {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  opacity: 0.55;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+  text-align: start;
+}
+
+.hero-progress-tab:hover,
+.hero-progress-tab.active {
+  opacity: 1;
+}
+
+.tab-thumb {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+}
+
+.tab-thumb-ring {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  transform: rotate(-90deg);
+}
+
+.tab-ring-track {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.22);
+  stroke-width: 2;
+}
+
+.tab-ring-fill {
+  fill: none;
+  stroke: var(--brand-accent);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-dasharray: 119.4;
+  stroke-dashoffset: 119.4;
+}
+
+.hero-progress-tab.active .tab-ring-fill {
+  animation: ringFill var(--tab-duration, 6500ms) linear forwards;
+}
+
+@keyframes ringFill {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.tab-thumb-img {
+  position: absolute;
+  inset: 4px;
+  inline-size: calc(100% - 8px);
+  block-size: calc(100% - 8px);
+  border-radius: 50%;
+  object-fit: cover;
+  filter: saturate(0.85);
+  transition: filter 0.25s ease;
+}
+
+.hero-progress-tab.active .tab-thumb-img {
+  filter: saturate(1.1);
+}
+
+.tab-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.progress-number {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--brand-accent);
+  letter-spacing: 0.05em;
+}
+
+.progress-label {
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: #ffffff;
+  white-space: nowrap;
+}
+
+/* Nav Arrows */
+.hero-nav-arrows {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.hero-arrow-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0.95rem;
+  transition: all 0.22s ease;
+}
+
+.hero-arrow-btn:hover {
+  background: rgba(255, 255, 255, 0.24);
+  border-color: #fff;
+  transform: scale(1.08);
+}
+
+/* Scroll To Content Button */
+.hero-scroll-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.85);
+  cursor: pointer;
+  padding: 0.35rem 0.6rem;
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.hero-scroll-btn:hover {
+  color: #fff;
+  transform: translateY(2px);
+}
+
+.scroll-text {
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.mouse-icon {
+  width: 20px;
+  height: 30px;
+  border: 2px solid rgba(255, 255, 255, 0.7);
+  border-radius: 12px;
+  display: flex;
+  justify-content: center;
+  padding-top: 4px;
+}
+
+.mouse-wheel {
+  width: 3px;
+  height: 6px;
+  background: #ffffff;
+  border-radius: 2px;
+  animation: mouseWheel 1.6s infinite ease-in-out;
+}
+
+@keyframes mouseWheel {
+  0% {
+    opacity: 0;
+    transform: translateY(0);
+  }
+
+  40% {
+    opacity: 1;
+    transform: translateY(4px);
+  }
+
+  80% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+/* ==========================================================================
+   6. Responsive Breakpoints
+   ========================================================================== */
+@media (max-width: 992px) {
+  .progress-label {
+    display: none;
+  }
+
+  .hero-bottom-controls {
+    gap: 1rem;
+  }
+
+  .hero-trust-strip {
+    gap: 1rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .hero {
+    min-block-size: 100vh;
+    min-block-size: 100dvh;
+    block-size: auto;
+    padding-block-end: 2.5rem;
+  }
+
+  .hero-title {
+    font-size: 2.2rem;
+    max-inline-size: 100%;
+  }
+
+  .hero-sub {
+    font-size: 0.96rem;
+  }
+
+  .hero-trust-strip {
+    gap: 1.1rem;
+    overflow-x: auto;
+    padding-block: 0.7rem;
+  }
+
+  .hero-progress-bars {
+    display: none;
+  }
+
+  .hero-bottom-controls {
+    justify-content: center;
+  }
+
+  .hero-scroll-btn {
+    display: none;
+  }
+}
+
+/* ==========================================================================
+   7. Reduced Motion
+   ========================================================================== */
+@media (prefers-reduced-motion: reduce) {
+
+  .hero-slides-track,
+  .hero-slide,
+  .hero-slide-img,
+  .hero-pill-badge,
+  .hero-dynamic-word,
+  .kicker-line,
+  .hero-fade-up {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .hero-content.mounted .hero-fade-up {
+    opacity: 1;
+    transform: none;
+  }
+
+  .hero-content.mounted .kicker-line {
+    width: 28px;
+  }
+}

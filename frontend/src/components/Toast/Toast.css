@@ -1,0 +1,188 @@
+/* ==========================================================================
+   Darcom Luxe Glass Toaster — System Notifications
+   ========================================================================== */
+
+.toast-stack {
+  position: fixed;
+  inset-block-end: 1.5rem;
+  inset-inline-end: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  z-index: 3000;
+  max-inline-size: min(390px, 92vw);
+  pointer-events: none;
+}
+
+.toast-item {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  padding: 1rem 1.15rem 1.15rem;
+  border-radius: 18px;
+  background: rgba(14, 42, 51, 0.94);
+  backdrop-filter: blur(24px) saturate(190%);
+  -webkit-backdrop-filter: blur(24px) saturate(190%);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: 0 20px 48px -10px rgba(0, 0, 0, 0.45),
+              0 0 0 1px rgba(201, 168, 106, 0.22) inset;
+  color: #ffffff;
+  overflow: hidden;
+  pointer-events: auto;
+  animation: toastSpringIn 0.38s cubic-bezier(0.16, 1.2, 0.3, 1) forwards;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.toast-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 24px 54px -8px rgba(0, 0, 0, 0.52);
+}
+
+@keyframes toastSpringIn {
+  0% {
+    opacity: 0;
+    transform: translateY(24px) scale(0.92);
+  }
+  70% {
+    transform: translateY(-3px) scale(1.02);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Glowing Icon Badges */
+.toast-icon-wrap {
+  width: 36px;
+  height: 36px;
+  border-radius: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.15rem;
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+}
+
+.toast-icon-wrap.success {
+  background: rgba(16, 185, 129, 0.18);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  box-shadow: 0 0 16px rgba(16, 185, 129, 0.25);
+}
+
+.toast-icon-wrap.error {
+  background: rgba(239, 68, 68, 0.18);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  box-shadow: 0 0 16px rgba(239, 68, 68, 0.25);
+}
+
+.toast-icon-wrap.warning {
+  background: rgba(245, 158, 11, 0.18);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  box-shadow: 0 0 16px rgba(245, 158, 11, 0.25);
+}
+
+.toast-icon-wrap.info {
+  background: rgba(27, 107, 122, 0.3);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  box-shadow: 0 0 16px rgba(56, 189, 248, 0.25);
+}
+
+/* Text Content */
+.toast-text-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.toast-heading {
+  font-size: 0.88rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #ffffff;
+}
+
+.toast-paragraph {
+  font-size: 0.84rem;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.86);
+  margin: 0;
+}
+
+/* Close Button */
+.toast-dismiss-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  font-size: 0.95rem;
+  flex-shrink: 0;
+  transition: all 0.22s ease;
+}
+
+.toast-dismiss-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  transform: rotate(90deg);
+}
+
+/* Auto-dismiss Countdown Progress Bar */
+.toast-timer-track {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+
+.toast-timer-line {
+  height: 100%;
+  width: 100%;
+  transform-origin: left;
+  animation: toastCountdown var(--toast-ms, 4200ms) linear forwards;
+}
+
+[dir="rtl"] .toast-timer-line {
+  transform-origin: right;
+}
+
+.toast-timer-line.success {
+  background: linear-gradient(90deg, #34d399, #10b981);
+}
+
+.toast-timer-line.error {
+  background: linear-gradient(90deg, #f87171, #ef4444);
+}
+
+.toast-timer-line.warning {
+  background: linear-gradient(90deg, #fbbf24, #f59e0b);
+}
+
+.toast-timer-line.info {
+  background: linear-gradient(90deg, #38bdf8, var(--brand-accent));
+}
+
+@keyframes toastCountdown {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}

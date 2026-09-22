@@ -1,0 +1,368 @@
+/* ==========================================================================
+   Darcom Luxury Footer — Elevated Architectural Identity
+   ========================================================================== */
+
+.darcom-luxury-footer {
+  position: relative;
+  background: linear-gradient(180deg, #0d2830 0%, #091c22 45%, #051014 100%);
+  color: #e4ecee;
+  border-block-start: 1px solid rgba(201, 168, 106, 0.28);
+  margin-block-start: var(--space-16);
+  font-family: var(--font-body);
+  overflow: hidden;
+}
+
+/* Subtle architectural top glow */
+.darcom-luxury-footer::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 10%;
+  right: 10%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(201, 168, 106, 0.7), transparent);
+  pointer-events: none;
+}
+
+/* --------------------------------------------------------------------------
+   Main Core Navigation Grid
+   -------------------------------------------------------------------------- */
+.footer-main-core {
+  padding-block: clamp(3rem, 5vw, 4.5rem) clamp(2.5rem, 4vw, 3.5rem);
+}
+
+.footer-columns-grid {
+  display: grid;
+  grid-template-columns: 1.45fr repeat(4, 1fr);
+  gap: clamp(1.75rem, 3.5vw, 3.25rem);
+}
+
+/* Column 1: Brand & Credentials */
+.footer-col-brand {
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
+  align-items: flex-start;
+}
+
+.footer-brand-logo-link {
+  display: inline-block;
+  text-decoration: none;
+}
+
+.footer-brand-logo {
+  height: 48px;
+  width: auto;
+  max-width: 175px;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.4));
+}
+
+.footer-brand-about {
+  font-size: 0.88rem;
+  color: #9bb3ba;
+  line-height: 1.75;
+  margin: 0;
+  max-width: 34ch;
+}
+
+.footer-credentials-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(201, 168, 106, 0.25);
+  border-radius: 8px;
+  padding: 0.45rem 0.8rem;
+  font-size: 0.78rem;
+  color: #d8e5e8;
+  font-weight: 500;
+}
+
+.footer-credentials-badge .text-gold {
+  color: #c9a86a;
+  font-size: 0.95rem;
+}
+
+.footer-contact-items {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  font-size: 0.84rem;
+  color: #9cb2b8;
+  margin-block-start: 0.35rem;
+}
+
+.footer-contact-row {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.footer-contact-row i {
+  color: #c9a86a;
+  font-size: 0.9rem;
+  width: 16px;
+}
+
+.footer-contact-row a {
+  color: #9cb2b8;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.footer-contact-row a:hover {
+  color: #ffffff;
+}
+
+/* Social Buttons */
+.footer-social-row {
+  display: flex;
+  gap: 0.65rem;
+  margin-block-start: 0.5rem;
+}
+
+.social-circle-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #a2bac2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  font-size: 0.95rem;
+  transition: all 0.25s ease;
+}
+
+.social-circle-btn:hover {
+  background: #c9a86a;
+  border-color: #c9a86a;
+  color: #0b1e25;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(201, 168, 106, 0.35);
+}
+
+/* Nav Columns */
+.footer-col-nav {
+  display: flex;
+  flex-direction: column;
+}
+
+.footer-nav-title {
+  font-family: var(--font-display);
+  font-size: 0.96rem;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: 0.02em;
+  margin-block-end: 1.25rem;
+  position: relative;
+  padding-block-end: 0.65rem;
+}
+
+.footer-nav-title::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 28px;
+  height: 2px;
+  background: #c9a86a;
+  border-radius: 2px;
+}
+
+[dir="ltr"] .footer-nav-title::after {
+  right: auto;
+  left: 0;
+}
+
+.footer-nav-links {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.footer-nav-link {
+  color: #9bb3ba;
+  text-decoration: none;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.22s ease;
+}
+
+.link-hover-bullet {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #c9a86a;
+  opacity: 0;
+  transform: scale(0);
+  transition: all 0.2s ease;
+}
+
+.footer-nav-link:hover {
+  color: #ffffff;
+  transform: translateX(-4px);
+}
+
+[dir="ltr"] .footer-nav-link:hover {
+  transform: translateX(4px);
+}
+
+.footer-nav-link:hover .link-hover-bullet {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* --------------------------------------------------------------------------
+   3. Regulatory Trust Pedestals Strip
+   -------------------------------------------------------------------------- */
+.footer-trust-pedestals {
+  padding-block: 1.5rem;
+  border-block-start: 1px solid rgba(255, 255, 255, 0.07);
+  border-block-end: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.trust-pedestals-inner {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.5rem;
+}
+
+.trust-pedestal-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.83rem;
+  font-weight: 600;
+  color: #c0d3d8;
+  padding: 0.5rem 0.25rem;
+}
+
+.trust-icon {
+  font-size: 1.25rem;
+  color: #c9a86a;
+  flex-shrink: 0;
+}
+
+/* --------------------------------------------------------------------------
+   4. Sub-Footer Legal & Back to Top
+   -------------------------------------------------------------------------- */
+.footer-sub-legal {
+  padding-block: 1.5rem;
+  font-size: 0.82rem;
+  color: #728c94;
+}
+
+.footer-legal-flex {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.legal-copy {
+  color: #839ea6;
+}
+
+.legal-nav-strip {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  flex-wrap: wrap;
+}
+
+.legal-nav-strip a {
+  color: #839ea6;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.legal-nav-strip a:hover {
+  color: #c9a86a;
+}
+
+.legal-separator {
+  color: rgba(201, 168, 106, 0.4);
+  font-weight: 700;
+}
+
+.footer-back-to-top {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #c5d8dc;
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 0.45rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  transition: all 0.25s ease;
+}
+
+.footer-back-to-top:hover {
+  background: rgba(201, 168, 106, 0.15);
+  border-color: #c9a86a;
+  color: #ffffff;
+  transform: translateY(-2px);
+}
+
+/* --------------------------------------------------------------------------
+   Responsive Design
+   -------------------------------------------------------------------------- */
+@media (max-width: 1200px) {
+  .footer-columns-grid {
+    grid-template-columns: 1.2fr repeat(4, 1fr);
+    gap: 1.75rem;
+  }
+}
+
+@media (max-width: 992px) {
+  .footer-columns-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 2.25rem 1.75rem;
+  }
+  .footer-col-brand {
+    grid-column: span 2;
+  }
+  .trust-pedestals-inner {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.25rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .footer-columns-grid {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+  .footer-col-brand {
+    grid-column: span 1;
+  }
+  .trust-pedestals-inner {
+    grid-template-columns: 1fr;
+    gap: 0.85rem;
+  }
+  .footer-legal-flex {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+  .footer-back-to-top {
+    align-self: flex-start;
+  }
+}
+

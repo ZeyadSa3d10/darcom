@@ -1,0 +1,38 @@
+/* Breadcrumbs — own scoped CSS. Logical properties keep RTL mirroring automatic. */
+.darcom-breadcrumbs ol {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  list-style: none;
+  padding: 0;
+  margin: 0 0 var(--space-4);
+  font-size: var(--fs-meta);
+}
+
+.darcom-breadcrumbs li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--neutral-600);
+}
+
+.darcom-breadcrumbs li + li::before {
+  content: '›';
+  color: var(--brand-accent, #c9a86a);
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+[dir='rtl'] .darcom-breadcrumbs li + li::before {
+  content: '‹';
+  color: var(--brand-accent, #c9a86a);
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.darcom-breadcrumbs a {
+  color: var(--brand-primary);
+  text-decoration: none;
+}
+
+.darcom-breadcrumbs a:hover { text-decoration: underline; }

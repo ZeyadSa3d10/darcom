@@ -1,0 +1,102 @@
+/* Sell — own page CSS. Practical form + tracker, operational tone. */
+.sell-page {
+  padding-block: var(--space-8) var(--space-16);
+  max-inline-size: 860px;
+}
+
+.sell-page h1 {
+  font-size: clamp(1.6rem, 3vw, 2.25rem);
+  margin-block-end: var(--space-1);
+}
+
+.sell-card {
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-md);
+  padding: var(--space-6) var(--space-4);
+  margin-block: var(--space-6);
+}
+
+.sell-card h2 {
+  font-size: 1.25rem;
+  margin-block-end: var(--space-4);
+}
+
+.form-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 var(--space-4);
+}
+
+.form-grid-3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 0 var(--space-4);
+}
+
+.sell-page .filters-label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--neutral-600);
+  margin-block: var(--space-4) var(--space-2);
+}
+
+.check-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: var(--space-1) var(--space-3);
+}
+
+.check-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.check-item input {
+  accent-color: var(--brand-primary);
+  inline-size: 1rem;
+  block-size: 1rem;
+}
+
+.sell-actions {
+  display: flex;
+  gap: var(--space-2);
+  margin-block-start: var(--space-4);
+}
+
+.tracker { margin-block-start: var(--space-8); }
+.tracker h2 {
+  font-size: 1.25rem;
+  margin-block-end: var(--space-4);
+}
+
+.tracker-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.tracker-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-sm);
+  padding: var(--space-3) var(--space-4);
+}
+
+.tracker-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+@media (max-width: 576px) {
+  .form-grid-2, .form-grid-3 { grid-template-columns: 1fr; }
+  .tracker-row { flex-direction: column; align-items: flex-start; }
+}

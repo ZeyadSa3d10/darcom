@@ -1,0 +1,135 @@
+/* Profile (dashboard) — own page CSS. Operational, not marketing-styled. */
+.profile-page {
+  padding-block: var(--space-8) var(--space-16);
+}
+
+.profile-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-block-end: var(--space-6);
+}
+
+.profile-head h1 {
+  margin: 0;
+  font-size: clamp(1.5rem, 3vw, 2rem);
+}
+
+.profile-head-actions {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.profile-tabs {
+  display: flex;
+  gap: var(--space-1);
+  border-block-end: 1px solid var(--border-color);
+  margin-block-end: var(--space-6);
+}
+
+.profile-tabs button {
+  border: none;
+  background: none;
+  padding: var(--space-2) var(--space-4);
+  font-weight: 600;
+  color: var(--neutral-600);
+  cursor: pointer;
+  border-block-end: 2px solid transparent;
+  margin-block-end: -1px;
+}
+
+.profile-tabs button.active {
+  color: var(--brand-primary);
+  border-block-end-color: var(--brand-primary);
+}
+
+.req-kind {
+  display: flex;
+  gap: var(--space-2);
+  margin-block-end: var(--space-4);
+}
+
+.req-kind button {
+  border: 1px solid var(--border-color);
+  background: var(--neutral-0);
+  border-radius: 999px;
+  padding: 0.3rem 1rem;
+  font-size: 0.88rem;
+  cursor: pointer;
+}
+
+.req-kind button.active {
+  background: var(--brand-900);
+  border-color: var(--brand-900);
+  color: #fff;
+}
+
+.request-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.request-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-sm);
+  padding: var(--space-3) var(--space-4);
+}
+
+.notification-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-3);
+  inline-size: 100%;
+  text-align: start;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-sm);
+  padding: var(--space-3) var(--space-4);
+  background: var(--neutral-0);
+  cursor: pointer;
+}
+
+.notification-row.unread {
+  border-inline-start: 3px solid var(--brand-primary);
+}
+
+.notification-row p { margin: var(--space-1) 0; }
+
+.notification-row .dot {
+  inline-size: 0.6rem;
+  block-size: 0.6rem;
+  border-radius: 50%;
+  background: var(--brand-primary);
+  flex-shrink: 0;
+  margin-block-start: 0.4rem;
+}
+
+.settings-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-6);
+  align-items: start;
+}
+
+.settings-card {
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-md);
+  padding: var(--space-6) var(--space-4);
+}
+
+.settings-card h3 {
+  font-size: 1.1rem;
+  margin-block-end: var(--space-4);
+}
+
+@media (max-width: 768px) {
+  .settings-grid { grid-template-columns: 1fr; }
+}

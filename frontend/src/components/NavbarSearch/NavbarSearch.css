@@ -1,0 +1,272 @@
+/* ==========================================================================
+   Creative Navbar Search Bar (Darcom Luxury Search)
+   ========================================================================== */
+
+.navbar-search-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  width: 100%;
+  max-width: 440px;
+  font-family: inherit;
+}
+
+/* 1. Pure Navbar Search Bar Form */
+.nav-search-bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 44px;
+  border-radius: 9999px;
+  padding: 0 0.35rem 0 0.85rem;
+  transition: all 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+[dir="rtl"] .nav-search-bar {
+  padding: 0 0.85rem 0 0.35rem;
+}
+
+/* Over Hero: Frosted Dark Teal Glass */
+.navbar-search-wrapper.is-hero .nav-search-bar {
+  background: rgba(14, 42, 51, 0.72);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 8px 24px -6px rgba(0, 0, 0, 0.35),
+              0 0 0 1px rgba(201, 168, 106, 0.18) inset;
+}
+
+.navbar-search-wrapper.is-hero .nav-search-bar:hover,
+.navbar-search-wrapper.is-hero.is-expanded .nav-search-bar {
+  background: rgba(14, 42, 51, 0.88);
+  border-color: rgba(201, 168, 106, 0.6);
+  box-shadow: 0 12px 32px -6px rgba(0, 0, 0, 0.45),
+              0 0 0 2px rgba(201, 168, 106, 0.35);
+}
+
+/* Solid Navbar: Frosted White Glass */
+.navbar-search-wrapper.is-solid .nav-search-bar {
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(24px) saturate(190%);
+  -webkit-backdrop-filter: blur(24px) saturate(190%);
+  border: 1px solid rgba(20, 66, 79, 0.14);
+  box-shadow: 0 6px 20px -4px rgba(14, 42, 50, 0.08),
+              0 0 0 1px rgba(201, 168, 106, 0.15) inset;
+}
+
+.navbar-search-wrapper.is-solid .nav-search-bar:hover,
+.navbar-search-wrapper.is-solid.is-expanded .nav-search-bar {
+  background: #ffffff;
+  border-color: var(--brand-accent, #c9a86a);
+  box-shadow: 0 10px 28px -6px rgba(14, 42, 50, 0.14),
+              0 0 0 3px rgba(201, 168, 106, 0.22);
+}
+
+/* Icon Wrap */
+.nav-search-icon-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.95rem;
+  color: var(--brand-accent, #c9a86a);
+  margin-inline-end: 0.65rem;
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.nav-search-bar:focus-within .nav-search-icon-wrap {
+  transform: scale(1.1);
+}
+
+/* Search Input */
+.nav-search-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  outline: none;
+  font-family: inherit !important;
+  font-size: 0.88rem;
+  font-weight: 500;
+  height: 100%;
+  padding: 0;
+  margin: 0;
+}
+
+.navbar-search-wrapper.is-hero .nav-search-input {
+  color: #ffffff;
+}
+
+.navbar-search-wrapper.is-hero .nav-search-input::placeholder {
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.navbar-search-wrapper.is-solid .nav-search-input {
+  color: var(--brand-900);
+}
+
+.navbar-search-wrapper.is-solid .nav-search-input::placeholder {
+  color: var(--neutral-500);
+}
+
+/* Clear Button */
+.nav-search-clear-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0, 0, 0, 0.1);
+  color: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+  margin-inline-end: 0.35rem;
+  flex-shrink: 0;
+  transition: all 0.18s ease;
+}
+
+.navbar-search-wrapper.is-hero .nav-search-clear-btn {
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+}
+
+.nav-search-clear-btn:hover {
+  background: var(--brand-accent, #c9a86a);
+  color: var(--brand-900);
+  transform: scale(1.08);
+}
+
+/* Gold Submit Button */
+.nav-search-submit-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  border-radius: 50%;
+  border: none;
+  background: linear-gradient(135deg, #c9a86a 0%, #dfc28d 100%);
+  color: var(--brand-900);
+  font-size: 0.88rem;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(201, 168, 106, 0.4);
+  transition: all 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+  flex-shrink: 0;
+}
+
+.nav-search-submit-btn:hover {
+  transform: scale(1.08);
+  box-shadow: 0 6px 18px rgba(201, 168, 106, 0.6);
+}
+
+/* 2. Sleek Quick-Suggestions Dropdown Card */
+.nav-search-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 0;
+  right: 0;
+  width: 100%;
+  min-width: 340px;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(28px) saturate(190%);
+  -webkit-backdrop-filter: blur(28px) saturate(190%);
+  border: 1px solid rgba(20, 66, 79, 0.12);
+  border-radius: 20px;
+  box-shadow: 0 20px 48px -10px rgba(14, 42, 50, 0.25),
+              0 0 0 1px rgba(201, 168, 106, 0.2) inset;
+  padding: 1.15rem;
+  z-index: 1100;
+  animation: searchMenuDrop 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes searchMenuDrop {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.dropdown-trending-header {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--neutral-600);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.65rem;
+  display: flex;
+  align-items: center;
+}
+
+.dropdown-trending-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-bottom: 0.85rem;
+}
+
+.dropdown-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.35rem 0.75rem;
+  border-radius: 9999px;
+  border: 1px solid rgba(20, 66, 79, 0.1);
+  background: rgba(20, 66, 79, 0.03);
+  color: var(--neutral-800);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  font-family: inherit;
+}
+
+.dropdown-chip:hover {
+  background: var(--brand-accent, #c9a86a);
+  color: var(--brand-900);
+  border-color: var(--brand-accent, #c9a86a);
+  transform: translateY(-1px);
+}
+
+.dropdown-footer-link {
+  border-top: 1px solid rgba(20, 66, 79, 0.08);
+  padding-top: 0.65rem;
+}
+
+.btn-browse-all {
+  display: inline-flex;
+  align-items: center;
+  background: transparent;
+  border: none;
+  color: var(--brand-primary);
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.18s ease;
+}
+
+.btn-browse-all:hover {
+  color: var(--brand-accent);
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 991px) {
+  .navbar-search-wrapper {
+    max-width: 100%;
+    width: 100%;
+  }
+
+  .nav-search-dropdown-menu {
+    position: static;
+    margin-top: 0.5rem;
+    box-shadow: none;
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.98);
+  }
+}

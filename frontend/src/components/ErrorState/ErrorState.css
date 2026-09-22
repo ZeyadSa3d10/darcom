@@ -1,0 +1,2 @@
+/* ErrorState — own scoped CSS. */
+.state-block .state-icon.error { color: var(--danger); }

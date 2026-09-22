@@ -1,0 +1,238 @@
+/* ==========================================================================
+   Darcom Luxe Language Transition Overlay
+   ========================================================================== */
+
+.darcom-lang-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 99998;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at 50% 50%, rgba(21, 69, 82, 0.88) 0%, rgba(13, 39, 47, 0.94) 55%, rgba(5, 17, 21, 0.98) 100%);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  overflow: hidden;
+  animation: langOverlayIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  transition: opacity 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+              transform 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+              filter 0.28s ease;
+  will-change: opacity, transform, filter;
+}
+
+@keyframes langOverlayIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Exit state: smooth zoom & fade to seamlessly reveal the translated page */
+.darcom-lang-overlay.fade-out {
+  opacity: 0;
+  transform: scale(1.03);
+  filter: blur(8px);
+  pointer-events: none;
+}
+
+/* Ambient Pulsing Glow */
+.lang-ambient-mesh {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(circle at 40% 40%, rgba(201, 168, 106, 0.16) 0%, transparent 60%),
+              radial-gradient(circle at 60% 60%, rgba(27, 107, 122, 0.25) 0%, transparent 60%);
+  animation: langMeshFloat 3s ease-in-out infinite alternate;
+}
+
+@keyframes langMeshFloat {
+  0% { transform: scale(1); opacity: 0.7; }
+  100% { transform: scale(1.08); opacity: 1; }
+}
+
+/* Central Luxury Card */
+.lang-modal-card {
+  position: relative;
+  z-index: 2;
+  width: 90%;
+  max-width: 440px;
+  padding: 2.25rem 2rem;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.02) 100%);
+  border: 1px solid rgba(201, 168, 106, 0.28);
+  border-radius: 24px;
+  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.7),
+              0 0 35px rgba(201, 168, 106, 0.12),
+              inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 1.25rem;
+}
+
+/* 3D Crest with Rotating Orbital Rings */
+.lang-crest-wrap {
+  position: relative;
+  width: 110px;
+  height: 110px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  perspective: 900px;
+}
+
+.lang-orbit-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  border-top-color: var(--brand-accent, #c9a86a);
+  border-right-color: rgba(255, 255, 255, 0.7);
+  filter: drop-shadow(0 0 10px rgba(201, 168, 106, 0.6));
+  animation: langOrbitSpin 1.4s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
+}
+
+.lang-orbit-dashed {
+  position: absolute;
+  inset: -8px;
+  border-radius: 50%;
+  border: 1px dashed rgba(255, 255, 255, 0.22);
+  animation: langOrbitSpinReverse 3.8s linear infinite;
+}
+
+@keyframes langOrbitSpin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes langOrbitSpinReverse {
+  0% { transform: rotate(360deg); }
+  100% { transform: rotate(0deg); }
+}
+
+.lang-logo-center {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform-style: preserve-3d;
+  animation: langLogo3DSpin 1.6s cubic-bezier(0.35, 1.25, 0.65, 1) infinite;
+}
+
+@keyframes langLogo3DSpin {
+  0% { transform: rotateY(0deg) scale(0.95); }
+  50% { transform: rotateY(180deg) scale(1.08); }
+  100% { transform: rotateY(360deg) scale(0.95); }
+}
+
+.lang-logo-img {
+  width: 68px;
+  height: 68px;
+  object-fit: contain;
+  filter: drop-shadow(0 6px 18px rgba(0, 0, 0, 0.6))
+          drop-shadow(0 0 18px rgba(201, 168, 106, 0.45));
+}
+
+/* Direction Badge Track: [ From ] ➔ [ To ] */
+.lang-badge-track {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.45rem 1rem;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 9999px;
+  margin-top: 0.25rem;
+}
+
+.lang-chip {
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.chip-from {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.lang-arrow-icon {
+  display: flex;
+  align-items: center;
+  color: var(--brand-accent, #c9a86a);
+  font-size: 0.95rem;
+  animation: langArrowNudge 1s ease-in-out infinite alternate;
+}
+
+@keyframes langArrowNudge {
+  0% { transform: translateX(-3px); }
+  100% { transform: translateX(3px); }
+}
+
+.chip-to {
+  color: #ffffff;
+  background: linear-gradient(135deg, #c9a86a 0%, #dfc38a 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 0 18px rgba(201, 168, 106, 0.5);
+  font-weight: 800;
+  position: relative;
+}
+
+/* Text status */
+.lang-text-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.lang-process-title {
+  margin: 0;
+  font-size: 1.12rem;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: -0.01em;
+  font-family: inherit;
+}
+
+.lang-process-subtitle {
+  margin: 0;
+  font-size: 0.82rem;
+  color: rgba(255, 255, 255, 0.65);
+  font-family: inherit;
+}
+
+/* Animated Progress Track */
+.lang-progress-track {
+  width: 100%;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  overflow: hidden;
+  position: relative;
+  margin-top: 0.5rem;
+}
+
+.lang-progress-bar {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #1b6b7a 0%, #c9a86a 50%, #f4d38d 100%);
+  border-radius: 999px;
+  box-shadow: 0 0 12px rgba(201, 168, 106, 0.7);
+  animation: langProgressFill 0.75s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+@keyframes langProgressFill {
+  0% {
+    width: 0%;
+  }
+  45% {
+    width: 60%;
+  }
+  100% {
+    width: 100%;
+  }
+}

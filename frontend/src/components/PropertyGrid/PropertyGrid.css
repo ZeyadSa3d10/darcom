@@ -1,0 +1,6 @@
+/* PropertyGrid — own scoped CSS. */
+.property-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: var(--space-6);
+}

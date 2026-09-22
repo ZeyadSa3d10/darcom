@@ -1,0 +1,161 @@
+/* ==========================================================================
+   Agent Card — Luxury Real Estate Advisor
+   ========================================================================== */
+.agent-card-luxury {
+  border: 1px solid rgba(20, 66, 79, 0.12);
+  border-radius: 20px;
+  padding: 1.35rem;
+  background: #ffffff;
+  box-shadow: 0 10px 30px -10px rgba(14, 42, 50, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
+}
+
+.agent-header-row {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.agent-avatar-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.agent-portrait {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #ffffff;
+  box-shadow: 0 4px 12px rgba(14, 42, 50, 0.15), 0 0 0 2px var(--brand-accent);
+}
+
+.agent-online-beacon {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  width: 13px;
+  height: 13px;
+  background: #22c55e;
+  border-radius: 50%;
+  border: 2px solid #ffffff;
+  box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.3);
+  animation: beaconPulse 2s infinite;
+}
+
+@keyframes beaconPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.6);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(34, 197, 94, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+  }
+}
+
+.agent-info-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.agent-role-tag {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--brand-accent);
+}
+
+.agent-fullname {
+  font-size: 1.05rem;
+  color: var(--neutral-900);
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.agent-sub-title {
+  font-size: 0.8rem;
+  color: var(--neutral-600);
+}
+
+.agent-verified-pill {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 0.25rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #047857;
+  background: #ecfdf5;
+  padding: 0.15rem 0.55rem;
+  border-radius: 9999px;
+  align-self: flex-start;
+  border: 1px solid #a7f3d0;
+}
+
+/* Action Buttons */
+.agent-action-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 0.45rem;
+}
+
+.btn-agent-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.55rem 0.4rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  border-radius: 10px;
+  text-decoration: none;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  white-space: nowrap;
+}
+
+.btn-agent-action.whatsapp {
+  background: #f0fdf4;
+  color: #15803d;
+  border-color: #bbf7d0;
+}
+
+.btn-agent-action.whatsapp:hover {
+  background: #22c55e;
+  color: #ffffff;
+  border-color: #16a34a;
+  transform: translateY(-1px);
+}
+
+.btn-agent-action.call {
+  background: rgba(20, 66, 79, 0.06);
+  color: var(--brand-primary);
+  border-color: rgba(20, 66, 79, 0.12);
+}
+
+.btn-agent-action.call:hover {
+  background: var(--brand-primary);
+  color: #ffffff;
+  border-color: var(--brand-primary);
+  transform: translateY(-1px);
+}
+
+.btn-agent-action.inquire {
+  background: var(--neutral-100);
+  color: var(--neutral-800);
+  border-color: var(--neutral-200);
+}
+
+.btn-agent-action.inquire:hover {
+  background: var(--neutral-200);
+  transform: translateY(-1px);
+}

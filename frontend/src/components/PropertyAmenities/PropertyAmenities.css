@@ -1,0 +1,53 @@
+/* ==========================================================================
+   Property Amenities — Luxury Features Showcase
+   ========================================================================== */
+.prop-section {
+  margin-block-end: var(--space-8);
+  border-block-start: 1px solid var(--neutral-200);
+  padding-block-start: var(--space-6);
+}
+
+.prop-section h2 {
+  font-family: var(--font-heading, 'Noto Kufi Arabic', sans-serif);
+  font-size: 1.45rem;
+  font-weight: 700;
+  color: var(--neutral-900);
+  margin-block-end: var(--space-4);
+}
+
+.amenities-grid {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: var(--space-3);
+}
+
+.amenities-grid li {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  border: 1px solid rgba(20, 66, 79, 0.1);
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+  font-size: 0.92rem;
+  font-weight: 500;
+  color: var(--neutral-800);
+  background: #ffffff;
+  box-shadow: 0 2px 6px rgba(14, 42, 50, 0.04);
+  transition: all 0.2s ease;
+}
+
+.amenities-grid li:hover {
+  background: rgba(20, 66, 79, 0.04);
+  border-color: var(--brand-accent);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px -4px rgba(14, 42, 50, 0.08);
+}
+
+.amenities-grid i {
+  color: var(--brand-accent);
+  font-size: 1.15rem;
+  flex-shrink: 0;
+}
