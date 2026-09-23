@@ -1,0 +1,13 @@
+{
+  "name": "Darcom — Premium Real Estate Marketplace",
+  "short_name": "Darcom",
+  "description": "Chalets, villas and apartments across Egypt — verified listings, transparent prices.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a2228",
+  "theme_color": "#14424f",
+  "icons": [
+    { "src": "/favicon.png", "sizes": "any", "type": "image/png" },
+    { "src": "/logo-icon-white.png", "sizes": "any", "type": "image/png" }
+  ]
+}

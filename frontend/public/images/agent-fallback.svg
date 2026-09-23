@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" role="img" aria-label="Darcom advisor placeholder">
+  <rect width="240" height="240" fill="#0e2b33"/>
+  <circle cx="120" cy="120" r="112" fill="none" stroke="#c9a86a" stroke-width="4" opacity="0.8"/>
+  <circle cx="120" cy="92" r="34" fill="none" stroke="#f2ead8" stroke-width="6"/>
+  <path d="M60 190 Q60 140 120 140 Q180 140 180 190" fill="none" stroke="#f2ead8" stroke-width="6"/>
+  <text x="120" y="222" text-anchor="middle" font-family="Georgia, serif" font-size="16" letter-spacing="4" fill="#c9a86a">DARCOM</text>
+</svg>

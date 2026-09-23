@@ -9,8 +9,10 @@ import { useAuth } from '../../context/AuthContext.jsx';
 import { purchaseService } from '../../services/purchaseService.js';
 import { propertyService } from '../../services/propertyService.js';
 import { locationService } from '../../services/locationService.js';
+import PropertyValuation from '../../components/PropertyValuation/PropertyValuation.jsx';
 import './Sell.css';
 import { useSeo } from '../../hooks/useSeo.js';
+import { useCmsSeo } from '../../hooks/useCmsSeo.js';
 
 const STATUS_CLASS = {
   Draft: '', PendingReview: '', Published: 'featured', Rejected: '', Archived: '', Sold: 'sold', Rented: 'rented',
@@ -24,7 +26,12 @@ const BLANK_FORM = {
 };
 
 export default function Sell() {
-  useSeo({ title: 'Sell your property | Darcom' });
+  const cmsSeo = useCmsSeo('sell');
+  useSeo({
+    title: cmsSeo?.title || 'Sell your property | Darcom',
+    description: cmsSeo?.description || undefined,
+    image: cmsSeo?.image || undefined,
+  });
   const { user } = useAuth();
   const toast = useToast();
   const canSell = user?.role === 'Seller' || user?.role === 'Agent' || user?.role === 'Admin';
@@ -74,6 +81,16 @@ export default function Sell() {
   };
 
   const num = (v) => (v === '' ? null : Number(v));
+
+  const handleApplyValuation = ({ price, area, finishing }) => {
+    setForm((prev) => ({
+      ...prev,
+      price: price ? String(price) : prev.price,
+      area: area ? String(area) : prev.area,
+      finishingStatus: finishing || prev.finishingStatus,
+    }));
+    toast.success('تم تطبيق التقييم التقديري على نموذج إضافة العقار.');
+  };
 
   const submitDetails = async (e) => {
     e.preventDefault();
@@ -190,8 +207,11 @@ export default function Sell() {
           </div>
         </section>
       ) : (
-        <form onSubmit={submitDetails} noValidate className="sell-card">
-          <h2>Property details</h2>
+        <>
+          <PropertyValuation onApplyPrice={handleApplyValuation} />
+
+          <form onSubmit={submitDetails} noValidate className="sell-card">
+            <h2>Property details</h2>
           <div className="form-grid-2">
             <FormField id="s-title" label="Title" required error={errors.title}>
               <input id="s-title" className={`form-control ${errors.title ? 'is-invalid' : ''}`} value={form.title} onChange={set('title')} />
@@ -326,6 +346,7 @@ export default function Sell() {
             {saving ? 'Saving…' : 'Save draft'}
           </button>
         </form>
+        </>
       )}
 
       <section className="tracker">

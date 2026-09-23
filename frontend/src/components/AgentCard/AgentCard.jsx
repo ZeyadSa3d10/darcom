@@ -1,11 +1,10 @@
 import { useSettings } from '../../context/SettingsContext.jsx';
 import './AgentCard.css';
 
+// Self-hosted launch placeholder (public/images/agent-fallback.svg).
+// TODO(launch): replace with licensed advisor portraits served from the API.
 const CURATED_AGENT_PORTRAITS = [
-  'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=240&h=240&q=80',
-  'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=240&h=240&q=80',
-  'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=240&h=240&q=80',
-  'https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=240&h=240&q=80',
+  '/images/agent-fallback.svg',
 ];
 
 function toWhatsAppUrl(phone, title, ref) {
@@ -22,7 +21,7 @@ export default function AgentCard({ agent, onInquire, propertyTitle = '', proper
   if (!agent) return null;
   const wa = toWhatsAppUrl(agent.phone, propertyTitle, propertyRef);
 
-  // Use curated portrait if photoUrl is null or picsum
+  // Use the local placeholder if photoUrl is null or a legacy picsum dev-seed URL
   const hasPicsum = !agent.photoUrl || agent.photoUrl.includes('picsum.photos');
   const fallbackIndex = Math.abs((agent.id || 1) % CURATED_AGENT_PORTRAITS.length);
   const displayPhoto = hasPicsum ? CURATED_AGENT_PORTRAITS[fallbackIndex] : agent.photoUrl;

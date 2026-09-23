@@ -4,12 +4,14 @@ import EmptyState from '../../../components/EmptyState/EmptyState.jsx';
 import ErrorState from '../../../components/ErrorState/ErrorState.jsx';
 import Pagination from '../../../components/Pagination/Pagination.jsx';
 import { useToast } from '../../../components/Toast/Toast.jsx';
+import { useSettings } from '../../../context/SettingsContext.jsx';
 import { adminService } from '../../../services/adminService.js';
 import { locationService } from '../../../services/locationService.js';
 import ConfirmDialog from './ConfirmDialog.jsx';
 import './MiscManagers.css';
 
 export function InquiriesManager() {
+  const { t, isRtl } = useSettings();
   const toast = useToast();
   const [items, setItems] = useState([]);
   const [page, setPage] = useState(1);
@@ -24,7 +26,7 @@ export function InquiriesManager() {
       setTotalPages(res.data?.totalPages ?? 1);
       setPage(res.data?.page ?? p);
       setState('done');
-    } catch (e) {
+    } catch {
       setState('error');
     }
   }, []);
@@ -36,15 +38,31 @@ export function InquiriesManager() {
   const markRead = async (id) => {
     try {
       await adminService.markInquiryRead(id);
+      toast.success(isRtl ? 'تم تحديد الاستفسار كمقروء.' : 'Inquiry marked as read.');
       load(page);
-    } catch (e) {
-      toast.error('Could not update inquiry.');
+    } catch {
+      toast.error(isRtl ? 'تعذر تحديث الاستفسار.' : 'Could not update inquiry.');
     }
   };
 
   if (state === 'loading') return <LoadingSkeleton count={4} />;
-  if (state === 'error') return <ErrorState error="Could not load inquiries." onRetry={() => load(page)} />;
-  if (!items.length) return <EmptyState icon="bi-envelope" title="No inquiries." message="Customer messages appear here." />;
+  if (state === 'error') {
+    return (
+      <ErrorState
+        error={isRtl ? 'تعذر تحميل استفسارات العملاء.' : 'Could not load inquiries.'}
+        onRetry={() => load(page)}
+      />
+    );
+  }
+  if (!items.length) {
+    return (
+      <EmptyState
+        icon="bi-envelope"
+        title={isRtl ? 'لا توجد استفسارات مسجلة' : 'No inquiries.'}
+        message={isRtl ? 'ستظهر هنا كافة رسائل واستفسارات العملاء الواردة من الموقع.' : 'Customer messages appear here.'}
+      />
+    );
+  }
 
   return (
     <div>
@@ -52,23 +70,39 @@ export function InquiriesManager() {
         <table className="admin-table">
           <thead>
             <tr>
-              <th>From</th>
-              <th>Message</th>
-              <th>Date</th>
-              <th></th>
+              <th>{t('admin.table.from', isRtl ? 'المرسل' : 'From')}</th>
+              <th>{t('admin.table.message', isRtl ? 'نص الاستفسار' : 'Message')}</th>
+              <th>{t('admin.table.date', isRtl ? 'التاريخ' : 'Date')}</th>
+              <th>{t('admin.table.actions', isRtl ? 'الإجراءات' : '')}</th>
             </tr>
           </thead>
           <tbody>
             {items.map((m) => (
               <tr key={m.id} className={m.isRead ? '' : 'row-unread'}>
-                <td>{m.name}<br /><span className="text-meta">{m.email}{m.phone ? ` · ${m.phone}` : ''}</span></td>
-                <td className="wrap-cell">{m.message}</td>
-                <td className="text-meta">{new Date(m.createdAt).toLocaleDateString()}</td>
                 <td>
-                  {!m.isRead && (
-                    <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => markRead(m.id)}>
-                      Mark read
+                  <strong>{m.name}</strong>
+                  <br />
+                  <span className="text-meta">
+                    {m.email}
+                    {m.phone ? ` · ${m.phone}` : ''}
+                  </span>
+                </td>
+                <td className="wrap-cell">{m.message}</td>
+                <td className="text-meta">
+                  {new Date(m.createdAt).toLocaleDateString(isRtl ? 'ar-EG' : 'en-US')}
+                </td>
+                <td>
+                  {!m.isRead ? (
+                    <button
+                      type="button"
+                      className="btn btn-outline-secondary btn-sm"
+                      onClick={() => markRead(m.id)}
+                    >
+                      <i className="bi bi-check2 me-1"></i>
+                      <span>{isRtl ? 'تحديد كمقروء' : 'Mark read'}</span>
                     </button>
+                  ) : (
+                    <span className="text-meta">{isRtl ? 'مقروء' : 'Read'}</span>
                   )}
                 </td>
               </tr>
@@ -82,6 +116,7 @@ export function InquiriesManager() {
 }
 
 export function ReviewsManager({ onChanged }) {
+  const { isRtl } = useSettings();
   const toast = useToast();
   const [filter, setFilter] = useState('');
   const [items, setItems] = useState([]);
@@ -101,7 +136,7 @@ export function ReviewsManager({ onChanged }) {
       setTotalPages(res.data?.totalPages ?? 1);
       setPage(res.data?.page ?? p);
       setState('done');
-    } catch (e) {
+    } catch {
       setState('error');
     }
   }, []);
@@ -113,11 +148,15 @@ export function ReviewsManager({ onChanged }) {
   const setApproval = async (id, approved) => {
     try {
       await adminService.setReviewApproval(id, approved);
-      toast.success(approved ? 'Review approved.' : 'Review hidden.');
+      toast.success(
+        approved
+          ? (isRtl ? 'تمت الموافقة على التقييم ونشره.' : 'Review approved.')
+          : (isRtl ? 'تم إخفاء التقييم.' : 'Review hidden.')
+      );
       load(page, filter);
       onChanged?.();
-    } catch (e) {
-      toast.error('Could not update review.');
+    } catch {
+      toast.error(isRtl ? 'تعذر تحديث حالة التقييم.' : 'Could not update review.');
     }
   };
 
@@ -126,12 +165,12 @@ export function ReviewsManager({ onChanged }) {
     setBusy(true);
     try {
       await adminService.deleteReview(confirmDelete.id);
-      toast.success('Review deleted.');
+      toast.success(isRtl ? 'تم حذف التقييم بنجاح.' : 'Review deleted.');
       setConfirmDelete(null);
       load(page, filter);
       onChanged?.();
-    } catch (e) {
-      toast.error('Could not delete review.');
+    } catch {
+      toast.error(isRtl ? 'تعذر حذف التقييم.' : 'Could not delete review.');
     } finally {
       setBusy(false);
     }
@@ -140,16 +179,32 @@ export function ReviewsManager({ onChanged }) {
   return (
     <div>
       <div className="admin-toolbar">
-        <select value={filter} onChange={(e) => { setFilter(e.target.value); load(1, e.target.value); }} aria-label="Filter reviews">
-          <option value="">All reviews</option>
-          <option value="true">Approved</option>
-          <option value="false">Pending</option>
+        <select
+          value={filter}
+          onChange={(e) => {
+            setFilter(e.target.value);
+            load(1, e.target.value);
+          }}
+          aria-label="Filter reviews"
+        >
+          <option value="">{isRtl ? 'كافة التقييمات' : 'All reviews'}</option>
+          <option value="true">{isRtl ? 'المعتمدة والمنشورة' : 'Approved'}</option>
+          <option value="false">{isRtl ? 'بانتظار الموافقة' : 'Pending'}</option>
         </select>
       </div>
       {state === 'loading' && <LoadingSkeleton count={4} />}
-      {state === 'error' && <ErrorState error="Could not load reviews." onRetry={() => load(page, filter)} />}
+      {state === 'error' && (
+        <ErrorState
+          error={isRtl ? 'تعذر تحميل التقييمات.' : 'Could not load reviews.'}
+          onRetry={() => load(page, filter)}
+        />
+      )}
       {state === 'done' && !items.length && (
-        <EmptyState icon="bi-star" title="No reviews." message="Customer reviews appear here for moderation." />
+        <EmptyState
+          icon="bi-star"
+          title={isRtl ? 'لا توجد تقييمات' : 'No reviews.'}
+          message={isRtl ? 'ستظهر هنا تقييمات العملاء للعقارات لمراجعتها واعتمادها.' : 'Customer reviews appear here for moderation.'}
+        />
       )}
       {state === 'done' && items.length > 0 && (
         <>
@@ -157,28 +212,49 @@ export function ReviewsManager({ onChanged }) {
             <table className="admin-table">
               <thead>
                 <tr>
-                  <th>Property</th>
-                  <th>User</th>
-                  <th>Rating</th>
-                  <th>Comment</th>
-                  <th>Status</th>
-                  <th></th>
+                  <th>{isRtl ? 'العقار' : 'Property'}</th>
+                  <th>{isRtl ? 'صاحب التقييم' : 'User'}</th>
+                  <th>{isRtl ? 'التقييم' : 'Rating'}</th>
+                  <th>{isRtl ? 'نص التعليق' : 'Comment'}</th>
+                  <th>{isRtl ? 'الحالة' : 'Status'}</th>
+                  <th>{isRtl ? 'الإجراءات' : ''}</th>
                 </tr>
               </thead>
               <tbody>
                 {items.map((r) => (
                   <tr key={r.id}>
-                    <td>{r.propertyTitle}</td>
+                    <td><strong>{r.propertyTitle}</strong></td>
                     <td className="text-meta">{r.userName}</td>
-                    <td>{'★'.repeat(r.rating)}{'☆'.repeat(Math.max(0, 5 - r.rating))}</td>
+                    <td>
+                      <span className="text-warning">
+                        {'★'.repeat(r.rating)}
+                      </span>
+                      <span className="text-muted">
+                        {'☆'.repeat(Math.max(0, 5 - r.rating))}
+                      </span>
+                    </td>
                     <td className="wrap-cell">{r.comment || '—'}</td>
-                    <td>{r.isApproved ? <span className="badge-status">live</span> : <span className="badge-status">pending</span>}</td>
+                    <td>
+                      {r.isApproved ? (
+                        <span className="badge-status">{isRtl ? 'معروض' : 'live'}</span>
+                      ) : (
+                        <span className="badge-status">{isRtl ? 'معلق' : 'pending'}</span>
+                      )}
+                    </td>
                     <td className="row-actions">
-                      <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => setApproval(r.id, !r.isApproved)}>
-                        {r.isApproved ? 'Hide' : 'Approve'}
+                      <button
+                        type="button"
+                        className="btn btn-outline-secondary btn-sm"
+                        onClick={() => setApproval(r.id, !r.isApproved)}
+                      >
+                        {r.isApproved ? (isRtl ? 'إخفاء' : 'Hide') : (isRtl ? 'موافقة' : 'Approve')}
                       </button>
-                      <button type="button" className="btn btn-link btn-sm text-danger" onClick={() => setConfirmDelete(r)}>
-                        Delete
+                      <button
+                        type="button"
+                        className="btn btn-link btn-sm text-danger"
+                        onClick={() => setConfirmDelete(r)}
+                      >
+                        {isRtl ? 'حذف' : 'Delete'}
                       </button>
                     </td>
                   </tr>
@@ -191,14 +267,21 @@ export function ReviewsManager({ onChanged }) {
       )}
       {confirmDelete && (
         <ConfirmDialog
-          title="Delete review?"
-          message="This permanently removes the review. Type DELETE to confirm."
-          confirmLabel="Delete"
+          title={isRtl ? 'حذف التقييم نهائياً؟' : 'Delete review?'}
+          message={
+            isRtl
+              ? 'سيؤدي هذا الإجراء إلى حذف التقييم نهائياً من قاعدة البيانات. اكتب DELETE للتأكيد.'
+              : 'This permanently removes the review. Type DELETE to confirm.'
+          }
+          confirmLabel={isRtl ? 'تأكيد الحذف' : 'Delete'}
           danger
           requireTyped="DELETE"
           busy={busy}
           onConfirm={doDelete}
-          onClose={() => { setConfirmDelete(null); setBusy(false); }}
+          onClose={() => {
+            setConfirmDelete(null);
+            setBusy(false);
+          }}
         />
       )}
     </div>
@@ -206,9 +289,17 @@ export function ReviewsManager({ onChanged }) {
 }
 
 export function CatalogManager() {
+  const { isRtl } = useSettings();
   const [tab, setTab] = useState('types');
   const [rows, setRows] = useState([]);
   const [state, setState] = useState('loading');
+
+  const subTabs = [
+    ['types', isRtl ? 'أنواع العقارات' : 'Property types'],
+    ['amenities', isRtl ? 'المميزات والمرافق' : 'Amenities'],
+    ['locations', isRtl ? 'الوجهات والمواقع' : 'Locations'],
+    ['agents', isRtl ? 'المستشارون العقاريون' : 'Agents'],
+  ];
 
   const load = useCallback(async (t) => {
     setState('loading');
@@ -230,36 +321,80 @@ export function CatalogManager() {
   }, [load, tab]);
 
   const renderRow = (r) => {
-    if (tab === 'locations') return (<tr key={r.id}><td>{r.name}</td><td className="text-meta">{r.city}{r.area ? ` · ${r.area}` : ''}</td><td className="text-meta">#{r.id}</td></tr>);
-    if (tab === 'agents') {
+    if (tab === 'locations') {
       return (
         <tr key={r.id}>
-          <td>{r.name}</td>
-          <td className="text-meta">{r.title || '—'}{r.agency ? ` · ${r.agency}` : ''}</td>
-          <td>{r.isVerified ? <span className="badge-verified">Verified</span> : <span className="badge-status">unverified</span>}</td>
+          <td><strong>{r.name}</strong></td>
+          <td className="text-meta">
+            {r.city}
+            {r.area ? ` · ${r.area}` : ''}
+          </td>
+          <td className="text-meta">#{r.id}</td>
         </tr>
       );
     }
-    return (<tr key={r.id || r.slug}><td>{r.name}</td><td className="text-meta">{r.slug || `#${r.id}`}</td><td>{r.icon ? <i className={`bi ${r.icon}`}></i> : '—'}</td></tr>);
+    if (tab === 'agents') {
+      return (
+        <tr key={r.id}>
+          <td><strong>{r.name}</strong></td>
+          <td className="text-meta">
+            {r.title || '—'}
+            {r.agency ? ` · ${r.agency}` : ''}
+          </td>
+          <td>
+            {r.isVerified ? (
+              <span className="badge-verified">{isRtl ? 'معتمد وموثق' : 'Verified'}</span>
+            ) : (
+              <span className="badge-status">{isRtl ? 'غير موثق' : 'unverified'}</span>
+            )}
+          </td>
+        </tr>
+      );
+    }
+    return (
+      <tr key={r.id || r.slug}>
+        <td><strong>{r.name}</strong></td>
+        <td className="text-meta">{r.slug || `#${r.id}`}</td>
+        <td>{r.icon ? <i className={`bi ${r.icon}`}></i> : '—'}</td>
+      </tr>
+    );
   };
 
   return (
     <div>
-      <p className="text-meta">Reference data (read-only here — edits via data seeding and property forms).</p>
+      <p className="text-meta">
+        {isRtl
+          ? 'البيانات المرجعية والمصنفات للنظام (للقراءة والاستعراض هنا — التعديل يتم عبر التهيئة ونماذج الإدخال).'
+          : 'Reference data (read-only here — edits via data seeding and property forms).'}
+      </p>
       <div className="req-kind">
-        {[['types', 'Property types'], ['amenities', 'Amenities'], ['locations', 'Locations'], ['agents', 'Agents']].map(([id, label]) => (
-          <button key={id} type="button" className={tab === id ? 'active' : ''} onClick={() => setTab(id)}>
+        {subTabs.map(([id, label]) => (
+          <button
+            key={id}
+            type="button"
+            className={tab === id ? 'active' : ''}
+            onClick={() => setTab(id)}
+          >
             {label}
           </button>
         ))}
       </div>
       {state === 'loading' && <LoadingSkeleton count={4} />}
-      {state === 'error' && <ErrorState error="Could not load catalog." onRetry={() => load(tab)} />}
+      {state === 'error' && (
+        <ErrorState
+          error={isRtl ? 'تعذر تحميل بيانات الدليل.' : 'Could not load catalog.'}
+          onRetry={() => load(tab)}
+        />
+      )}
       {state === 'done' && (
         <div className="admin-table-wrap">
           <table className="admin-table">
             <thead>
-              <tr><th>Name</th><th>Detail</th><th>{tab === 'agents' ? 'Status' : 'Icon'}</th></tr>
+              <tr>
+                <th>{isRtl ? 'الاسم' : 'Name'}</th>
+                <th>{isRtl ? 'التفاصيل / الرمز' : 'Detail'}</th>
+                <th>{tab === 'agents' ? (isRtl ? 'الحالة' : 'Status') : (isRtl ? 'الأيقونة' : 'Icon')}</th>
+              </tr>
             </thead>
             <tbody>{rows.map(renderRow)}</tbody>
           </table>
@@ -270,6 +405,7 @@ export function CatalogManager() {
 }
 
 export function AuditViewer() {
+  const { isRtl } = useSettings();
   const [entity, setEntity] = useState('');
   const [items, setItems] = useState([]);
   const [page, setPage] = useState(1);
@@ -286,7 +422,7 @@ export function AuditViewer() {
       setTotalPages(res.data?.totalPages ?? 1);
       setPage(res.data?.page ?? p);
       setState('done');
-    } catch (err) {
+    } catch {
       setState('error');
     }
   }, []);
@@ -298,20 +434,36 @@ export function AuditViewer() {
   return (
     <div>
       <div className="admin-toolbar">
-        <select value={entity} onChange={(e) => { setEntity(e.target.value); load(1, e.target.value); }} aria-label="Filter by entity">
-          <option value="">All entities</option>
-          <option>Property</option>
-          <option>PurchaseRequest</option>
-          <option>BookingRequest</option>
-          <option>User</option>
-          <option>Review</option>
-          <option>PropertyInquiry</option>
+        <select
+          value={entity}
+          onChange={(e) => {
+            setEntity(e.target.value);
+            load(1, e.target.value);
+          }}
+          aria-label="Filter by entity"
+        >
+          <option value="">{isRtl ? 'كافة العمليات والكيانات' : 'All entities'}</option>
+          <option value="Property">{isRtl ? 'العقارات (Property)' : 'Property'}</option>
+          <option value="PurchaseRequest">{isRtl ? 'طلبات الشراء (PurchaseRequest)' : 'PurchaseRequest'}</option>
+          <option value="BookingRequest">{isRtl ? 'طلبات الإيجار (BookingRequest)' : 'BookingRequest'}</option>
+          <option value="User">{isRtl ? 'المستخدمون (User)' : 'User'}</option>
+          <option value="Review">{isRtl ? 'التقييمات (Review)' : 'Review'}</option>
+          <option value="PropertyInquiry">{isRtl ? 'الاستفسارات (PropertyInquiry)' : 'PropertyInquiry'}</option>
         </select>
       </div>
       {state === 'loading' && <LoadingSkeleton count={4} />}
-      {state === 'error' && <ErrorState error="Could not load audit logs." onRetry={() => load(page, entity)} />}
+      {state === 'error' && (
+        <ErrorState
+          error={isRtl ? 'تعذر تحميل سجل العمليات.' : 'Could not load audit logs.'}
+          onRetry={() => load(page, entity)}
+        />
+      )}
       {state === 'done' && !items.length && (
-        <EmptyState icon="bi-journal-text" title="No audit entries." message="Admin actions are recorded here." />
+        <EmptyState
+          icon="bi-journal-text"
+          title={isRtl ? 'لا توجد عمليات مسجلة' : 'No audit entries.'}
+          message={isRtl ? 'يتم توثيق وتسجيل كافة إجراءات المديرين تلقائياً هنا.' : 'Admin actions are recorded here.'}
+        />
       )}
       {state === 'done' && items.length > 0 && (
         <>
@@ -319,21 +471,33 @@ export function AuditViewer() {
             <table className="admin-table">
               <thead>
                 <tr>
-                  <th>Time</th>
-                  <th>Action</th>
-                  <th>Entity</th>
-                  <th>Old → New</th>
-                  <th>IP</th>
+                  <th>{isRtl ? 'الوقت والتاريخ' : 'Time'}</th>
+                  <th>{isRtl ? 'نوع الإجراء' : 'Action'}</th>
+                  <th>{isRtl ? 'الكيان المستهدف' : 'Entity'}</th>
+                  <th>{isRtl ? 'التغيير (السابق → الحالي)' : 'Old → New'}</th>
+                  <th>{isRtl ? 'عنوان IP' : 'IP'}</th>
                 </tr>
               </thead>
               <tbody>
                 {items.map((a) => (
                   <tr key={a.id}>
-                    <td className="text-meta">{new Date(a.timestamp).toLocaleString()}</td>
-                    <td><strong>{a.action}</strong><br /><span className="text-meta">user #{a.userId ?? '—'}</span></td>
-                    <td>{a.entity} #{a.entityId}</td>
-                    <td className="wrap-cell text-meta">{a.oldValue || '—'} → {a.newValue || '—'}</td>
-                    <td className="text-meta">{a.ipAddress || '—'}</td>
+                    <td className="text-meta">
+                      {new Date(a.timestamp).toLocaleString(isRtl ? 'ar-EG' : 'en-US')}
+                    </td>
+                    <td>
+                      <strong>{a.action}</strong>
+                      <br />
+                      <span className="text-meta">
+                        {isRtl ? 'مستخدم' : 'user'} #{a.userId ?? '—'}
+                      </span>
+                    </td>
+                    <td>
+                      {a.entity} #{a.entityId}
+                    </td>
+                    <td className="wrap-cell text-meta">
+                      {a.oldValue || '—'} → {a.newValue || '—'}
+                    </td>
+                    <td className="text-meta" dir="ltr">{a.ipAddress || '—'}</td>
                   </tr>
                 ))}
               </tbody>

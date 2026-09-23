@@ -1,0 +1,386 @@
+/* ==========================================================================
+   Darcom Residence Comparison Page — Solid Architecture Table
+   ========================================================================== */
+
+.darcom-compare-page {
+  padding-block-start: var(--space-6);
+  padding-block-end: var(--space-20);
+  background-color: var(--neutral-50, #f8fafb);
+  min-height: 85vh;
+  font-family: var(--font-body);
+}
+
+.compare-breadcrumb-wrap {
+  margin-block-end: 1.5rem;
+}
+
+/* 1. Header */
+.compare-header {
+  background: #ffffff;
+  border: 1px solid rgba(20, 66, 79, 0.12);
+  border-radius: 20px;
+  padding: clamp(1.75rem, 3.5vw, 2.5rem);
+  box-shadow: 0 10px 30px -10px rgba(14, 42, 51, 0.05);
+  margin-block-end: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.compare-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(20, 66, 79, 0.06);
+  border: 1px solid rgba(201, 168, 106, 0.35);
+  border-radius: 9999px;
+  padding: 0.35rem 0.85rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--brand-700, #14424f);
+  margin-block-end: 0.75rem;
+}
+
+.compare-title {
+  font-family: var(--font-heading);
+  font-size: clamp(1.5rem, 2.8vw, 2.1rem);
+  font-weight: 800;
+  color: var(--brand-900, #0e2a33);
+  margin-block-end: 0.5rem;
+}
+
+.compare-subtitle {
+  font-size: 0.92rem;
+  color: var(--neutral-600, #5c5c56);
+  max-width: 65ch;
+  margin: 0;
+  line-height: 1.6;
+}
+
+.compare-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.btn-add-more {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.65rem 1.15rem;
+  background: var(--brand-primary, #14424f);
+  color: #ffffff;
+  border-radius: 10px;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.85rem;
+  transition: all 0.2s ease;
+}
+
+.btn-add-more:hover {
+  background: var(--brand-900, #0e2a33);
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.btn-clear-table {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.65rem 1rem;
+  background: transparent;
+  border: 1px solid rgba(20, 66, 79, 0.18);
+  color: var(--neutral-700, #40403b);
+  border-radius: 10px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-clear-table:hover {
+  border-color: #ef4444;
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.05);
+}
+
+/* 2. Comparison Table Wrapper */
+.compare-table-wrapper {
+  background: #ffffff;
+  border: 1px solid rgba(20, 66, 79, 0.12);
+  border-radius: 20px;
+  overflow-x: auto;
+  box-shadow: 0 10px 35px -10px rgba(14, 42, 51, 0.06);
+}
+
+.compare-matrix-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 780px;
+}
+
+/* Labels Column (First column) */
+.matrix-label-col,
+.matrix-label-cell {
+  width: 240px;
+  min-width: 200px;
+  padding: 1.15rem 1.5rem;
+  background: #fcfdfd;
+  border-inline-end: 1px solid rgba(20, 66, 79, 0.08);
+  font-weight: 700;
+  font-size: 0.88rem;
+  color: var(--brand-900, #0e2a33);
+  text-align: start;
+  vertical-align: middle;
+}
+
+.matrix-property-col {
+  padding: 1.5rem 1.25rem;
+  text-align: start;
+  vertical-align: top;
+  border-inline-end: 1px solid rgba(20, 66, 79, 0.08);
+  min-width: 220px;
+}
+
+.matrix-card-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.matrix-img-wrap {
+  position: relative;
+  width: 100%;
+  height: 150px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #0e2a33;
+}
+
+.matrix-property-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.matrix-card-header:hover .matrix-property-img {
+  transform: scale(1.05);
+}
+
+.matrix-remove-btn {
+  position: absolute;
+  top: 8px;
+  inset-inline-end: 8px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(14, 42, 51, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+}
+
+.matrix-remove-btn:hover {
+  background: #ef4444;
+  border-color: #ef4444;
+}
+
+.matrix-prop-title {
+  display: block;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 0.96rem;
+  color: var(--brand-900, #0e2a33);
+  text-decoration: none;
+  line-height: 1.4;
+  margin-block-end: 0.25rem;
+}
+
+.matrix-prop-title:hover {
+  color: var(--brand-primary, #14424f);
+  text-decoration: underline;
+}
+
+.matrix-ref-num {
+  font-size: 0.76rem;
+  color: var(--neutral-600, #5c5c56);
+  font-weight: 600;
+}
+
+/* Section Dividers */
+.matrix-section-row td {
+  padding: 0.85rem 1.5rem;
+  background: #0e2a33;
+  color: #ffffff;
+}
+
+.matrix-section-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  font-weight: 700;
+  font-size: 0.88rem;
+  letter-spacing: 0.02em;
+}
+
+.matrix-section-divider .text-gold {
+  color: var(--brand-accent, #c9a86a);
+  font-size: 1rem;
+}
+
+/* Values Cells */
+.matrix-val-cell {
+  padding: 1rem 1.25rem;
+  font-size: 0.9rem;
+  color: var(--neutral-800, #2c2c28);
+  border-inline-end: 1px solid rgba(20, 66, 79, 0.08);
+  border-block-end: 1px solid rgba(20, 66, 79, 0.06);
+  vertical-align: middle;
+}
+
+.highlight-val strong {
+  color: var(--brand-700, #14424f);
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+
+.text-gold-val {
+  color: var(--brand-accent, #c9a86a);
+  font-weight: 700;
+}
+
+.pill-delivery {
+  display: inline-block;
+  background: rgba(20, 66, 79, 0.06);
+  border: 1px solid rgba(20, 66, 79, 0.15);
+  border-radius: 6px;
+  padding: 0.25rem 0.65rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--brand-700, #14424f);
+}
+
+/* CTA Row */
+.matrix-cta-row td {
+  padding: 1.5rem 1.25rem;
+  background: #fcfdfd;
+  border-block-start: 1px solid rgba(20, 66, 79, 0.12);
+}
+
+.matrix-cta-flex {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.btn-matrix-view {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.6rem 0.85rem;
+  border: 1px solid rgba(20, 66, 79, 0.2);
+  border-radius: 8px;
+  color: var(--brand-primary, #14424f);
+  font-weight: 600;
+  font-size: 0.82rem;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.btn-matrix-view:hover {
+  background: rgba(20, 66, 79, 0.05);
+  border-color: var(--brand-primary, #14424f);
+}
+
+.btn-matrix-reserve {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.6rem 0.85rem;
+  background: var(--brand-primary, #14424f);
+  border: 1px solid rgba(201, 168, 106, 0.35);
+  border-radius: 8px;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 0.82rem;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.btn-matrix-reserve:hover {
+  background: var(--brand-900, #0e2a33);
+  color: #ffffff;
+}
+
+/* Empty State */
+.compare-empty-card {
+  background: #ffffff;
+  border: 1px solid rgba(20, 66, 79, 0.12);
+  border-radius: 20px;
+  padding: 4.5rem 2rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+  box-shadow: 0 10px 30px -10px rgba(14, 42, 51, 0.04);
+}
+
+.empty-icon-circle {
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  background: rgba(20, 66, 79, 0.05);
+  border: 1px solid rgba(201, 168, 106, 0.3);
+  color: var(--brand-accent, #c9a86a);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.25rem;
+}
+
+.empty-title {
+  font-family: var(--font-heading);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--brand-900, #0e2a33);
+  margin: 0;
+}
+
+.empty-subtitle {
+  color: var(--neutral-600, #5c5c56);
+  max-width: 50ch;
+  font-size: 0.95rem;
+  line-height: 1.65;
+  margin: 0;
+}
+
+.btn-explore-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--brand-primary, #14424f);
+  color: #ffffff;
+  padding: 0.75rem 1.75rem;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 0.92rem;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  margin-block-start: 0.5rem;
+}
+
+.btn-explore-cta:hover {
+  background: var(--brand-900, #0e2a33);
+  color: #ffffff;
+  transform: translateY(-2px);
+}

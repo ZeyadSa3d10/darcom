@@ -86,7 +86,13 @@ api.interceptors.response.use(
 
     // Normalize to the backend envelope { success:false, message, errors }.
     // Network failures (no response) get a synthetic offline-friendly shape.
-    if (error.response?.data) return Promise.reject(error.response.data);
+    // The HTTP status is attached so callers can branch on it (e.g. CMS 404s).
+    if (error.response?.data) {
+      const body = error.response.data;
+      return Promise.reject(
+        body && typeof body === 'object' ? { ...body, status: error.response.status } : body
+      );
+    }
     return Promise.reject({
       success: false,
       message: error.code === 'ECONNABORTED'

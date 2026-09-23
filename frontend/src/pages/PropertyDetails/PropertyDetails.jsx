@@ -11,6 +11,8 @@ import PropertyLocation from '../../components/PropertyLocation/PropertyLocation
 import AgentCard from '../../components/AgentCard/AgentCard.jsx';
 import InquiryForm from '../../components/InquiryForm/InquiryForm.jsx';
 import PropertyCard from '../../components/PropertyCard/PropertyCard.jsx';
+import InstallmentCalculator from '../../components/InstallmentCalculator/InstallmentCalculator.jsx';
+import PropertyFloorPlan from '../../components/PropertyFloorPlan/PropertyFloorPlan.jsx';
 import { SkeletonGallery, SkeletonDetails } from '../../components/LoadingSkeleton/LoadingSkeleton.jsx';
 import ErrorState from '../../components/ErrorState/ErrorState.jsx';
 import { useSeo, propertyJsonLd } from '../../hooks/useSeo.js';
@@ -159,6 +161,13 @@ export default function PropertyDetails() {
           <PropertyStats property={property} />
           <PropertyDescription property={property} />
           <PropertyAmenities property={property} />
+          <PropertyFloorPlan property={property} />
+          <InstallmentCalculator
+            propertyPrice={property.price}
+            propertyTitle={property.title}
+            propertyRef={property.referenceNumber}
+            developer={property.developer}
+          />
           <PropertyLocation property={property} />
         </div>
 

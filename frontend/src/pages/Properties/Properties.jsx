@@ -11,6 +11,7 @@ import EmptyState from '../../components/EmptyState/EmptyState.jsx';
 import Pagination from '../../components/Pagination/Pagination.jsx';
 import Modal from '../../components/Modal/Modal.jsx';
 import { useSeo } from '../../hooks/useSeo.js';
+import { useCmsSeo } from '../../hooks/useCmsSeo.js';
 import { propertyService } from '../../services/propertyService.js';
 import { locationService } from '../../services/locationService.js';
 import './Properties.css';
@@ -41,6 +42,10 @@ function parseParams(params) {
     beachAccess: bool('beachAccess'),
     parking: bool('parking'),
     featured: bool('featured'),
+    maxDownPayment: pick('maxDownPayment'),
+    installmentYears: pick('installmentYears'),
+    deliveryStatus: pick('deliveryStatus'),
+    developer: pick('developer'),
     sort: pick('sort'),
     page: Math.max(1, parseInt(params.get('page') || '1', 10) || 1),
   };
@@ -54,6 +59,10 @@ function toQuery(applied) {
   if (applied.location) q.location = applied.location;
   if (applied.minPrice !== '') q.minPrice = applied.minPrice;
   if (applied.maxPrice !== '') q.maxPrice = applied.maxPrice;
+  if (applied.maxDownPayment !== '') q.maxDownPayment = applied.maxDownPayment;
+  if (applied.installmentYears !== '') q.installmentYears = applied.installmentYears;
+  if (applied.deliveryStatus !== '') q.deliveryStatus = applied.deliveryStatus;
+  if (applied.developer !== '') q.developer = applied.developer;
   if (applied.bedrooms !== '') q.bedrooms = applied.bedrooms;
   if (applied.bathrooms !== '') q.bathrooms = applied.bathrooms;
   if (applied.minArea !== '') q.minArea = applied.minArea;
@@ -121,9 +130,23 @@ export default function Properties() {
     setError(null);
     try {
       const params = { ...toQuery(applied), pageSize: 12 };
+      if (applied.maxDownPayment && !applied.maxPrice) {
+        params.maxPrice = Number(applied.maxDownPayment) * 10;
+      }
       const res = await propertyService.list(params);
-      setItems(res.data?.data ?? []);
-      setTotal(res.data?.totalCount ?? 0);
+      let list = res.data?.data ?? [];
+
+      if (applied.maxDownPayment) {
+        const maxDp = Number(applied.maxDownPayment);
+        list = list.filter((p) => (Number(p.price) * 0.1) <= maxDp);
+      }
+      if (applied.developer) {
+        const devQuery = applied.developer.toLowerCase();
+        list = list.filter((p) => (p.developer || '').toLowerCase().includes(devQuery));
+      }
+
+      setItems(list);
+      setTotal(res.data?.totalCount ?? list.length);
       setTotalPages(res.data?.totalPages ?? 1);
       setState('done');
     } catch (e) {
@@ -180,6 +203,14 @@ export default function Properties() {
         return `≥ ${Number(v).toLocaleString()} ${t('common.egp', 'EGP')}`;
       case 'maxPrice':
         return `≤ ${Number(v).toLocaleString()} ${t('common.egp', 'EGP')}`;
+      case 'maxDownPayment':
+        return `${t('propertiesPage.maxDownPayment', 'Down Payment')} ≤ ${Number(v).toLocaleString()} ${t('common.egp', 'EGP')}`;
+      case 'installmentYears':
+        return `${v}+ ${t('common.years', 'Years')} ${t('propertiesPage.installments', 'Installments')}`;
+      case 'deliveryStatus':
+        return `${t('propertiesPage.deliveryStatus', 'Handover')}: ${v === 'ready' ? t('propertiesPage.readyToMove', 'Ready to Move') : v}`;
+      case 'developer':
+        return `${t('propertiesPage.developer', 'Developer')}: ${v}`;
       case 'bedrooms':
         return t('search.bedsPlus', { n: v });
       case 'bathrooms':
@@ -205,7 +236,27 @@ export default function Properties() {
 
   const chips = useMemo(() => {
     const list = [];
-    const filterKeys = ['q', 'purpose', 'type', 'location', 'minPrice', 'maxPrice', 'bedrooms', 'bathrooms', 'minArea', 'furnished', 'pool', 'seaView', 'beachAccess', 'parking', 'featured'];
+    const filterKeys = [
+      'q',
+      'purpose',
+      'type',
+      'location',
+      'minPrice',
+      'maxPrice',
+      'maxDownPayment',
+      'installmentYears',
+      'deliveryStatus',
+      'developer',
+      'bedrooms',
+      'bathrooms',
+      'minArea',
+      'furnished',
+      'pool',
+      'seaView',
+      'beachAccess',
+      'parking',
+      'featured',
+    ];
     for (const key of filterKeys) {
       const v = applied[key];
       if (v === '' || v === false || v == null) continue;
@@ -231,9 +282,13 @@ export default function Properties() {
     return `${head[0].toUpperCase()}${head.slice(1)} | Darcom`;
   }, [applied]);
 
+  // CMS override applies to the unfiltered view only; filtered views keep dynamic titles.
+  const cmsSeo = useCmsSeo('properties');
+  const isDefaultView = !applied.purpose && !applied.type && !applied.location && !applied.q;
   useSeo({
-    title: seoTitle,
-    description: `Browse ${total || ''} verified luxury properties on Darcom — transparent pricing, direct developer partnerships.`.trim(),
+    title: (isDefaultView && cmsSeo?.title) || seoTitle,
+    description: (isDefaultView && cmsSeo?.description) || `Browse ${total || ''} verified luxury properties on Darcom — transparent pricing, direct developer partnerships.`.trim(),
+    image: (isDefaultView && cmsSeo?.image) || undefined,
   });
 
   return (

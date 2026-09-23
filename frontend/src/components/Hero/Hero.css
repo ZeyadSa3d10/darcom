@@ -65,31 +65,11 @@
 
 /* Each slide carries a --slide-tint (r,g,b) so the overlay is color-graded
    to match its location — teal Red Sea, cool Mediterranean, warm New Cairo gold. */
-.hero-slide-gradient {
+.hero-slide-scrim {
   position: absolute;
   inset: 0;
-  background:
-    radial-gradient(circle at 22% 18%, rgba(var(--slide-tint, 20, 66, 79), 0.38) 0%, transparent 55%),
-    linear-gradient(180deg,
-      rgba(14, 42, 51, 0.58) 0%,
-      rgba(14, 42, 51, 0.4) 40%,
-      rgba(8, 24, 29, 0.9) 100%);
+  background: rgba(10, 34, 40, 0.62);
   transition: background 1.2s ease;
-}
-
-/* Ambient Radial Mesh & Vignette */
-.hero-ambient-mesh {
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  pointer-events: none;
-  background: radial-gradient(circle at 20% 40%,
-      rgba(27, 107, 122, 0.28) 0%,
-      transparent 60%),
-    radial-gradient(circle at 85% 75%,
-      rgba(201, 168, 106, 0.15) 0%,
-      transparent 50%);
-  box-shadow: inset 0 0 120px rgba(0, 0, 0, 0.5);
 }
 
 /* Fine film-grain for a cinematic, non-flat finish — barely perceptible */
@@ -241,31 +221,15 @@
 
 .hero-dynamic-word {
   display: inline-block;
-  background: linear-gradient(120deg, #ffffff 15%, var(--brand-accent) 45%, #ffffff 75%);
-  background-size: 220% 100%;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: var(--brand-accent);
   transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1), transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
   transform: translateY(0);
   opacity: 1;
-  animation: wordShimmer 6s ease-in-out infinite;
 }
 
 .hero-dynamic-word.fading {
   opacity: 0;
   transform: translateY(12px);
-}
-
-@keyframes wordShimmer {
-
-  0%,
-  100% {
-    background-position: 0% 50%;
-  }
-
-  50% {
-    background-position: 100% 50%;
-  }
 }
 
 .hero-sub {
@@ -300,9 +264,7 @@
   font-size: 1.5rem;
   font-weight: 600;
   line-height: 1;
-  background: linear-gradient(135deg, #ffffff 30%, var(--brand-accent) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: #ffffff;
 }
 
 .trust-label {

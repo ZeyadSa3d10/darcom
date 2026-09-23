@@ -42,7 +42,7 @@
 
 /* ---------- 3. Architectural Styles Showcase ---------- */
 .home-architecture-section {
-  background: linear-gradient(180deg, rgba(20, 66, 79, 0.03) 0%, rgba(20, 66, 79, 0.08) 100%);
+  background: #f8fafb;
   border-block: 1px solid rgba(20, 66, 79, 0.08);
   margin-block-start: var(--space-16);
   padding-block: var(--space-16);
@@ -210,13 +210,12 @@
 .arch-card-overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    180deg,
-    rgba(8, 24, 29, 0.2) 0%,
-    rgba(8, 24, 29, 0.35) 40%,
-    rgba(6, 18, 22, 0.94) 100%
-  );
-  transition: opacity 0.3s ease;
+  background: rgba(8, 24, 29, 0.45);
+  transition: background 0.3s ease;
+}
+
+.arch-card:hover .arch-card-overlay {
+  background: rgba(8, 24, 29, 0.6);
 }
 
 /* Card Header */
@@ -603,7 +602,7 @@
 
 .estate-advisory-frame {
   position: relative;
-  background: linear-gradient(180deg, #ffffff 0%, #faf8f5 55%, #f5f1eb 100%);
+  background: #ffffff;
   border: 1px solid rgba(201, 168, 106, 0.28);
   border-top: 3px solid var(--brand-accent, #c9a86a);
   border-radius: 24px;

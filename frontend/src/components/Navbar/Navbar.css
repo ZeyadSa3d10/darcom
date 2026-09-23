@@ -17,7 +17,7 @@
   position: sticky;
   inset-inline: 0;
   top: 0;
-  background: linear-gradient(180deg, rgba(14, 42, 51, 0.72) 0%, rgba(14, 42, 51, 0.35) 60%, transparent 100%);
+  background: rgba(10, 34, 40, 0.75);
   backdrop-filter: blur(12px) saturate(160%);
   -webkit-backdrop-filter: blur(12px) saturate(160%);
   border-block-end: 1px solid rgba(255, 255, 255, 0.1);
@@ -408,13 +408,12 @@
   justify-content: center;
   height: 38px;
   padding: 0 1rem;
-  background: linear-gradient(135deg, #14424f 0%, #0e2a33 100%);
+  background: var(--brand-700);
   color: #fff !important;
   font-size: 0.84rem;
   font-weight: 600;
   border-radius: 9999px;
   text-decoration: none;
-  overflow: hidden;
   box-shadow: 0 4px 12px rgba(20, 66, 79, 0.28);
   border: 1px solid rgba(201, 168, 106, 0.45);
   transition: all 0.25s ease;
@@ -425,23 +424,7 @@
   transform: translateY(-1px);
   box-shadow: 0 6px 18px rgba(20, 66, 79, 0.38);
   border-color: var(--brand-accent);
-}
-
-.btn-sell-shimmer {
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 60%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.28), transparent);
-  transform: skewX(-20deg);
-  animation: shimmerSweep 4s infinite;
-}
-
-@keyframes shimmerSweep {
-  0% { left: -100%; }
-  25% { left: 160%; }
-  100% { left: 160%; }
+  background: var(--brand-900);
 }
 
 /* Language Pill Switcher */
@@ -642,7 +625,7 @@
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--brand-700), var(--brand-900));
+  background: var(--brand-700);
   color: #fff;
   display: flex;
   align-items: center;
@@ -715,7 +698,7 @@
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--brand-700), var(--brand-accent));
+  background: var(--brand-700);
   color: #fff;
   display: flex;
   align-items: center;

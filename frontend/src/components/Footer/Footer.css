@@ -4,24 +4,12 @@
 
 .darcom-luxury-footer {
   position: relative;
-  background: linear-gradient(180deg, #0d2830 0%, #091c22 45%, #051014 100%);
+  background: #0a2228;
   color: #e4ecee;
-  border-block-start: 1px solid rgba(201, 168, 106, 0.28);
+  border-block-start: 1px solid rgba(201, 168, 106, 0.25);
   margin-block-start: var(--space-16);
   font-family: var(--font-body);
   overflow: hidden;
-}
-
-/* Subtle architectural top glow */
-.darcom-luxury-footer::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 10%;
-  right: 10%;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(201, 168, 106, 0.7), transparent);
-  pointer-events: none;
 }
 
 /* --------------------------------------------------------------------------

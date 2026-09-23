@@ -63,6 +63,144 @@ public static class DataSeeder
             await db.SaveChangesAsync();
         }
 
+        if (!await db.SiteContents.AnyAsync())
+        {
+            db.SiteContents.AddRange(
+                new SiteContent
+                {
+                    ContentKey = "hero.slides",
+                    Description = "Hero carousel slides and background images",
+                    ContentValue = """
+                    [
+                      {"id":1,"key":"sokhna","image":"https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=1920&q=80","fallback":"https://picsum.photos/seed/darcom-sokhna/1920/1080","defaultKicker":"Ain Sokhna · Red Sea","defaultBadge":"Porto Sokhna & Galala","defaultTagline":"Waterfront chalets with private beach access & year-round sun","tint":"20, 110, 120"},
+                      {"id":2,"key":"sahel","image":"https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1920&q=80","fallback":"https://picsum.photos/seed/darcom-sahel/1920/1080","defaultKicker":"North Coast · Mediterranean","defaultBadge":"Ras El Hekma & Marassi","defaultTagline":"Signature villas with private infinity pools & turquoise waters","tint":"18, 90, 145"},
+                      {"id":3,"key":"gouna","image":"https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=1920&q=80","fallback":"https://picsum.photos/seed/darcom-gouna/1920/1080","defaultKicker":"El Gouna · Red Sea Riviera","defaultBadge":"Abu Tig Marina & Fanadir","defaultTagline":"Lagoon-side residences with private yacht berths & resort lifestyle","tint":"15, 120, 110"},
+                      {"id":4,"key":"cairo","image":"https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1920&q=80","fallback":"https://picsum.photos/seed/darcom-cairo/1920/1080","defaultKicker":"New Cairo · Prime Compounds","defaultBadge":"Golden Square & Palm Hills","defaultTagline":"Ultra-luxury sky penthouses with panoramic private rooftop terraces","tint":"120, 95, 40"}
+                    ]
+                    """
+                },
+                new SiteContent
+                {
+                    ContentKey = "home.cities",
+                    Description = "Homepage featured cities and destination mosaic",
+                    ContentValue = """
+                    [
+                      {"name":"Ain Sokhna","slug":"ain-sokhna","blurb":"Red Sea weekends, 1h from Cairo","img":"https://picsum.photos/seed/darcom-sokhna/900/700"},
+                      {"name":"New Cairo","slug":"new-cairo","blurb":"Family living, schools & clubs","img":"https://picsum.photos/seed/darcom-cairo/800/600"},
+                      {"name":"North Coast","slug":"north-coast","blurb":"Summer capital of the Med","img":"https://picsum.photos/seed/darcom-sahel/800/600"},
+                      {"name":"Hurghada","slug":"hurghada","blurb":"Year-round sun & diving","img":"https://picsum.photos/seed/darcom-hurghada/800/600"},
+                      {"name":"El Gouna","slug":"el-gouna","blurb":"Lagoon town, marina life","img":"https://picsum.photos/seed/darcom-gouna/800/600"}
+                    ]
+                    """
+                },
+                new SiteContent
+                {
+                    ContentKey = "home.types",
+                    Description = "Architectural property types metadata and cards",
+                    ContentValue = """
+                    {
+                      "chalet":{"image":"https://images.unsplash.com/photo-1499793983690-e29da59ef1c2?auto=format&fit=crop&w=800&q=80","fallback":"https://picsum.photos/seed/darcom-chalet/800/600","icon":"bi-water","accentTag":"Beachfront Living","accentTagAr":"شواطئ خاصة","defaultTagline":"Direct beachfront living & private coastal escapes","arTagline":"إطلالات بحرية مباشرة وملاذات شاطئية خاصة"},
+                      "villa":{"image":"https://images.unsplash.com/photo-1613490493576-7fde63acd811?auto=format&fit=crop&w=800&q=80","fallback":"https://picsum.photos/seed/darcom-villa/800/600","icon":"bi-house-heart-fill","accentTag":"Private Estates","accentTagAr":"حمامات سباحة","defaultTagline":"Private infinity pools & expansive estate grounds","arTagline":"حمامات سباحة خاصة وحدائق واسعة راقية"},
+                      "penthouse":{"image":"https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=800&q=80","fallback":"https://picsum.photos/seed/darcom-penthouse/800/600","icon":"bi-building","accentTag":"Sky Penthouses","accentTagAr":"تراس وبانوراما","defaultTagline":"Panoramic private rooftop sky terraces","arTagline":"تراسات بانورامية وإطلالات سحابية واسعة"},
+                      "townhouse":{"image":"https://images.unsplash.com/photo-1580587771525-78b9dba3b914?auto=format&fit=crop&w=800&q=80","fallback":"https://picsum.photos/seed/darcom-townhouse/800/600","icon":"bi-houses-fill","accentTag":"Gated Compounds","accentTagAr":"مجتمعات راقية","defaultTagline":"Contemporary family residences in gated compounds","arTagline":"خصوصية عائلية عصرية داخل أرقى الكمبوندات"},
+                      "duplex":{"image":"https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=800&q=80","fallback":"https://picsum.photos/seed/darcom-duplex/800/600","icon":"bi-layers-fill","accentTag":"Multi-level Space","accentTagAr":"طابقان فخمان","defaultTagline":"Two-level open-concept architectural residences","arTagline":"طابقان بتصميم عصري وأسقف مرتفعة فخمة"},
+                      "apartment":{"image":"https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=800&q=80","fallback":"https://picsum.photos/seed/darcom-apartment/800/600","icon":"bi-building-check","accentTag":"Prime Addresses","accentTagAr":"مواقع استراتيجية","defaultTagline":"Serviced luxury homes & prime urban addresses","arTagline":"شقق فندقية راقية بمواقع حيوية متميزة"},
+                      "studio":{"image":"https://images.unsplash.com/photo-1536376072261-38c75010e6c9?auto=format&fit=crop&w=800&q=80","fallback":"https://picsum.photos/seed/darcom-studio/800/600","icon":"bi-box-seam","accentTag":"Smart Investment","accentTagAr":"عوائد استثمارية","defaultTagline":"Smart luxury pieds-à-terre & high-yield retreats","arTagline":"استوديوهات ذكية وعوائد استثمارية مرتفعة"}
+                    }
+                    """
+                },
+                new SiteContent
+                {
+                    ContentKey = "home.premium",
+                    Description = "Homepage premium dark split section content",
+                    ContentValue = """
+                    {
+                      "kicker":"Exclusive",
+                      "kickerAr":"حصري ومميز",
+                      "title":"The premium collection",
+                      "titleAr":"المجموعة الحصرية الاستثنائية",
+                      "subtitle":"Sea-facing villas, private beaches and architect-designed penthouses — inspected, verified and presented with full documentation.",
+                      "subtitleAr":"فلل شاطئية وبنتهاوس بتصميمات معمارية خاصة — مفحوصة وموثقة بالكامل.",
+                      "image":"https://picsum.photos/seed/darcom-premium-villa/1000/900",
+                      "points":[
+                        {"icon":"bi-patch-check","text":"Verified ownership & papers","textAr":"ملكية وأوراق قانونية موثقة"},
+                        {"icon":"bi-camera-video","text":"Direct developer terms","textAr":"عقود مباشرة مع كبار المطورين"},
+                        {"icon":"bi-person-badge","text":"Dedicated senior advisor","textAr":"مستشار عقاري خاص ومخصص لك"}
+                      ]
+                    }
+                    """
+                },
+                new SiteContent
+                {
+                    ContentKey = "home.whyus",
+                    Description = "Homepage Why Darcom editorial points",
+                    ContentValue = """
+                    [
+                      {"num":"01","title":"Verified before published","titleAr":"فحص وتدقيق قبل النشر","desc":"Ownership, papers and availability are checked by our team. Rejected listings never go public.","descAr":"يتم التحقق من الملكية والأوراق والجاهزية بواسطة فريقنا القانوني. القوائم غير المطابقة تُستبعد فوراً."},
+                      {"num":"02","title":"One dedicated advisor","titleAr":"مستشار عقاري خاص بك","desc":"From initial search to contract signing and keys handover.","descAr":"يرافقك خبير استشاري متخصص من أول جولة استكشاف وحتى توقيع العقد واستلام المفاتيح."},
+                      {"num":"03","title":"Direct developer terms","titleAr":"أفضل خطط سداد مباشرة","desc":"Exclusive payment schedules and official launch allocations.","descAr":"خطط دفع حصرية وتخصيصات مباشرة في مراحل الطرح الأولى دون وسطاء إضافيين."}
+                    ]
+                    """
+                },
+                new SiteContent
+                {
+                    ContentKey = "home.seller",
+                    Description = "Private residence seller advisory section",
+                    ContentValue = """
+                    {
+                      "headline":"هل تمتلك عقاراً فاخراً ترغب في بيعه بمصر؟",
+                      "headlineEn":"Do you own a luxury property you want to sell in Egypt?",
+                      "lead":"نمنح عقارك الحضور الذي يستحقه أمام دائرة مغلقة من المستثمرين الجادين ونخبة المشترين، مع عناية استشارية متكاملة وفحص دقيق خلال 48 ساعة.",
+                      "leadEn":"We give your property the presence it deserves before an exclusive circle of serious investors and buyers.",
+                      "stats":[
+                        {"value":"48h","label":"فحص وتقييم عقاري فوري","labelEn":"Instant Valuation"},
+                        {"value":"94%","label":"نسبة إتمام الصفقات بالسعر العادل","labelEn":"Fair-price closing rate"},
+                        {"value":"1-on-1","label":"مستشار بيع خاص لكل مالك","labelEn":"Dedicated Sales Director"}
+                      ]
+                    }
+                    """
+                },
+                new SiteContent
+                {
+                    ContentKey = "site.settings",
+                    Description = "Global website contact details and social links",
+                    ContentValue = """
+                    {
+                      "siteName":"Darcom",
+                      "phone":"+20 100 000 0000",
+                      "email":"concierge@darcom.eg",
+                      "address":"التجمع الخامس، القاهرة الجديدة",
+                      "addressEn":"Fifth Settlement, New Cairo, Egypt",
+                      "whatsapp":"+201000000000",
+                      "socials":{
+                        "facebook":"https://facebook.com",
+                        "instagram":"https://instagram.com",
+                        "linkedin":"https://linkedin.com",
+                        "youtube":"https://youtube.com",
+                        "twitter":"https://twitter.com"
+                      }
+                    }
+                    """
+                },
+                new SiteContent
+                {
+                    ContentKey = "footer.content",
+                    Description = "Footer branding, about blurbs and badges",
+                    ContentValue = """
+                    {
+                      "aboutAr":"المنصة العقارية الرقمية الرائدة في مصر للمصايف والفلل المستقلة والبنتهاوس الفاخر على سواحل البحر الأحمر والمتوسط وكمبوندات القاهرة الجديدة.",
+                      "aboutEn":"Egypt's premier real estate platform for luxury second homes, beachfront chalets, private villas and sky penthouses.",
+                      "verifiedBadgeAr":"وساطة واستشارات عقارية مرخصة رسمياً",
+                      "verifiedBadgeEn":"Officially Licensed Advisory & Brokerage",
+                      "copyright":"© 2026 Darcom Real Estate. All rights reserved."
+                    }
+                    """
+                }
+            );
+            await db.SaveChangesAsync();
+            logger.LogInformation("Seeded initial CMS SiteContent.");
+        }
+
         if (await db.Properties.AnyAsync()) return;
 
         var P = SeedCatalog.All;
@@ -124,6 +262,8 @@ public static class DataSeeder
 
             await db.SaveChangesAsync();
         }
+
+
 
         logger.LogInformation("Seeded {Count} properties.", P.Count);
     }

@@ -1,18 +1,21 @@
 import { Link } from 'react-router-dom';
 import { useSettings } from '../../context/SettingsContext.jsx';
+import { useCompare } from '../../context/CompareContext.jsx';
 import FavoriteButton from '../FavoriteButton/FavoriteButton.jsx';
 import './PropertyCard.css';
 
+// Self-hosted launch placeholders (public/images/*.svg).
+// TODO(launch): replace with licensed WebP photos per type, same filenames.
 const REAL_ESTATE_CURATED_IMAGES = {
-  penthouse: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1000&q=80',
-  villa: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1000&q=80',
-  chalet: 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=1000&q=80',
-  apartment: 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=1000&q=80',
-  duplex: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=1000&q=80',
-  townhouse: 'https://images.unsplash.com/photo-1580587771525-78b9dba3b914?auto=format&fit=crop&w=1000&q=80',
-  studio: 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=1000&q=80',
-  'twin-house': 'https://images.unsplash.com/photo-1613977257363-707ba9348227?auto=format&fit=crop&w=1000&q=80',
-  'standalone-villa': 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=1000&q=80',
+  penthouse: '/images/hero-cairo.svg',
+  villa: '/images/hero-sahel.svg',
+  chalet: '/images/hero-sokhna.svg',
+  apartment: '/images/hero-cairo.svg',
+  duplex: '/images/hero-gouna.svg',
+  townhouse: '/images/hero-cairo.svg',
+  studio: '/images/hero-gouna.svg',
+  'twin-house': '/images/hero-sahel.svg',
+  'standalone-villa': '/images/hero-gouna.svg',
 };
 
 function formatPriceAmount(price) {
@@ -33,9 +36,12 @@ export default function PropertyCard({ property, layout = 'grid', onFavoriteChan
   const typeKey = (property.propertyTypeSlug || property.propertyType || '').toLowerCase().replace(/\s+/g, '-');
   const curatedFallback = REAL_ESTATE_CURATED_IMAGES[typeKey] || REAL_ESTATE_CURATED_IMAGES.chalet;
 
-  // If primaryImageUrl is a placeholder from picsum, use curated luxury architecture photo
+  // If primaryImageUrl is a legacy picsum placeholder from the dev seed, use the local fallback instead
   const hasPicsumPlaceholder = property.primaryImageUrl && property.primaryImageUrl.includes('picsum.photos');
   const displayImage = hasPicsumPlaceholder ? curatedFallback : (property.primaryImageUrl || curatedFallback);
+
+  const { isInCompare, toggleCompare } = useCompare();
+  const inCompare = isInCompare(property.id);
 
   const localizedPropertyType = property.propertyType
     ? t(`types.${typeKey}`, property.propertyType)
@@ -73,8 +79,21 @@ export default function PropertyCard({ property, layout = 'grid', onFavoriteChan
           </span>
         </div>
 
-        {/* Favorite Heart Button */}
-        <div className="property-fav-wrapper">
+        {/* Top Actions: Compare & Favorite */}
+        <div className="property-top-actions">
+          <button
+            type="button"
+            className={`property-compare-action-btn ${inCompare ? 'is-active' : ''}`}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              toggleCompare(property);
+            }}
+            title={inCompare ? (isRtl ? 'إزالة من المقارنة' : 'Remove from comparison') : (isRtl ? 'إضافة للمقارنة' : 'Compare property')}
+            aria-label={inCompare ? 'Remove from comparison' : 'Compare property'}
+          >
+            <i className={`bi bi-arrow-left-right ${inCompare ? 'text-gold' : ''}`}></i>
+          </button>
           <FavoriteButton propertyId={property.id} initial={favInitial} onChange={onFavoriteChange} />
         </div>
 

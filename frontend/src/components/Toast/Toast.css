@@ -163,19 +163,19 @@
 }
 
 .toast-timer-line.success {
-  background: linear-gradient(90deg, #34d399, #10b981);
+  background: var(--success, #2e7d4f);
 }
 
 .toast-timer-line.error {
-  background: linear-gradient(90deg, #f87171, #ef4444);
+  background: var(--danger, #b23b3b);
 }
 
 .toast-timer-line.warning {
-  background: linear-gradient(90deg, #fbbf24, #f59e0b);
+  background: var(--warning, #b7791f);
 }
 
 .toast-timer-line.info {
-  background: linear-gradient(90deg, #38bdf8, var(--brand-accent));
+  background: var(--brand-primary, #14424f);
 }
 
 @keyframes toastCountdown {

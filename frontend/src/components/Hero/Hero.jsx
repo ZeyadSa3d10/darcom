@@ -2,12 +2,17 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSettings } from '../../context/SettingsContext.jsx';
 import './Hero.css';
 
+// Self-hosted launch placeholders (public/images/*.svg).
+// TODO(launch): replace each SVG with a licensed 1920px WebP photo of the
+// same filename — no code change needed, CMS slides override these anyway.
+const LOCAL_FALLBACK = '/images/property-fallback.svg';
+
 const HERO_SLIDE_CONFIGS = [
   {
     id: 1,
     key: 'sokhna',
-    image: 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=1920&q=80',
-    fallback: 'https://picsum.photos/seed/darcom-sokhna/1920/1080',
+    image: '/images/hero-sokhna.svg',
+    fallback: LOCAL_FALLBACK,
     defaultKicker: 'Ain Sokhna · Red Sea',
     defaultBadge: 'Porto Sokhna & Galala',
     defaultTagline: 'Waterfront chalets with private beach access & year-round sun',
@@ -16,8 +21,8 @@ const HERO_SLIDE_CONFIGS = [
   {
     id: 2,
     key: 'sahel',
-    image: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1920&q=80',
-    fallback: 'https://picsum.photos/seed/darcom-sahel/1920/1080',
+    image: '/images/hero-sahel.svg',
+    fallback: LOCAL_FALLBACK,
     defaultKicker: 'North Coast · Mediterranean',
     defaultBadge: 'Ras El Hekma & Marassi',
     defaultTagline: 'Signature villas with private infinity pools & turquoise waters',
@@ -26,8 +31,8 @@ const HERO_SLIDE_CONFIGS = [
   {
     id: 3,
     key: 'gouna',
-    image: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=1920&q=80',
-    fallback: 'https://picsum.photos/seed/darcom-gouna/1920/1080',
+    image: '/images/hero-gouna.svg',
+    fallback: LOCAL_FALLBACK,
     defaultKicker: 'El Gouna · Red Sea Riviera',
     defaultBadge: 'Abu Tig Marina & Fanadir',
     defaultTagline: 'Lagoon-side residences with private yacht berths & resort lifestyle',
@@ -36,8 +41,8 @@ const HERO_SLIDE_CONFIGS = [
   {
     id: 4,
     key: 'cairo',
-    image: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1920&q=80',
-    fallback: 'https://picsum.photos/seed/darcom-cairo/1920/1080',
+    image: '/images/hero-cairo.svg',
+    fallback: LOCAL_FALLBACK,
     defaultKicker: 'New Cairo · Prime Compounds',
     defaultBadge: 'Golden Square & Palm Hills',
     defaultTagline: 'Ultra-luxury sky penthouses with panoramic private rooftop terraces',
@@ -47,7 +52,8 @@ const HERO_SLIDE_CONFIGS = [
 
 const SLIDE_DURATION = 6500;
 
-export default function Hero({ poster, title, subtitle, children }) {
+export default function Hero({ poster, title, subtitle, children, slides: externalSlides }) {
+  const slideConfigs = externalSlides && externalSlides.length > 0 ? externalSlides : HERO_SLIDE_CONFIGS;
   const { t, isRtl } = useSettings();
   const rotatingWords = t('hero.words', ['Home.', 'Sanctuary.', 'Paradise.', 'an Investment.']);
   const wordsArray = Array.isArray(rotatingWords) ? rotatingWords : ['Home.', 'Sanctuary.', 'Paradise.', 'an Investment.'];
@@ -82,12 +88,12 @@ export default function Hero({ poster, title, subtitle, children }) {
 
   // Slide autoplay every 6.5 seconds
   const nextSlide = useCallback(() => {
-    setCurrentSlide((curr) => (curr + 1) % HERO_SLIDE_CONFIGS.length);
-  }, []);
+    setCurrentSlide((curr) => (curr + 1) % slideConfigs.length);
+  }, [slideConfigs.length]);
 
   const prevSlide = useCallback(() => {
-    setCurrentSlide((curr) => (curr - 1 + HERO_SLIDE_CONFIGS.length) % HERO_SLIDE_CONFIGS.length);
-  }, []);
+    setCurrentSlide((curr) => (curr - 1 + slideConfigs.length) % slideConfigs.length);
+  }, [slideConfigs.length]);
 
   useEffect(() => {
     if (isPaused) return;
@@ -110,12 +116,12 @@ export default function Hero({ poster, title, subtitle, children }) {
   }, []);
 
   const getSlideTexts = (slide) => ({
-    kicker: t(`hero.slides.${slide.key}Kicker`, slide.defaultKicker),
-    badge: t(`hero.slides.${slide.key}Badge`, slide.defaultBadge),
-    tagline: t(`hero.slides.${slide.key}Tagline`, slide.defaultTagline),
+    kicker: t(`hero.slides.${slide.key}Kicker`, slide.kicker || slide.defaultKicker),
+    badge: t(`hero.slides.${slide.key}Badge`, slide.badge || slide.defaultBadge),
+    tagline: t(`hero.slides.${slide.key}Tagline`, slide.tagline || slide.defaultTagline),
   });
 
-  const activeSlideConfig = HERO_SLIDE_CONFIGS[currentSlide];
+  const activeSlideConfig = slideConfigs[currentSlide];
   const activeSlide = getSlideTexts(activeSlideConfig);
 
   return (
@@ -135,9 +141,9 @@ export default function Hero({ poster, title, subtitle, children }) {
           transform: `translate3d(${tilt.x * -22}px, ${tilt.y * -14}px, 0) scale(1.035)`,
         }}
       >
-        {HERO_SLIDE_CONFIGS.map((slide, index) => (
+        {slideConfigs.map((slide, index) => (
           <div
-            key={slide.id}
+            key={slide.id || slide.key || index}
             className={`hero-slide ${index === currentSlide ? 'active' : ''}`}
             style={{ '--slide-tint': slide.tint }}
           >
@@ -146,20 +152,17 @@ export default function Hero({ poster, title, subtitle, children }) {
               src={slide.image}
               alt=""
               onError={(e) => {
-                // Graceful fallback if unsplash is unreachable
+                // Graceful fallback if a slide image is unreachable
                 if (e.target.src !== slide.fallback) {
                   e.target.src = slide.fallback;
                 }
               }}
               fetchpriority={index === 0 ? 'high' : 'auto'}
             />
-            <div className="hero-slide-gradient"></div>
+            <div className="hero-slide-scrim"></div>
           </div>
         ))}
       </div>
-
-      {/* Ambient Vignette & Mesh Overlay */}
-      <div className="hero-ambient-mesh" aria-hidden="true"></div>
 
       {/* Fine film-grain texture for a cinematic finish */}
       <div className="hero-grain" aria-hidden="true"></div>
@@ -211,11 +214,11 @@ export default function Hero({ poster, title, subtitle, children }) {
       <div className="hero-bottom-controls container">
         {/* Thumbnail Progress Indicators */}
         <div className="hero-progress-bars">
-          {HERO_SLIDE_CONFIGS.map((slide, idx) => {
+          {slideConfigs.map((slide, idx) => {
             const slideTexts = getSlideTexts(slide);
             return (
               <button
-                key={slide.id}
+                key={slide.id || slide.key || idx}
                 type="button"
                 className={`hero-progress-tab ${idx === currentSlide ? 'active' : ''}`}
                 onClick={() => setCurrentSlide(idx)}

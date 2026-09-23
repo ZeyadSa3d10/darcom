@@ -1,34 +1,90 @@
-/* AdminStats — scoped to the admin dashboard. */
+/* AdminStats — Scoped to the admin dashboard. */
 .admin-stats {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  gap: var(--space-3);
-  margin-block-end: var(--space-6);
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: var(--space-4, 1rem);
+  margin-block-end: var(--space-6, 1.5rem);
 }
 
 .stat-card {
-  border: 1px solid var(--border-color);
-  border-radius: var(--border-radius-md);
-  background: var(--neutral-0);
-  padding: var(--space-4);
+  border: 1px solid rgba(20, 66, 79, 0.12);
+  border-radius: 14px;
+  background: #ffffff;
+  padding: 1.15rem 1.25rem;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 0.35rem;
   text-align: start;
   cursor: pointer;
+  box-shadow: 0 4px 15px rgba(14, 42, 51, 0.03);
+  transition: all 0.2s ease;
+  position: relative;
 }
 
-.stat-card.static { cursor: default; }
+.stat-card:hover:not(.static) {
+  transform: translateY(-2px);
+  border-color: rgba(20, 66, 79, 0.25);
+  box-shadow: 0 8px 25px rgba(14, 42, 51, 0.08);
+}
+
+.stat-card.static {
+  cursor: default;
+}
+
+.stat-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-block-end: 0.25rem;
+}
+
+.stat-card-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: rgba(20, 66, 79, 0.06);
+  color: var(--brand-700, #14424f);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+}
 
 .stat-card strong {
-  font-size: 1.7rem;
-  font-family: var(--font-display);
+  font-size: 1.65rem;
+  font-family: var(--font-heading);
+  font-weight: 800;
+  color: var(--brand-900, #0e2a33);
+  line-height: 1.1;
 }
 
-.stat-card span { font-weight: 600; font-size: 0.88rem; }
-.stat-card em { font-style: normal; font-size: var(--fs-meta); color: var(--neutral-600); }
+.stat-card .stat-card-title {
+  font-weight: 700;
+  font-size: 0.86rem;
+  color: var(--neutral-600, #5c5c56);
+}
+
+.stat-card em {
+  font-style: normal;
+  font-size: 0.78rem;
+  color: var(--brand-500, #1b6b7a);
+  font-weight: 600;
+}
 
 .stat-card.alert {
-  border-color: var(--warning);
-  background: #fdf6e8;
+  border-color: rgba(183, 121, 31, 0.35);
+  background: #fffdf5;
+}
+
+.stat-card.alert .stat-card-icon {
+  background: rgba(183, 121, 31, 0.12);
+  color: #b7791f;
+}
+
+.stat-pulse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--danger, #b23b3b);
+  box-shadow: 0 0 0 3px rgba(178, 59, 59, 0.2);
 }

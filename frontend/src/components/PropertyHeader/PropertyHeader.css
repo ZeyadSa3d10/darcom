@@ -64,7 +64,7 @@
 }
 
 .badge-status-pill.featured {
-  background: linear-gradient(135deg, #fef3c7, #fde68a);
+  background: #fef3c7;
   color: #92400e;
   border: 1px solid rgba(201, 168, 106, 0.4);
 }

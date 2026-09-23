@@ -1,9 +1,30 @@
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useSettings } from '../../context/SettingsContext.jsx';
+import { cmsService } from '../../services/cmsService.js';
 import './Footer.css';
 
 export default function Footer() {
   const { t, isRtl } = useSettings();
+  const [cmsSettings, setCmsSettings] = useState(null);
+  const [footerContent, setFooterContent] = useState(null);
+
+  useEffect(() => {
+    cmsService.getBulk(['site.settings', 'footer.content']).then((res) => {
+      if (res?.data && typeof res.data === 'object') {
+        if (res.data['site.settings']) {
+          try {
+            setCmsSettings(JSON.parse(res.data['site.settings']));
+          } catch (_) {}
+        }
+        if (res.data['footer.content']) {
+          try {
+            setFooterContent(JSON.parse(res.data['footer.content']));
+          } catch (_) {}
+        }
+      }
+    }).catch(() => {});
+  }, []);
 
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -26,10 +47,10 @@ export default function Footer() {
   ];
 
   const advisoryLinks = [
+    { label: isRtl ? 'دليل كبار المطورين' : 'Premier Developers Directory', to: '/developers' },
+    { label: isRtl ? 'مقارنة العقارات الفورية' : 'Compare Residences', to: '/compare' },
     { label: t('footer.sellWithUs', 'Sell with Us (Private Circle)'), to: '/sell' },
     { label: isRtl ? 'استشارات الاستثمار العقاري' : 'Investment Portfolio Advisory', to: '/contact' },
-    { label: isRtl ? 'فحص وتوثيق الملكية' : 'Legal Due Diligence', to: '/contact' },
-    { label: isRtl ? 'حاسبة العائد الاستثماري' : 'ROI & Payment Planning', to: '/properties' },
     { label: isRtl ? 'طلب معاينة خاصة' : 'Schedule Private Viewing', to: '/contact' },
   ];
 
@@ -38,8 +59,14 @@ export default function Footer() {
     { label: t('nav.contact', 'Contact & Concierge'), to: '/contact' },
     { label: t('nav.favorites', 'Saved Residences'), to: '/favorites' },
     { label: t('nav.myProfile', 'Private Account'), to: '/profile' },
-    { label: t('footer.privacyPolicy', 'Privacy Policy'), to: '/contact' },
+    { label: t('footer.privacyPolicy', 'Privacy Policy'), to: '/privacy' },
+    { label: t('footer.termsOfService', 'Terms of Service'), to: '/terms' },
   ];
+
+  const phone = cmsSettings?.phone || '+20 100 000 0000';
+  const email = cmsSettings?.email || 'concierge@darcom.eg';
+  const address = cmsSettings ? (isRtl ? cmsSettings.address : (cmsSettings.addressEn || cmsSettings.address)) : t('footer.officeLocation', 'التجمع الخامس، القاهرة الجديدة');
+  const socials = cmsSettings?.socials || cmsSettings || {};
 
   return (
     <footer className="darcom-luxury-footer">
@@ -54,49 +81,65 @@ export default function Footer() {
                 <img src="/logo-white.png" alt="Darcom Real Estate" className="footer-brand-logo" />
               </Link>
               <p className="footer-brand-about">
-                {t(
-                  'footer.about',
-                  'المنصة العقارية الرقمية الرائدة في مصر للمصايف والفلل المستقلة والبنتهاوس الفاخر على سواحل البحر الأحمر والمتوسط وكمبوندات القاهرة الجديدة.'
-                )}
+                {footerContent
+                  ? (isRtl ? footerContent.aboutAr : (footerContent.aboutEn || footerContent.aboutAr))
+                  : t(
+                      'footer.about',
+                      'المنصة العقارية الرقمية الرائدة في مصر للمصايف والفلل المستقلة والبنتهاوس الفاخر على سواحل البحر الأحمر والمتوسط وكمبوندات القاهرة الجديدة.'
+                    )}
               </p>
 
               <div className="footer-credentials-badge">
                 <i className="bi bi-patch-check-fill text-gold"></i>
-                <span>{t('footer.verifiedBroker', 'وساطة واستشارات عقارية مرخصة رسمياً')}</span>
+                <span>
+                  {footerContent
+                    ? (isRtl ? footerContent.verifiedBadgeAr : (footerContent.verifiedBadgeEn || footerContent.verifiedBadgeAr))
+                    : t('footer.verifiedBroker', 'وساطة واستشارات عقارية مرخصة رسمياً')}
+                </span>
               </div>
 
               <div className="footer-contact-items">
                 <div className="footer-contact-row">
                   <i className="bi bi-geo-alt-fill"></i>
-                  <span>{t('footer.officeLocation', 'التجمع الخامس، القاهرة الجديدة')}</span>
+                  <span>{address}</span>
                 </div>
                 <div className="footer-contact-row">
                   <i className="bi bi-telephone-fill"></i>
-                  <a href="tel:+201000000000" dir="ltr">+20 100 000 0000</a>
+                  <a href={`tel:${phone.replace(/\s+/g, '')}`} dir="ltr">{phone}</a>
                 </div>
                 <div className="footer-contact-row">
                   <i className="bi bi-envelope-fill"></i>
-                  <a href="mailto:concierge@darcom.eg">concierge@darcom.eg</a>
+                  <a href={`mailto:${email}`}>{email}</a>
                 </div>
               </div>
 
               {/* Social Presence */}
               <div className="footer-social-row">
-                <a href="#" aria-label="Facebook" className="social-circle-btn">
-                  <i className="bi bi-facebook"></i>
-                </a>
-                <a href="#" aria-label="Instagram" className="social-circle-btn">
-                  <i className="bi bi-instagram"></i>
-                </a>
-                <a href="#" aria-label="LinkedIn" className="social-circle-btn">
-                  <i className="bi bi-linkedin"></i>
-                </a>
-                <a href="#" aria-label="YouTube" className="social-circle-btn">
-                  <i className="bi bi-youtube"></i>
-                </a>
-                <a href="#" aria-label="Twitter / X" className="social-circle-btn">
-                  <i className="bi bi-twitter-x"></i>
-                </a>
+                {socials.facebook && (
+                  <a href={socials.facebook} target="_blank" rel="noreferrer" aria-label="Facebook" className="social-circle-btn">
+                    <i className="bi bi-facebook"></i>
+                  </a>
+                )}
+                {socials.instagram && (
+                  <a href={socials.instagram} target="_blank" rel="noreferrer" aria-label="Instagram" className="social-circle-btn">
+                    <i className="bi bi-instagram"></i>
+                  </a>
+                )}
+                {socials.linkedin && (
+                  <a href={socials.linkedin} target="_blank" rel="noreferrer" aria-label="LinkedIn" className="social-circle-btn">
+                    <i className="bi bi-linkedin"></i>
+                  </a>
+                )}
+                {socials.youtube && (
+                  <a href={socials.youtube} target="_blank" rel="noreferrer" aria-label="YouTube" className="social-circle-btn">
+                    <i className="bi bi-youtube"></i>
+                  </a>
+                )}
+                {(socials.twitter || socials['twitter-x']) && (
+                  <a href={socials.twitter || socials['twitter-x']} target="_blank" rel="noreferrer" aria-label="Twitter / X" className="social-circle-btn">
+                    <i className="bi bi-twitter-x"></i>
+                  </a>
+                )}
               </div>
             </div>
 
@@ -195,11 +238,11 @@ export default function Footer() {
           </div>
 
           <div className="legal-nav-strip">
-            <Link to="/contact">{t('footer.privacyPolicy', 'Privacy Policy')}</Link>
+            <Link to="/privacy">{t('footer.privacyPolicy', 'Privacy Policy')}</Link>
             <span className="legal-separator">·</span>
-            <Link to="/contact">{t('footer.termsOfService', 'Terms')}</Link>
+            <Link to="/terms">{t('footer.termsOfService', 'Terms')}</Link>
             <span className="legal-separator">·</span>
-            <Link to="/properties">{t('footer.sitemap', 'Sitemap')}</Link>
+            <Link to="/sitemap">{t('footer.sitemap', 'Sitemap')}</Link>
             <span className="legal-separator">·</span>
             <Link to="/contact">{t('nav.contact', 'Contact')}</Link>
           </div>

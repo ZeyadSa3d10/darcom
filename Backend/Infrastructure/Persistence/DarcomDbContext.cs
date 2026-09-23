@@ -39,6 +39,7 @@ public sealed class DarcomDbContext : DbContext
     public DbSet<Payment> Payments => Set<Payment>();
     public DbSet<Document> Documents => Set<Document>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+    public DbSet<SiteContent> SiteContents => Set<SiteContent>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

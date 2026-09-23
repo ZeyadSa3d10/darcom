@@ -4,14 +4,17 @@ import FormField, { mapFieldErrors } from '../../components/FormField/FormField.
 import { useSettings } from '../../context/SettingsContext.jsx';
 import { useToast } from '../../components/Toast/Toast.jsx';
 import { useSeo } from '../../hooks/useSeo.js';
+import { useCmsSeo } from '../../hooks/useCmsSeo.js';
 import { purchaseService } from '../../services/purchaseService.js';
 import './Contact.css';
 
 export default function Contact() {
   const { t, isRtl } = useSettings();
+  const cmsSeo = useCmsSeo('contact');
   useSeo({
-    title: `${t('contact.title', 'Contact Us')} | Darcom`,
-    description: t('contact.subtitle', 'Talk to the Darcom team about buying, selling, renting or investing.'),
+    title: cmsSeo?.title || `${t('contact.title', 'Contact Us')} | Darcom`,
+    description: cmsSeo?.description || t('contact.subtitle', 'Talk to the Darcom team about buying, selling, renting or investing.'),
+    image: cmsSeo?.image || undefined,
   });
 
   const toast = useToast();

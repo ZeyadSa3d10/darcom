@@ -4,45 +4,39 @@ import { Keyboard, Thumbs } from 'swiper/modules';
 import 'swiper/css';
 import './PropertyGallery.css';
 
+// Self-hosted launch placeholders (public/images/*.svg).
+// Real API images always win; these only cover empty/legacy-seed galleries.
+// TODO(launch): replace with licensed WebP galleries per type.
 const CURATED_GALLERY_SETS = {
   villa: [
-    'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1400&q=85',
-    'https://images.unsplash.com/photo-1613977257363-707ba9348227?auto=format&fit=crop&w=1400&q=85',
-    'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1400&q=85',
-    'https://images.unsplash.com/photo-1616594039964-ae9021a400a0?auto=format&fit=crop&w=1400&q=85',
-    'https://images.unsplash.com/photo-1600565193348-f74bd3c7ccdf?auto=format&fit=crop&w=1400&q=85',
+    '/images/hero-sahel.svg',
+    '/images/property-fallback.svg',
+    '/images/premium-villa.svg',
   ],
   chalet: [
-    'https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=1400&q=85',
-    'https://images.unsplash.com/photo-1580587771525-78b9dba3b914?auto=format&fit=crop&w=1400&q=85',
-    'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=1400&q=85',
-    'https://images.unsplash.com/photo-1595526114035-0d45ed16cfbf?auto=format&fit=crop&w=1400&q=85',
-    'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1400&q=85',
+    '/images/hero-sokhna.svg',
+    '/images/property-fallback.svg',
+    '/images/premium-villa.svg',
   ],
   penthouse: [
-    'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1400&q=85',
-    'https://images.unsplash.com/photo-1567496898669-ee935f5f647a?auto=format&fit=crop&w=1400&q=85',
-    'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=1400&q=85',
-    'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1400&q=85',
-    'https://images.unsplash.com/photo-1600565193348-f74bd3c7ccdf?auto=format&fit=crop&w=1400&q=85',
+    '/images/hero-cairo.svg',
+    '/images/property-fallback.svg',
+    '/images/premium-villa.svg',
   ],
   apartment: [
-    'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=1400&q=85',
-    'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=1400&q=85',
-    'https://images.unsplash.com/photo-1616594039964-ae9021a400a0?auto=format&fit=crop&w=1400&q=85',
-    'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=1400&q=85',
+    '/images/hero-cairo.svg',
+    '/images/property-fallback.svg',
+    '/images/hero-gouna.svg',
   ],
   townhouse: [
-    'https://images.unsplash.com/photo-1580587771525-78b9dba3b914?auto=format&fit=crop&w=1400&q=85',
-    'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1400&q=85',
-    'https://images.unsplash.com/photo-1613977257363-707ba9348227?auto=format&fit=crop&w=1400&q=85',
-    'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=1400&q=85',
+    '/images/hero-cairo.svg',
+    '/images/property-fallback.svg',
+    '/images/hero-sahel.svg',
   ],
   duplex: [
-    'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=1400&q=85',
-    'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1400&q=85',
-    'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1400&q=85',
-    'https://images.unsplash.com/photo-1616594039964-ae9021a400a0?auto=format&fit=crop&w=1400&q=85',
+    '/images/hero-gouna.svg',
+    '/images/property-fallback.svg',
+    '/images/hero-sokhna.svg',
   ],
 };
 
@@ -56,7 +50,7 @@ export default function PropertyGallery({ images = [], videos = [], title = '', 
   const typeKey = (propertyType || 'villa').toLowerCase().replace(/\s+/g, '-');
   const curatedSet = CURATED_GALLERY_SETS[typeKey] || CURATED_GALLERY_SETS.villa;
 
-  // Check if original images are empty or contain picsum placeholders
+  // Check if original images are empty or legacy picsum dev-seed placeholders
   const isPicsumOrEmpty = !images.length || images.some((img) => img.url && img.url.includes('picsum.photos'));
 
   // Build resolved slide items

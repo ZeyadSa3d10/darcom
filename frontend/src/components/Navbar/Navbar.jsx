@@ -237,6 +237,14 @@ export default function Navbar({ transparent = false }) {
             )}
           </div>
 
+          <NavLink to="/developers" className={({ isActive }) => `nav-link-btn d-none d-xl-inline-flex ${isActive ? 'active' : ''}`}>
+            {t('nav.developers', isRtl ? 'المطورون' : 'Developers')}
+          </NavLink>
+
+          <NavLink to="/compare" className={({ isActive }) => `nav-link-btn d-none d-xl-inline-flex ${isActive ? 'active' : ''}`}>
+            {t('nav.compare', isRtl ? 'المقارنة' : 'Compare')}
+          </NavLink>
+
           <NavLink to="/contact" className={({ isActive }) => `nav-link-btn d-none d-xl-inline-flex ${isActive ? 'active' : ''}`}>
             {t('nav.contact', 'Contact')}
           </NavLink>
@@ -447,6 +455,16 @@ export default function Navbar({ transparent = false }) {
               <Link to="/properties?purpose=rent" className="mobile-nav-item" onClick={() => setOpen(false)}>
                 <i className="bi bi-key-fill nav-icon"></i>
                 <span>{t('purposes.rent', 'Rent Property')}</span>
+                <i className={`bi ${isRtl ? 'bi-chevron-left' : 'bi-chevron-right'} ms-auto arrow-icon`}></i>
+              </Link>
+              <Link to="/developers" className="mobile-nav-item" onClick={() => setOpen(false)}>
+                <i className="bi bi-patch-check-fill nav-icon"></i>
+                <span>{t('nav.developers', isRtl ? 'كبار المطورين' : 'Premier Developers')}</span>
+                <i className={`bi ${isRtl ? 'bi-chevron-left' : 'bi-chevron-right'} ms-auto arrow-icon`}></i>
+              </Link>
+              <Link to="/compare" className="mobile-nav-item" onClick={() => setOpen(false)}>
+                <i className="bi bi-arrow-left-right nav-icon"></i>
+                <span>{t('nav.compare', isRtl ? 'مقارنة الوحدات' : 'Compare Properties')}</span>
                 <i className={`bi ${isRtl ? 'bi-chevron-left' : 'bi-chevron-right'} ms-auto arrow-icon`}></i>
               </Link>
               <Link to="/contact" className="mobile-nav-item" onClick={() => setOpen(false)}>

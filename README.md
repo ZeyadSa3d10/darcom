@@ -36,14 +36,16 @@ Monorepo for buying / selling / renting premium properties across Egypt
 
 ```powershell
 cd frontend
-cp .env.example .env   # set VITE_API_URL (default http://localhost:5000/api)
+Copy-Item .env.example .env   # set VITE_API_URL (default http://localhost:5153/api)
 npm install
 npm run dev            # http://localhost:5173 (SPA fallback included)
 npm run build          # production dist/
 ```
 
-Optional: `VITE_HERO_VIDEO_URL` enables the home hero background video
-(mutd/autoplay/loop, poster + mobile-image fallback otherwise).
+> Hero background video is **planned, not implemented**: the hero currently renders
+> self-hosted SVG slides from `frontend/public/images/` (see TODOs in `Hero.jsx`).
+> Drop licensed 1920px WebP photos with the same filenames before launch —
+> no hotlinked demo imagery ships in prod paths.
 
 ## Backend setup
 
@@ -81,8 +83,8 @@ Demo accounts (Development only): `admin@darcom.local / Admin123!`,
 
 | Scope | Key | Example |
 |---|---|---|
-| Frontend | `VITE_API_URL` | `http://localhost:5000/api` |
-| Frontend | `VITE_HERO_VIDEO_URL` | `https://cdn…/coast.mp4` (optional) |
+| Frontend | `VITE_API_URL` | `http://localhost:5153/api` |
+| Frontend | `VITE_SITE_URL` | `http://localhost:5173` (prod: real domain — used for canonical/OG) |
 | Backend | `ConnectionStrings:Default` | `Server=localhost;Database=DarcomDb;…` |
 | Backend | `JWT:Key` / `Issuer` / `Audience` | via env / user-secrets (required in Production — startup fails without a key) |
 | Backend | `Storage:Provider` | `Local` (swap to Cloudinary/S3/Azure = config + one class) |
@@ -155,9 +157,10 @@ Executed 2026-09-20 against local SQL Server + Dev API (all evidence from live r
 | 19 | Test suite | ✅ 68/68 xUnit (auth, validators, property/request rules, slugs, contact) |
 | 20 | Docs | ✅ this README (architecture, setup, env, migrations, seed, run, deploy, API map) |
 
-Known limitations (honest): hero background video ships poster-first until
-`VITE_HERO_VIDEO_URL` points at a licensed file (no reliable hotlinkable luxury
-footage found); Lighthouse was not runnable in this environment — its place was
+Known limitations (honest): hero + card imagery ships as self-hosted branded
+SVG placeholders under `frontend/public/images/` until licensed photos replace
+them (same filenames, no code change); hero video is planned, not implemented;
+Lighthouse was not runnable in this environment — its place was
 taken by manual audits (meta/OG/JSON-LD, alt coverage, labeled controls, focus
 states, keyboard gallery/modal, logical-property RTL, lazy media, pagination
 everywhere).

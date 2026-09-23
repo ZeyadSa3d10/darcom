@@ -1,0 +1,302 @@
+/* ==========================================================================
+   Darcom CMS Manager — Luxury Content Management Editor Styling
+   ========================================================================== */
+
+.cms-manager {
+  padding: 0;
+  max-width: 1000px;
+}
+
+/* 1. Subtabs Segmented Bar */
+.cms-subtabs {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: #ffffff;
+  border: 1px solid rgba(20, 66, 79, 0.12);
+  border-radius: 14px;
+  padding: 0.45rem;
+  margin-bottom: 2rem;
+  overflow-x: auto;
+  box-shadow: 0 4px 15px rgba(14, 42, 51, 0.03);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(20, 66, 79, 0.2) transparent;
+}
+
+.cms-subtabs::-webkit-scrollbar {
+  height: 5px;
+}
+
+.cms-subtabs::-webkit-scrollbar-thumb {
+  background: rgba(20, 66, 79, 0.2);
+  border-radius: 9999px;
+}
+
+.cms-subtabs button {
+  padding: 0.6rem 1.15rem;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--neutral-600, #5c5c56);
+  white-space: nowrap;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  transition: all 0.2s ease;
+}
+
+.cms-subtabs button i {
+  font-size: 0.95rem;
+}
+
+.cms-subtabs button:hover:not(.active) {
+  background: #f8fafb;
+  color: var(--brand-900, #0e2a33);
+}
+
+.cms-subtabs button.active {
+  background: var(--brand-900, #0e2a33);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(14, 42, 51, 0.18);
+}
+
+/* 2. Editor Surface & Headings */
+.cms-editor {
+  width: 100%;
+}
+
+.cms-editor h3 {
+  font-family: var(--font-heading);
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--brand-900, #0e2a33);
+  margin-bottom: 0.35rem;
+}
+
+.cms-editor .editor-desc {
+  font-size: 0.88rem;
+  color: var(--neutral-600, #5c5c56);
+  margin-bottom: 1.5rem;
+  line-height: 1.55;
+}
+
+.cms-editor h4 {
+  font-family: var(--font-heading);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--brand-900, #0e2a33);
+  margin: 1.5rem 0 0.85rem;
+}
+
+/* 3. Form fields */
+.cms-field {
+  margin-bottom: 1.15rem;
+}
+
+.cms-field label {
+  display: block;
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: var(--brand-900, #0e2a33);
+  margin-bottom: 0.45rem;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.cms-field input,
+.cms-field textarea,
+.cms-field select {
+  width: 100%;
+  padding: 0.65rem 0.95rem;
+  border: 1px solid rgba(20, 66, 79, 0.2);
+  border-radius: 8px;
+  background: #ffffff;
+  font-size: 0.9rem;
+  color: var(--neutral-900, #1c1c1a);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  line-height: 1.5;
+}
+
+.cms-field input:focus,
+.cms-field textarea:focus,
+.cms-field select:focus {
+  outline: none;
+  border-color: var(--brand-primary, #14424f);
+  box-shadow: 0 0 0 3px rgba(20, 66, 79, 0.12);
+}
+
+.cms-field textarea {
+  min-height: 85px;
+  resize: vertical;
+}
+
+/* 4. Card items (for slides, cities, etc) */
+.cms-item-card {
+  border: 1px solid rgba(20, 66, 79, 0.12);
+  border-radius: 14px;
+  padding: 1.35rem;
+  margin-bottom: 1.25rem;
+  background: #ffffff;
+  box-shadow: 0 4px 15px rgba(14, 42, 51, 0.03);
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.cms-item-card:hover {
+  border-color: rgba(20, 66, 79, 0.25);
+  box-shadow: 0 6px 20px rgba(14, 42, 51, 0.06);
+}
+
+.cms-item-card .item-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.15rem;
+  border-bottom: 1px solid var(--neutral-100, #efefec);
+  padding-bottom: 0.75rem;
+}
+
+.cms-item-card .item-header strong {
+  font-family: var(--font-heading);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--brand-900, #0e2a33);
+}
+
+.cms-item-card .item-number {
+  font-family: var(--font-heading);
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--brand-700, #14424f);
+  background: rgba(20, 66, 79, 0.08);
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+}
+
+.cms-item-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+@media (max-width: 640px) {
+  .cms-item-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.cms-item-card .item-thumb {
+  width: 110px;
+  height: 65px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid rgba(20, 66, 79, 0.15);
+  margin-bottom: 1rem;
+  display: block;
+}
+
+/* 5. Buttons and Actions */
+.cms-actions-row {
+  display: flex;
+  gap: 0.85rem;
+  align-items: center;
+  margin-top: 2rem;
+  padding: 1.15rem 1.5rem;
+  background: #ffffff;
+  border: 1px solid rgba(20, 66, 79, 0.15);
+  border-radius: 14px;
+  box-shadow: 0 8px 30px rgba(14, 42, 51, 0.1);
+  position: sticky;
+  bottom: 1.5rem;
+  z-index: 30;
+}
+
+.cms-actions-row .btn-save {
+  padding: 0.65rem 1.75rem;
+  font-weight: 700;
+  font-size: 0.92rem;
+  border-radius: 10px;
+  background-color: var(--brand-700, #14424f);
+  border-color: var(--brand-700, #14424f);
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  box-shadow: 0 4px 12px rgba(20, 66, 79, 0.15);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.cms-actions-row .btn-save:hover:not(:disabled) {
+  background-color: var(--brand-900, #0e2a33);
+  border-color: var(--brand-900, #0e2a33);
+  transform: translateY(-1px);
+}
+
+.cms-actions-row .btn-outline-secondary {
+  border-radius: 10px;
+  padding: 0.65rem 1.25rem;
+  font-weight: 600;
+  font-size: 0.88rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.cms-add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.65rem 1.35rem;
+  border: 1.5px dashed rgba(20, 66, 79, 0.3);
+  border-radius: 10px;
+  background: #ffffff;
+  cursor: pointer;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--brand-700, #14424f);
+  margin-bottom: 1.5rem;
+  transition: all 0.2s ease;
+}
+
+.cms-add-btn:hover {
+  border-color: var(--brand-700, #14424f);
+  background: rgba(20, 66, 79, 0.04);
+  transform: translateY(-1px);
+}
+
+.cms-remove-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: 1px solid #fed7d7;
+  background: #fff5f5;
+  color: var(--danger, #b23b3b);
+  border-radius: 8px;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.cms-remove-btn:hover {
+  background: #fed7d7;
+  color: #9b2c2c;
+}
+
+/* 6. Settings Grid */
+.cms-settings-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.15rem;
+}
+
+@media (max-width: 640px) {
+  .cms-settings-grid {
+    grid-template-columns: 1fr;
+  }
+}

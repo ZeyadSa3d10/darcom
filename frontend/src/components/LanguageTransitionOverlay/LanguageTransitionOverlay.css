@@ -9,7 +9,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: radial-gradient(circle at 50% 50%, rgba(21, 69, 82, 0.88) 0%, rgba(13, 39, 47, 0.94) 55%, rgba(5, 17, 21, 0.98) 100%);
+  background: rgba(10, 34, 40, 0.95);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   overflow: hidden;
@@ -39,19 +39,8 @@
   pointer-events: none;
 }
 
-/* Ambient Pulsing Glow */
 .lang-ambient-mesh {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: radial-gradient(circle at 40% 40%, rgba(201, 168, 106, 0.16) 0%, transparent 60%),
-              radial-gradient(circle at 60% 60%, rgba(27, 107, 122, 0.25) 0%, transparent 60%);
-  animation: langMeshFloat 3s ease-in-out infinite alternate;
-}
-
-@keyframes langMeshFloat {
-  0% { transform: scale(1); opacity: 0.7; }
-  100% { transform: scale(1.08); opacity: 1; }
+  display: none;
 }
 
 /* Central Luxury Card */
@@ -61,12 +50,10 @@
   width: 90%;
   max-width: 440px;
   padding: 2.25rem 2rem;
-  background: linear-gradient(145deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.02) 100%);
-  border: 1px solid rgba(201, 168, 106, 0.28);
+  background: #0e2a33;
+  border: 1px solid rgba(201, 168, 106, 0.35);
   border-radius: 24px;
-  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.7),
-              0 0 35px rgba(201, 168, 106, 0.12),
-              inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.7);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -173,11 +160,7 @@
 }
 
 .chip-to {
-  color: #ffffff;
-  background: linear-gradient(135deg, #c9a86a 0%, #dfc38a 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  text-shadow: 0 0 18px rgba(201, 168, 106, 0.5);
+  color: var(--brand-accent);
   font-weight: 800;
   position: relative;
 }
@@ -219,9 +202,8 @@
 .lang-progress-bar {
   height: 100%;
   width: 0%;
-  background: linear-gradient(90deg, #1b6b7a 0%, #c9a86a 50%, #f4d38d 100%);
+  background: var(--brand-accent);
   border-radius: 999px;
-  box-shadow: 0 0 12px rgba(201, 168, 106, 0.7);
   animation: langProgressFill 0.75s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
 }
 

@@ -1,37 +1,43 @@
-/* AdminDashboard — separate operational layout, density allowed, still clean. */
+/* ==========================================================================
+   Darcom Admin Dashboard — Operational Architecture & Luxury Finishing
+   ========================================================================== */
+
 .admin-shell {
   display: grid;
-  grid-template-columns: 240px 1fr;
+  grid-template-columns: 260px 1fr;
   min-block-size: calc(100vh - var(--navbar-height));
+  background-color: var(--neutral-50, #f8fafb);
+  font-family: var(--font-body);
 }
 
-/* Hide the public navbar/footer chrome inside admin? No — admin keeps them,
-   but the shell below owns its visual language. */
+/* 1. Sidebar */
 .admin-sidebar {
-  background: var(--brand-900);
-  color: #fff;
-  padding: var(--space-4);
+  background: var(--brand-900, #0e2a33);
+  color: #ffffff;
+  padding: 1.5rem 1rem;
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: 1.5rem;
   position: sticky;
   top: var(--navbar-height);
   block-size: calc(100vh - var(--navbar-height));
   overflow-y: auto;
+  border-inline-end: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 2px 0 16px rgba(14, 42, 51, 0.08);
 }
 
 .admin-brand {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
-  padding-block-end: var(--space-3);
+  gap: 0.85rem;
+  padding-block-end: 1.25rem;
   border-block-end: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 .admin-brand-logo {
   height: 38px;
   width: auto;
-  max-width: 48px;
+  max-width: 44px;
   object-fit: contain;
   display: block;
 }
@@ -42,100 +48,316 @@
   line-height: 1.3;
 }
 
+.admin-brand strong {
+  font-family: var(--font-heading);
+  font-size: 1rem;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: 0.3px;
+}
+
 .admin-brand em {
   font-style: normal;
-  font-size: var(--fs-meta);
-  opacity: 0.75;
+  font-size: 0.78rem;
+  color: var(--brand-accent, #c9a86a);
+  font-weight: 600;
 }
 
 .admin-sidebar nav {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 0.3rem;
+  flex: 1;
 }
 
 .admin-sidebar nav button {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: 0.75rem;
   border: none;
   background: none;
-  color: rgba(255, 255, 255, 0.82);
+  color: rgba(255, 255, 255, 0.78);
   text-align: start;
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--border-radius-sm);
+  padding: 0.65rem 0.95rem;
+  border-radius: 10px;
   cursor: pointer;
   font-size: 0.92rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.admin-sidebar nav button i {
+  font-size: 1.05rem;
+  color: rgba(255, 255, 255, 0.6);
+  transition: color 0.2s ease;
 }
 
 .admin-sidebar nav button:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+}
+
+.admin-sidebar nav button:hover i {
+  color: var(--brand-accent, #c9a86a);
 }
 
 .admin-sidebar nav button.active {
-  background: var(--brand-accent);
-  color: var(--neutral-900);
-  font-weight: 600;
+  background: rgba(201, 168, 106, 0.15);
+  color: #ffffff;
+  font-weight: 700;
+  border-inline-start: 3px solid var(--brand-accent, #c9a86a);
+}
+
+.admin-sidebar nav button.active i {
+  color: var(--brand-accent, #c9a86a);
 }
 
 .tab-badge {
   margin-inline-start: auto;
-  background: var(--danger);
-  color: #fff;
+  background: var(--danger, #b23b3b);
+  color: #ffffff;
   font-size: 0.72rem;
   font-weight: 700;
-  border-radius: 999px;
-  padding: 0 0.5rem;
+  border-radius: 9999px;
+  padding: 0.1rem 0.55rem;
 }
 
 .admin-sidebar nav button.active .tab-badge {
-  background: var(--neutral-900);
+  background: var(--danger, #b23b3b);
 }
 
 .admin-exit {
   margin-block-start: auto;
-  color: rgba(255, 255, 255, 0.75);
+  color: rgba(255, 255, 255, 0.7);
   text-decoration: none;
   font-size: 0.88rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.65rem 0.95rem;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: all 0.2s ease;
 }
 
-.admin-exit:hover { color: #fff; }
+.admin-exit:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  border-color: rgba(201, 168, 106, 0.4);
+}
 
+/* 2. Main Content Area */
 .admin-main {
-  padding: var(--space-6);
-  max-inline-size: 1200px;
+  padding: clamp(1.25rem, 2.5vw, 2.25rem);
+  max-inline-size: 1320px;
   inline-size: 100%;
 }
 
 .admin-topbar {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
-  margin-block-end: var(--space-4);
+  gap: 1rem;
+  margin-block-end: 1.5rem;
+  padding-block-end: 1rem;
+  border-block-end: 1px solid rgba(20, 66, 79, 0.1);
 }
 
 .admin-topbar h1 {
-  font-size: 1.5rem;
+  font-size: clamp(1.4rem, 2.2vw, 1.85rem);
+  font-weight: 800;
+  color: var(--brand-900, #0e2a33);
   margin: 0;
 }
 
 .admin-subhead {
-  font-size: 1.1rem;
-  margin-block: var(--space-6) var(--space-3);
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: var(--brand-900, #0e2a33);
+  margin-block: 2rem 1rem;
 }
 
+/* 3. Toolbars & Controls */
+.admin-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-block-end: 1.5rem;
+  background: #ffffff;
+  padding: 0.85rem 1.15rem;
+  border: 1px solid rgba(20, 66, 79, 0.12);
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(14, 42, 51, 0.02);
+}
+
+.admin-toolbar .search-input {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 220px;
+}
+
+.admin-toolbar .search-input i {
+  position: absolute;
+  inset-inline-start: 0.85rem;
+  color: var(--neutral-400, #9a9a93);
+  font-size: 0.95rem;
+  pointer-events: none;
+}
+
+.admin-toolbar .search-input input {
+  width: 100%;
+  padding-inline-start: 2.35rem;
+  padding-inline-end: 0.85rem;
+  height: 38px;
+  border: 1px solid rgba(20, 66, 79, 0.2);
+  border-radius: 8px;
+  font-size: 0.88rem;
+}
+
+.admin-toolbar select {
+  height: 38px;
+  border: 1px solid rgba(20, 66, 79, 0.2);
+  border-radius: 8px;
+  padding: 0 0.85rem;
+  font-size: 0.88rem;
+  background-color: #ffffff;
+}
+
+.admin-toolbar-spacer {
+  margin-inline-start: auto;
+}
+
+/* 4. Tables Treatment */
+.admin-table-wrap {
+  background: #ffffff;
+  border: 1px solid rgba(20, 66, 79, 0.12);
+  border-radius: 14px;
+  box-shadow: 0 4px 15px rgba(14, 42, 51, 0.03);
+  overflow-x: auto;
+  margin-block-end: 1.5rem;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.admin-table th {
+  background: #f8fafb;
+  color: var(--brand-900, #0e2a33);
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 0.84rem;
+  padding: 0.85rem 1.15rem;
+  text-align: start;
+  border-block-end: 1px solid rgba(20, 66, 79, 0.12);
+  white-space: nowrap;
+}
+
+.admin-table td {
+  padding: 0.85rem 1.15rem;
+  border-block-end: 1px solid rgba(20, 66, 79, 0.06);
+  vertical-align: middle;
+  text-align: start;
+}
+
+.admin-table tbody tr {
+  transition: background-color 0.15s ease;
+}
+
+.admin-table tbody tr:hover {
+  background-color: rgba(20, 66, 79, 0.02);
+}
+
+.admin-table tbody tr:last-child td {
+  border-block-end: none;
+}
+
+/* Status Badges */
+.badge-status {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.2rem 0.65rem;
+  border-radius: 9999px;
+  background: #f0f4f6;
+  color: var(--brand-700, #14424f);
+  border: 1px solid rgba(20, 66, 79, 0.15);
+  white-space: nowrap;
+}
+
+.badge-verified {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.2rem 0.65rem;
+  border-radius: 9999px;
+  background: rgba(201, 168, 106, 0.15);
+  color: #8a6d2c;
+  border: 1px solid rgba(201, 168, 106, 0.4);
+  white-space: nowrap;
+}
+
+.badge-featured {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.15rem 0.5rem;
+  border-radius: 9999px;
+  background: #fefcbf;
+  color: #975a16;
+  border: 1px solid #ecc94b;
+}
+
+.row-unread td {
+  background: rgba(201, 168, 106, 0.06);
+  font-weight: 600;
+}
+
+.wrap-cell {
+  white-space: normal !important;
+  min-inline-size: 220px;
+  max-inline-size: 420px;
+  line-height: 1.5;
+}
+
+.row-actions {
+  white-space: nowrap;
+}
+
+.row-actions .btn + .btn {
+  margin-inline-start: 0.5rem;
+}
+
+/* 5. Responsive Layout Breakpoints */
 @media (max-width: 992px) {
-  .admin-shell { grid-template-columns: 1fr; }
+  .admin-shell {
+    grid-template-columns: 1fr;
+  }
+
   .admin-sidebar {
     display: none;
     position: fixed;
     inset-block-start: var(--navbar-height);
     inset-block-end: 0;
     inset-inline-start: 0;
-    inline-size: 260px;
+    inline-size: 270px;
     z-index: 950;
   }
-  .admin-sidebar.open { display: flex; }
-  .admin-main { padding: var(--space-4); }
+
+  .admin-sidebar.open {
+    display: flex;
+  }
+
+  .admin-main {
+    padding: 1.25rem;
+  }
 }

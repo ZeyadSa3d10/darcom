@@ -134,34 +134,23 @@
   align-items: center;
   justify-content: center;
   padding: 0.85rem 1.25rem;
-  background: linear-gradient(135deg, #14424f 0%, #0e2a33 100%);
+  background: var(--brand-700);
   color: #ffffff !important;
   font-size: 0.95rem;
   font-weight: 700;
   letter-spacing: 0.02em;
   border-radius: 12px;
   text-decoration: none;
-  overflow: hidden;
-  box-shadow: 0 6px 20px rgba(20, 66, 79, 0.35);
+  box-shadow: 0 4px 16px rgba(20, 66, 79, 0.25);
   border: 1px solid rgba(201, 168, 106, 0.4);
-  transition: all 0.25s ease;
+  transition: all 0.22s ease;
 }
 
 .btn-luxury-reserve:hover {
   transform: translateY(-2px);
-  box-shadow: 0 10px 28px rgba(20, 66, 79, 0.45);
+  background: var(--brand-900);
+  box-shadow: 0 8px 22px rgba(20, 66, 79, 0.35);
   border-color: var(--brand-accent);
-}
-
-.btn-reserve-shimmer {
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 60%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.28), transparent);
-  transform: skewX(-20deg);
-  animation: shimmerSweep 3.5s infinite;
 }
 
 /* WhatsApp Consultation Button */
@@ -398,13 +387,13 @@
   display: inline-flex;
   align-items: center;
   padding: 0.55rem 1rem;
-  background: linear-gradient(135deg, #14424f 0%, #0e2a33 100%);
+  background: var(--brand-700);
   color: #ffffff !important;
   font-size: 0.85rem;
   font-weight: 700;
   border-radius: 9999px;
   text-decoration: none;
-  box-shadow: 0 4px 12px rgba(20, 66, 79, 0.3);
+  box-shadow: 0 2px 8px rgba(20, 66, 79, 0.25);
   border: 1px solid rgba(201, 168, 106, 0.35);
 }
 

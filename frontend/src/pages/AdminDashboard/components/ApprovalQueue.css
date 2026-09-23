@@ -2,43 +2,105 @@
 .queue-list {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--space-3, 0.75rem);
 }
 
 .queue-row {
   display: flex;
-  gap: var(--space-3);
+  gap: var(--space-3, 0.75rem);
   align-items: center;
-  border: 1px solid var(--border-color);
-  border-radius: var(--border-radius-sm);
-  padding: var(--space-2);
-  background: #fffdf5;
+  border: 1px solid rgba(20, 66, 79, 0.12);
+  border-radius: 12px;
+  padding: 1rem;
+  background: #ffffff;
+  box-shadow: 0 4px 15px rgba(14, 42, 51, 0.02);
+  transition: all 0.2s ease;
+}
+
+.queue-row:hover {
+  border-color: rgba(20, 66, 79, 0.25);
+  box-shadow: 0 6px 20px rgba(14, 42, 51, 0.05);
 }
 
 .queue-row img {
   inline-size: 110px;
   block-size: 82px;
   object-fit: cover;
-  border-radius: var(--border-radius-sm);
+  border-radius: 8px;
   flex-shrink: 0;
 }
 
 .queue-info {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 0.25rem;
   flex: 1;
   min-inline-size: 0;
 }
 
+.queue-info strong {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--brand-900, #0e2a33);
+}
+
 .queue-actions {
   display: flex;
-  gap: var(--space-1);
+  gap: 0.5rem;
   flex-shrink: 0;
 }
 
+.queue-actions .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  padding: 0.45rem 0.85rem;
+  font-weight: 600;
+  font-size: 0.84rem;
+}
+
+.approval-empty-wrap {
+  background: #ffffff;
+  border: 1px solid rgba(20, 66, 79, 0.12);
+  border-radius: 16px;
+  padding: 3rem 1.5rem;
+  text-align: center;
+  box-shadow: 0 4px 15px rgba(14, 42, 51, 0.02);
+}
+
+.approval-empty-wrap .state-block {
+  padding: 0;
+}
+
+.approval-empty-wrap .state-icon i {
+  color: var(--success, #2e7d4f);
+  font-size: 2.75rem;
+}
+
+.approval-empty-wrap h3 {
+  font-family: var(--font-heading);
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--brand-900, #0e2a33);
+  margin-top: 0.75rem;
+}
+
+.approval-empty-wrap p {
+  color: var(--neutral-600, #5c5c56);
+  font-size: 0.92rem;
+  max-width: 48ch;
+  margin: 0.35rem auto 0;
+}
+
 @media (max-width: 768px) {
-  .queue-row { flex-wrap: wrap; }
-  .queue-actions { inline-size: 100%; }
-  .queue-actions .btn { flex: 1; }
+  .queue-row {
+    flex-wrap: wrap;
+  }
+  .queue-actions {
+    inline-size: 100%;
+  }
+  .queue-actions .btn {
+    flex: 1;
+  }
 }

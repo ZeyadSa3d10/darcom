@@ -9,6 +9,10 @@ export const EMPTY_FILTERS = {
   location: '',
   minPrice: '',
   maxPrice: '',
+  maxDownPayment: '',
+  installmentYears: '',
+  deliveryStatus: '',
+  developer: '',
   bedrooms: '',
   bathrooms: '',
   minArea: '',
@@ -113,6 +117,60 @@ export default function PropertyFilters({ applied, onApply, onClear }) {
         <div className="filters-group">
           <label htmlFor="f-maxPrice">{t('propertiesPage.maxPrice', 'Max price')}</label>
           <input id="f-maxPrice" type="number" min="0" placeholder={t('common.egp', 'EGP')} value={draft.maxPrice} onChange={set('maxPrice')} />
+        </div>
+      </div>
+
+      {/* Egyptian Payment & Handover Filters */}
+      <div className="filters-row">
+        <div className="filters-group">
+          <label htmlFor="f-maxDownPayment">{t('propertiesPage.maxDownPayment', 'Max Down Payment')}</label>
+          <input
+            id="f-maxDownPayment"
+            type="number"
+            min="0"
+            step="50000"
+            placeholder={t('common.egp', 'EGP')}
+            value={draft.maxDownPayment}
+            onChange={set('maxDownPayment')}
+          />
+        </div>
+        <div className="filters-group">
+          <label htmlFor="f-installmentYears">{t('propertiesPage.installmentYears', 'Installment Period')}</label>
+          <select id="f-installmentYears" value={draft.installmentYears} onChange={set('installmentYears')}>
+            <option value="">{t('common.all', 'Any Duration')}</option>
+            <option value="3">3+ {t('common.years', 'Years')}</option>
+            <option value="5">5+ {t('common.years', 'Years')}</option>
+            <option value="7">7+ {t('common.years', 'Years')}</option>
+            <option value="8">8+ {t('common.years', 'Years')}</option>
+            <option value="10">10+ {t('common.years', 'Years')}</option>
+          </select>
+        </div>
+      </div>
+
+      <div className="filters-row">
+        <div className="filters-group">
+          <label htmlFor="f-deliveryStatus">{t('propertiesPage.deliveryStatus', 'Handover Status')}</label>
+          <select id="f-deliveryStatus" value={draft.deliveryStatus} onChange={set('deliveryStatus')}>
+            <option value="">{t('common.all', 'All Handover Dates')}</option>
+            <option value="ready">{t('propertiesPage.readyToMove', 'Ready to Move (فوري)')}</option>
+            <option value="2025">2025</option>
+            <option value="2026">2026</option>
+            <option value="2027">2027+</option>
+          </select>
+        </div>
+        <div className="filters-group">
+          <label htmlFor="f-developer">{t('propertiesPage.developer', 'Premier Developer')}</label>
+          <select id="f-developer" value={draft.developer} onChange={set('developer')}>
+            <option value="">{t('common.all', 'All Developers')}</option>
+            <option value="Emaar Misr">Emaar Misr (إعمار مصر)</option>
+            <option value="Palm Hills">Palm Hills Developments (بالم هيلز)</option>
+            <option value="Mountain View">Mountain View (ماونتن فيو)</option>
+            <option value="SODIC">SODIC (سوديك)</option>
+            <option value="TMG">Talaat Moustafa Group (طلعت مصطفى)</option>
+            <option value="Hassan Allam">Hassan Allam Properties (حسن علام)</option>
+            <option value="Tatweer Misr">Tatweer Misr (تطوير مصر)</option>
+            <option value="Ora Developers">Ora Developers (أورا ديفلوبرز)</option>
+          </select>
         </div>
       </div>
 

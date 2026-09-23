@@ -7,8 +7,20 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': {
-        target: process.env.VITE_API_URL || 'http://localhost:5153',
+        target: 'http://localhost:5153',
         changeOrigin: true,
+      },
+    },
+  },
+  build: {
+    sourcemap: false,
+    chunkSizeWarningLimit: 900,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom', 'react-router-dom', 'axios'],
+          gallery: ['swiper'],
+        },
       },
     },
   },

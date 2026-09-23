@@ -42,13 +42,13 @@
 .gallery-slide-overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0.2) 0%, transparent 35%, rgba(0, 0, 0, 0.45) 100%);
+  background: transparent;
   pointer-events: none;
-  transition: opacity 0.3s ease;
+  transition: background 0.3s ease;
 }
 
 .slide-btn:hover .gallery-slide-overlay {
-  opacity: 0.8;
+  background: rgba(0, 0, 0, 0.06);
 }
 
 /* Floating Navigation Arrows */

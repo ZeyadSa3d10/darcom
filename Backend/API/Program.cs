@@ -48,6 +48,8 @@ builder.Services.AddScoped<IEngagementStore, EngagementStore>();
 builder.Services.AddScoped<IAdminStore, AdminStore>();
 builder.Services.AddScoped<IAuditWriter, AuditWriter>();
 builder.Services.AddScoped<IPasswordHasher, PasswordHasherService>();
+builder.Services.AddScoped<ISiteContentService, SiteContentService>();
+builder.Services.AddScoped<ISiteContentStore, SiteContentStore>();
 
 // Object storage (website.md #22). Swapping Local → Cloudinary/S3/Azure is a
 // Storage:Provider config change plus a new IStorageProvider class — no business-logic rewrite.
@@ -152,6 +154,12 @@ if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
+}
+else
+{
+    // HTTPS is terminated at the VPS reverse proxy (Nginx) — HSTS only,
+    // no in-app HTTPS redirection to avoid proxy redirect loops.
+    app.UseHsts();
 }
 
 app.UseCors("Frontend");

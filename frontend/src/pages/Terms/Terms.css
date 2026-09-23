@@ -1,0 +1,6 @@
+@import '../Privacy/Privacy.css';
+
+/* Specific Terms styling tweaks if needed */
+.legal-badge i.bi-file-earmark-text-fill {
+  color: var(--brand-accent, #c9a86a);
+}

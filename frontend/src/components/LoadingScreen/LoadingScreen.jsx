@@ -50,8 +50,6 @@ export default function LoadingScreen({ duration = 1100, onComplete }) {
       aria-label="Darcom Loading"
       role="status"
     >
-      <div className="splash-ambient-mesh" aria-hidden="true"></div>
-
       <div className="splash-spin-stage">
         {/* Glowing Orbital Ring */}
         <div className="splash-orbit-ring" aria-hidden="true"></div>

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" role="img" aria-label="Darcom — Find a Place Worth Calling Home">
+  <rect width="1200" height="630" fill="#0a2228"/>
+  <rect x="0" y="0" width="1200" height="630" fill="none" stroke="#c9a86a" stroke-width="6"/>
+  <rect x="60" y="60" width="1080" height="510" fill="none" stroke="#c9a86a" stroke-width="2" opacity="0.6"/>
+  <g fill="none" stroke="#c9a86a" stroke-width="8" opacity="0.95">
+    <path d="M510 330 L600 240 L690 330"/>
+    <rect x="540" y="330" width="120" height="85"/>
+  </g>
+  <text x="600" y="470" text-anchor="middle" font-family="Georgia, serif" font-size="72" letter-spacing="16" fill="#f2ead8">DARCOM</text>
+  <text x="600" y="520" text-anchor="middle" font-family="Georgia, serif" font-size="28" letter-spacing="4" fill="#c9a86a">FIND A PLACE WORTH CALLING HOME</text>
+</svg>

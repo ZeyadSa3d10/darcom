@@ -1,0 +1,325 @@
+/* ==========================================================================
+   Darcom Installment & Mortgage Calculator — Solid Architectural Card
+   ========================================================================== */
+
+.darcom-calc-card {
+  background: #ffffff;
+  border: 1px solid rgba(20, 66, 79, 0.12);
+  border-radius: 20px;
+  padding: clamp(1.5rem, 3vw, 2.25rem);
+  box-shadow: 0 10px 30px -10px rgba(14, 42, 51, 0.05);
+  margin-block-start: 2rem;
+  margin-block-end: 2rem;
+}
+
+/* 1. Header */
+.calc-header {
+  margin-block-end: 1.75rem;
+  padding-block-end: 1.25rem;
+  border-block-end: 1px solid rgba(20, 66, 79, 0.08);
+}
+
+.calc-header-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  background: rgba(20, 66, 79, 0.06);
+  border: 1px solid rgba(201, 168, 106, 0.35);
+  border-radius: 9999px;
+  padding: 0.3rem 0.8rem;
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--brand-700, #14424f);
+  margin-block-end: 0.65rem;
+}
+
+.calc-title {
+  font-family: var(--font-heading);
+  font-size: clamp(1.25rem, 2.2vw, 1.6rem);
+  font-weight: 800;
+  color: var(--brand-900, #0e2a33);
+  margin: 0 0 0.4rem;
+}
+
+.calc-subtitle {
+  font-size: 0.9rem;
+  color: var(--neutral-600, #5c5c56);
+  margin: 0;
+  line-height: 1.55;
+  max-width: 65ch;
+}
+
+/* 2. Grid Layout */
+.calc-body-grid {
+  display: grid;
+  grid-template-columns: 1.15fr 0.95fr;
+  gap: 2rem;
+  align-items: start;
+}
+
+/* 3. Controls Column */
+.calc-controls-col {
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+}
+
+.calc-field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.calc-field-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.calc-label {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--brand-900, #0e2a33);
+  margin: 0;
+}
+
+.calc-value-pill {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--brand-700, #14424f);
+  background: rgba(20, 66, 79, 0.06);
+  border: 1px solid rgba(20, 66, 79, 0.12);
+  padding: 0.25rem 0.65rem;
+  border-radius: 6px;
+}
+
+.calc-value-pill strong {
+  color: var(--brand-accent, #c9a86a);
+  font-weight: 700;
+}
+
+/* Range Slider */
+.calc-range-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  background: #e2e8f0;
+  border-radius: 4px;
+  outline: none;
+  cursor: pointer;
+}
+
+.calc-range-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--brand-primary, #14424f);
+  border: 2px solid var(--brand-accent, #c9a86a);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  transition: transform 0.15s ease, background-color 0.15s ease;
+}
+
+.calc-range-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+  background: var(--brand-900, #0e2a33);
+}
+
+.calc-range-slider::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--brand-primary, #14424f);
+  border: 2px solid var(--brand-accent, #c9a86a);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+}
+
+.calc-slider-scale {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.72rem;
+  color: #8899a6;
+  padding: 0 2px;
+}
+
+/* Delivery toggle */
+.calc-delivery-toggle {
+  background: #f8fafb;
+  border: 1px solid rgba(20, 66, 79, 0.1);
+  border-radius: 12px;
+  padding: 1rem 1.15rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.delivery-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--brand-900, #0e2a33);
+  cursor: pointer;
+  margin: 0;
+}
+
+.calc-checkbox {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--brand-primary, #14424f);
+  cursor: pointer;
+}
+
+.delivery-select-wrap {
+  margin-inline-start: 1.75rem;
+}
+
+.delivery-select {
+  width: 100%;
+  padding: 0.55rem 0.85rem;
+  border: 1px solid rgba(20, 66, 79, 0.2);
+  border-radius: 8px;
+  background: #ffffff;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--brand-900, #0e2a33);
+}
+
+/* 4. Output Summary Panel */
+.calc-summary-panel {
+  background: #0e2a33;
+  color: #ffffff;
+  border: 1px solid rgba(201, 168, 106, 0.35);
+  border-radius: 16px;
+  padding: 1.75rem;
+  box-shadow: 0 15px 35px -10px rgba(14, 42, 51, 0.35);
+}
+
+.summary-main-stat {
+  padding-block-end: 1.25rem;
+  border-block-end: 1px solid rgba(255, 255, 255, 0.12);
+  text-align: center;
+}
+
+.summary-stat-label {
+  display: block;
+  font-size: 0.82rem;
+  color: #a0b8be;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-block-end: 0.4rem;
+}
+
+.summary-stat-amount {
+  display: block;
+  font-family: var(--font-heading);
+  font-size: clamp(1.75rem, 3vw, 2.25rem);
+  font-weight: 800;
+  color: var(--brand-accent, #c9a86a);
+  line-height: 1.1;
+  margin-block-end: 0.45rem;
+}
+
+.summary-currency {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.summary-sub-monthly {
+  display: block;
+  font-size: 0.84rem;
+  color: #d1dde0;
+}
+
+.summary-sub-monthly strong {
+  color: #ffffff;
+}
+
+/* Breakdown rows */
+.summary-breakdown-list {
+  padding: 1.15rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  border-block-end: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.summary-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  font-size: 0.85rem;
+}
+
+.summary-row .s-label {
+  color: #a0b8be;
+}
+
+.summary-row .s-val {
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.summary-row .s-val.text-gold {
+  color: var(--brand-accent, #c9a86a);
+}
+
+/* Actions */
+.calc-actions {
+  margin-block-start: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.btn-calc-whatsapp {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  padding: 0.75rem 1.25rem;
+  background: #25d366;
+  color: #ffffff;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 0.88rem;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 14px rgba(37, 211, 102, 0.25);
+}
+
+.btn-calc-whatsapp:hover {
+  background: #20bd5a;
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.calc-disclaimer {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45rem;
+  font-size: 0.72rem;
+  color: #8fa7ad;
+  line-height: 1.45;
+}
+
+.calc-disclaimer i {
+  color: var(--brand-accent, #c9a86a);
+  margin-top: 1px;
+}
+
+/* Responsive */
+@media (max-width: 860px) {
+  .calc-body-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+}

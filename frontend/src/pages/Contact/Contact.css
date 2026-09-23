@@ -70,7 +70,7 @@
 }
 
 .concierge-brand-card {
-  background: linear-gradient(180deg, #ffffff 0%, #faf8f5 100%);
+  background: #ffffff;
   border: 1px solid rgba(201, 168, 106, 0.28);
   border-radius: 18px;
   padding: 1.6rem 1.5rem;
@@ -146,7 +146,7 @@
 
 .contact-action-card.whatsapp-highlight {
   border-color: rgba(37, 211, 102, 0.28);
-  background: linear-gradient(180deg, #ffffff 0%, #f6fdf8 100%);
+  background: #ffffff;
 }
 
 .contact-action-card.whatsapp-highlight:hover {

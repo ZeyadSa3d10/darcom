@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { Suspense, lazy, useEffect } from 'react';
 import { Routes, Route, Link, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext.jsx';
 import { SettingsProvider } from './context/SettingsContext.jsx';
@@ -21,7 +21,15 @@ import ForgotPassword from './pages/ForgotPassword/ForgotPassword.jsx';
 import ResetPassword from './pages/ResetPassword/ResetPassword.jsx';
 import Profile from './pages/Profile/Profile.jsx';
 import Sell from './pages/Sell/Sell.jsx';
-import AdminDashboard from './pages/AdminDashboard/AdminDashboard.jsx';
+// AdminDashboard is code-split: heaviest route, admin-only, rarely visited.
+const AdminDashboard = lazy(() => import('./pages/AdminDashboard/AdminDashboard.jsx'));
+import Privacy from './pages/Privacy/Privacy.jsx';
+import Terms from './pages/Terms/Terms.jsx';
+import Sitemap from './pages/Sitemap/Sitemap.jsx';
+import Compare from './pages/Compare/Compare.jsx';
+import Developers from './pages/Developers/Developers.jsx';
+import { CompareProvider } from './context/CompareContext.jsx';
+import CompareFloatingBar from './components/CompareFloatingBar/CompareFloatingBar.jsx';
 
 function ScrollToTop() {
   const { pathname, search } = useLocation();
@@ -79,60 +87,68 @@ export default function App() {
     <SettingsProvider>
       <AuthProvider>
         <ToastProvider>
-          <LoadingScreen />
-          <LanguageTransitionOverlay />
-          <ScrollToTop />
-          <a href="#main-content" className="skip-link">
-            Skip to main content
-          </a>
-          <Navbar />
-          <OfflineBanner />
-          <PageTransition>
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/properties" element={<Properties />} />
-            <Route path="/properties/:slug" element={<PropertyDetails />} />
-            <Route path="/contact" element={<Contact />} />
-            <Route
-              path="/checkout/:slug"
-              element={<ProtectedRoute><Checkout /></ProtectedRoute>}
-            />
-            <Route
-              path="/favorites"
-              element={<ProtectedRoute><Favorites /></ProtectedRoute>}
-            />
-            <Route
-              path="/login"
-              element={<GuestRoute><Login /></GuestRoute>}
-            />
-            <Route
-              path="/register"
-              element={<GuestRoute><Register /></GuestRoute>}
-            />
-            <Route
-              path="/forgot-password"
-              element={<GuestRoute><ForgotPassword /></GuestRoute>}
-            />
-            <Route
-              path="/reset-password"
-              element={<GuestRoute><ResetPassword /></GuestRoute>}
-            />
-            <Route
-              path="/sell"
-              element={<ProtectedRoute><Sell /></ProtectedRoute>}
-            />
-            <Route
-              path="/profile"
-              element={<ProtectedRoute><Profile /></ProtectedRoute>}
-            />
-            <Route
-              path="/admin"
-              element={<ProtectedRoute roles={['Admin']}><AdminDashboard /></ProtectedRoute>}
-            />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-          </PageTransition>
-          <Footer />
+          <CompareProvider>
+            <LoadingScreen />
+            <LanguageTransitionOverlay />
+            <ScrollToTop />
+            <a href="#main-content" className="skip-link">
+              Skip to main content
+            </a>
+            <Navbar />
+            <OfflineBanner />
+            <PageTransition>
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/properties" element={<Properties />} />
+              <Route path="/properties/:slug" element={<PropertyDetails />} />
+              <Route path="/compare" element={<Compare />} />
+              <Route path="/developers" element={<Developers />} />
+              <Route path="/contact" element={<Contact />} />
+              <Route
+                path="/checkout/:slug"
+                element={<ProtectedRoute><Checkout /></ProtectedRoute>}
+              />
+              <Route
+                path="/favorites"
+                element={<ProtectedRoute><Favorites /></ProtectedRoute>}
+              />
+              <Route
+                path="/login"
+                element={<GuestRoute><Login /></GuestRoute>}
+              />
+              <Route
+                path="/register"
+                element={<GuestRoute><Register /></GuestRoute>}
+              />
+              <Route
+                path="/forgot-password"
+                element={<GuestRoute><ForgotPassword /></GuestRoute>}
+              />
+              <Route
+                path="/reset-password"
+                element={<GuestRoute><ResetPassword /></GuestRoute>}
+              />
+              <Route
+                path="/sell"
+                element={<ProtectedRoute><Sell /></ProtectedRoute>}
+              />
+              <Route
+                path="/profile"
+                element={<ProtectedRoute><Profile /></ProtectedRoute>}
+              />
+              <Route
+                path="/admin"
+                element={<ProtectedRoute roles={['Admin']}><Suspense fallback={null}><AdminDashboard /></Suspense></ProtectedRoute>}
+              />
+              <Route path="/privacy" element={<Privacy />} />
+              <Route path="/terms" element={<Terms />} />
+              <Route path="/sitemap" element={<Sitemap />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+            </PageTransition>
+            <CompareFloatingBar />
+            <Footer />
+          </CompareProvider>
         </ToastProvider>
       </AuthProvider>
     </SettingsProvider>

@@ -77,3 +77,93 @@
   object-fit: cover;
   border-radius: var(--border-radius-sm);
 }
+
+/* ---- Add/Edit property form (AdminPropertyForm) ---- */
+.admin-toolbar-spacer { flex: 1 1 auto; }
+
+.apf-form { display: flex; flex-direction: column; gap: var(--space-2); }
+
+.apf-section {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--neutral-600);
+  margin: var(--space-3) 0 0;
+  padding-block-start: var(--space-3);
+  border-block-start: 1px solid var(--neutral-100);
+}
+
+.apf-section:first-child { border-block-start: none; padding-block-start: 0; margin-block-start: 0; }
+
+.apf-grid-2, .apf-grid-3 { display: grid; gap: var(--space-2); }
+.apf-grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.apf-grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+.apf-price-row { display: grid; grid-template-columns: 1fr 96px; gap: var(--space-2); }
+
+.apf-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--neutral-700);
+  margin-block-start: var(--space-1);
+}
+
+.apf-check-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: var(--space-1) var(--space-3);
+}
+
+.apf-check-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.apf-check-item input { inline-size: 1rem; block-size: 1rem; accent-color: var(--brand-700); }
+
+.apf-actions {
+  display: flex;
+  gap: var(--space-2);
+  margin-block-start: var(--space-3);
+  padding-block-start: var(--space-3);
+  border-block-start: 1px solid var(--neutral-100);
+}
+
+/* ---- Media upload rows (drawer + add flow) ---- */
+.adm-upload-row {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  gap: var(--space-2);
+  margin-block-end: var(--space-2);
+}
+
+.adm-upload-row:last-of-type { margin-block-end: 0; }
+
+.adm-upload-row select,
+.adm-upload-row input[type="file"] {
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-sm);
+  padding: 0.35rem 0.5rem;
+  font-size: 0.85rem;
+  background: var(--neutral-0);
+}
+
+.adm-upload-row input[type="file"] { overflow: hidden; }
+
+.adm-upload-actions {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  margin-block-start: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.apf-drawer-edit { margin-block: var(--space-2); }
+
+@media (max-width: 640px) {
+  .apf-grid-2, .apf-grid-3 { grid-template-columns: 1fr; }
+  .adm-upload-row { grid-template-columns: 1fr; }
+}

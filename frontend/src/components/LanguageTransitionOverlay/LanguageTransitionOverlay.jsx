@@ -54,10 +54,7 @@ export default function LanguageTransitionOverlay() {
           : 'Switching site language to English'
       }
     >
-      {/* Ambient background glow */}
-      <div className="lang-ambient-mesh" aria-hidden="true" />
-
-      {/* Floating Luxe Glass Card */}
+      {/* Floating Luxe Card */}
       <div className="lang-modal-card">
         {/* 3D Rotating Logo with Orbital Rings */}
         <div className="lang-crest-wrap">

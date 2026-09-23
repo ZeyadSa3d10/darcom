@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 
 // Per-page SEO: title + meta description + Open Graph + canonical + JSON-LD.
 // Details pages pass property data for unique metadata and RealEstateListing schema.
-export function useSeo({ title, description, image, canonical, jsonLd, type = 'website' }) {
+export function useSeo({ title, description, image, canonical, url, jsonLd, type = 'website' }) {
   useEffect(() => {
     if (title) document.title = title;
 
@@ -22,6 +22,7 @@ export function useSeo({ title, description, image, canonical, jsonLd, type = 'w
     setMeta('meta[property="og:title"]', 'og:title', title);
     setMeta('meta[property="og:description"]', 'og:description', description);
     setMeta('meta[property="og:image"]', 'og:image', image);
+    setMeta('meta[property="og:url"]', 'og:url', url || canonical);
     setMeta('meta[property="og:type"]', 'og:type', type);
 
     let link = document.head.querySelector('link[rel="canonical"]');
@@ -43,7 +44,7 @@ export function useSeo({ title, description, image, canonical, jsonLd, type = 'w
       script.textContent = JSON.stringify(jsonLd);
       document.head.appendChild(script);
     }
-  }, [title, description, image, canonical, jsonLd, type]);
+  }, [title, description, image, canonical, url, jsonLd, type]);
 }
 
 export function propertyJsonLd(property, url) {

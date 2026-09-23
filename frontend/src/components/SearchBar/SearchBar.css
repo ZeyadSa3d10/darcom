@@ -163,27 +163,27 @@
   align-items: center;
   justify-content: center;
   padding: 0.82rem 1.75rem;
-  background: linear-gradient(135deg, #14424f 0%, #0e2a33 100%);
+  background: var(--brand-700);
   color: #ffffff;
   border: 1px solid rgba(201, 168, 106, 0.4);
   border-radius: 14px;
   font-size: 0.96rem;
   font-weight: 700;
   cursor: pointer;
-  box-shadow: 0 8px 24px rgba(20, 66, 79, 0.35);
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 4px 16px rgba(20, 66, 79, 0.25);
+  transition: all 0.22s ease;
   white-space: nowrap;
 }
 
 .btn-luxe-search:hover {
-  transform: translateY(-2px) scale(1.02);
-  box-shadow: 0 12px 28px rgba(20, 66, 79, 0.45);
-  background: linear-gradient(135deg, #1b6b7a 0%, #14424f 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 22px rgba(20, 66, 79, 0.35);
+  background: var(--brand-900);
   border-color: var(--brand-accent);
 }
 
 .btn-luxe-search:active {
-  transform: translateY(0) scale(0.98);
+  transform: translateY(0);
 }
 
 /* 3. Quick Popular Trending Tags */
