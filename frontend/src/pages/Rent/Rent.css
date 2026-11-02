@@ -1,0 +1,49 @@
+﻿/* ===== Rent Page — extends Properties styles ===== */
+.rent-page {
+  padding-top: 1.5rem;
+  padding-bottom: 4rem;
+}
+
+/* Hero Header */
+.rent-hero-header {
+  margin-bottom: 2rem;
+  padding: 2.5rem 0 2rem;
+  border-bottom: 1px solid rgba(201, 168, 106, 0.15);
+}
+
+.rent-hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  background: linear-gradient(135deg, rgba(201, 168, 106, 0.15), rgba(201, 168, 106, 0.06));
+  border: 1px solid rgba(201, 168, 106, 0.35);
+  color: #c9a86a;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.35rem 0.85rem;
+  border-radius: 999px;
+  margin-bottom: 1.1rem;
+}
+
+.rent-hero-badge i {
+  font-size: 0.85rem;
+}
+
+.rent-hero-title {
+  font-size: clamp(1.6rem, 4vw, 2.4rem);
+  font-weight: 700;
+  color: var(--color-text-primary, #e8e4dc);
+  line-height: 1.25;
+  margin-bottom: 0.6rem;
+  letter-spacing: -0.01em;
+}
+
+.rent-hero-subtitle {
+  font-size: 1rem;
+  color: var(--color-text-muted, #8a9ba8);
+  max-width: 600px;
+  line-height: 1.65;
+  margin-bottom: 1.75rem;
+}

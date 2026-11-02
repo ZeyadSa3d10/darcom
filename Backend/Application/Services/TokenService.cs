@@ -17,6 +17,7 @@ public interface ITokenService
 
 public sealed class TokenService : ITokenService
 {
+
     private readonly JwtOptions _options;
 
     public TokenService(IOptions<JwtOptions> options)
@@ -35,7 +36,7 @@ public sealed class TokenService : ITokenService
             new Claim(ClaimTypes.Role, roleName),
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
         };
-
+          
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_options.Key));
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
         var token = new JwtSecurityToken(
@@ -43,11 +44,11 @@ public sealed class TokenService : ITokenService
             audience: _options.Audience,
             claims: claims,
             expires: expiresAt,
-            signingCredentials: credentials);
+            signingCredentials: credentials);         
 
         return (new JwtSecurityTokenHandler().WriteToken(token), expiresAt);
     }
 
     public string CreateRefreshToken()
         => Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
-}
+} 

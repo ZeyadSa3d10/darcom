@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect } from 'react';
+import { Suspense, lazy, useEffect, useState } from 'react';
 import { Routes, Route, Link, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext.jsx';
 import { SettingsProvider } from './context/SettingsContext.jsx';
@@ -26,7 +26,9 @@ const AdminDashboard = lazy(() => import('./pages/AdminDashboard/AdminDashboard.
 import Privacy from './pages/Privacy/Privacy.jsx';
 import Terms from './pages/Terms/Terms.jsx';
 import Sitemap from './pages/Sitemap/Sitemap.jsx';
+import WelcomeSelector from './pages/WelcomeSelector/WelcomeSelector.jsx';
 import Compare from './pages/Compare/Compare.jsx';
+import Rent from './pages/Rent/Rent.jsx';
 import Developers from './pages/Developers/Developers.jsx';
 import { CompareProvider } from './context/CompareContext.jsx';
 import CompareFloatingBar from './components/CompareFloatingBar/CompareFloatingBar.jsx';
@@ -83,6 +85,25 @@ function NotFound() {
 }
 
 export default function App() {
+  const location = useLocation();
+  const isWelcome = location.pathname === '/welcome';
+  const hasMode = typeof window !== 'undefined' && !!sessionStorage.getItem('darcom-mode-selected');
+
+  // If user hits '/' for the first time in session, redirect to '/welcome' (replaces entry so back goes out cleanly)
+  if (!hasMode && location.pathname === '/') {
+    return <Navigate to="/welcome" replace />;
+  }
+
+  // When on '/welcome', render the immersive WelcomeSelector
+  if (isWelcome) {
+    return (
+      <SettingsProvider>
+        <LoadingScreen />
+        <WelcomeSelector />
+      </SettingsProvider>
+    );
+  }
+
   return (
     <SettingsProvider>
       <AuthProvider>
@@ -100,6 +121,8 @@ export default function App() {
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/properties" element={<Properties />} />
+              <Route path="/rent" element={<Rent />} />
+              <Route path="/welcome" element={<WelcomeSelector />} />
               <Route path="/properties/:slug" element={<PropertyDetails />} />
               <Route path="/compare" element={<Compare />} />
               <Route path="/developers" element={<Developers />} />

@@ -237,6 +237,11 @@ export default function Navbar({ transparent = false }) {
             )}
           </div>
 
+          <NavLink to="/rent" className={({ isActive }) => `nav-link-btn d-none d-lg-inline-flex ${isActive ? 'active' : ''}`}>
+            <i className="bi bi-key-fill me-1"></i>
+            {isRtl ? 'إيجار' : 'Rent'}
+          </NavLink>
+
           <NavLink to="/developers" className={({ isActive }) => `nav-link-btn d-none d-xl-inline-flex ${isActive ? 'active' : ''}`}>
             {t('nav.developers', isRtl ? 'المطورون' : 'Developers')}
           </NavLink>
@@ -452,7 +457,7 @@ export default function Navbar({ transparent = false }) {
                 <span>{t('purposes.sale', 'Buy Property')}</span>
                 <i className={`bi ${isRtl ? 'bi-chevron-left' : 'bi-chevron-right'} ms-auto arrow-icon`}></i>
               </Link>
-              <Link to="/properties?purpose=rent" className="mobile-nav-item" onClick={() => setOpen(false)}>
+              <Link to="/rent" className="mobile-nav-item" onClick={() => setOpen(false)}>
                 <i className="bi bi-key-fill nav-icon"></i>
                 <span>{t('purposes.rent', 'Rent Property')}</span>
                 <i className={`bi ${isRtl ? 'bi-chevron-left' : 'bi-chevron-right'} ms-auto arrow-icon`}></i>

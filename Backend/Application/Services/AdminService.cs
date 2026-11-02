@@ -61,7 +61,7 @@ public sealed class AdminService : IAdminService
 
         var updated = await _store.GetUserAsync(userId, ct);
         return ServiceResult<AdminUserDto>.Ok(updated!, $"Role changed to {roleName}.");
-    }
+    } 
 
     public async Task<ServiceResult<List<AdminAgentDto>>> GetAgentsAsync(CancellationToken ct = default)
         => ServiceResult<List<AdminAgentDto>>.Ok(await _store.GetAgentsAsync(ct));
@@ -78,6 +78,7 @@ public sealed class AdminService : IAdminService
             "Review", reviewId.ToString(), null, approved.ToString(), ipAddress, ct);
         return ServiceResult<object?>.Ok(null, approved ? "Review approved." : "Review hidden.");
     }
+         
 
     public async Task<ServiceResult<object?>> DeleteReviewAsync(int adminId, int reviewId, string? ipAddress, CancellationToken ct = default)
     {
