@@ -18,7 +18,8 @@ public sealed class RoleConfiguration : IEntityTypeConfiguration<Role>
             new Role { Id = 1, Name = "Admin", Description = "Full platform management.", CreatedAt = SeedDate },
             new Role { Id = 2, Name = "Agent", Description = "Manages assigned listings.", CreatedAt = SeedDate },
             new Role { Id = 3, Name = "Seller", Description = "Submits and manages own properties.", CreatedAt = SeedDate },
-            new Role { Id = 4, Name = "Buyer", Description = "Browses, favorites and requests properties.", CreatedAt = SeedDate }
+            new Role { Id = 4, Name = "Buyer", Description = "Browses, favorites and requests properties.", CreatedAt = SeedDate },
+            new Role { Id = 5, Name = "Broker", Description = "External real estate broker submitting client requests.", CreatedAt = SeedDate }
         );
     }
 }
@@ -37,6 +38,24 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
         b.HasIndex(u => u.RoleId);
         b.HasOne(u => u.Role).WithMany(r => r.Users)
             .HasForeignKey(u => u.RoleId).OnDelete(DeleteBehavior.Restrict);
+    }
+}
+
+public sealed class BrokerProfileConfiguration : IEntityTypeConfiguration<BrokerProfile>
+{
+    public void Configure(EntityTypeBuilder<BrokerProfile> b)
+    {
+        b.Property(bp => bp.AgencyName).HasMaxLength(160).IsRequired();
+        b.Property(bp => bp.LicenseNumber).HasMaxLength(100).IsRequired();
+        b.Property(bp => bp.NationalId).HasMaxLength(64);
+        b.Property(bp => bp.DocumentUrl).HasMaxLength(1000);
+        b.Property(bp => bp.AdminNotes).HasMaxLength(2000);
+
+        b.HasIndex(bp => bp.UserId).IsUnique();
+        b.HasIndex(bp => bp.Status);
+
+        b.HasOne(bp => bp.User).WithOne(u => u.BrokerProfile)
+            .HasForeignKey<BrokerProfile>(bp => bp.UserId).OnDelete(DeleteBehavior.Cascade);
     }
 }
 

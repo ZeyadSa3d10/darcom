@@ -5,7 +5,6 @@ import FavoriteButton from '../FavoriteButton/FavoriteButton.jsx';
 import './PropertyCard.css';
 
 // Self-hosted launch placeholders (public/images/*.svg).
-// TODO(launch): replace with licensed WebP photos per type, same filenames.
 const REAL_ESTATE_CURATED_IMAGES = {
   penthouse: '/images/hero-cairo.svg',
   villa: '/images/hero-sahel.svg',
@@ -26,11 +25,12 @@ function formatPriceAmount(price) {
 export default function PropertyCard({ property, layout = 'grid', onFavoriteChange, favInitial = false }) {
   const { t, isRtl } = useSettings();
   const purpose = (property.purpose || 'sale').toLowerCase();
-  const purposeLabel = purpose === 'rent'
-    ? t('common.forRent', 'For Rent')
-    : purpose === 'investment'
-    ? t('common.investment', 'Investment')
-    : t('common.forSale', 'For Sale');
+  const purposeLabel =
+    purpose === 'rent'
+      ? t('common.forRent', 'For Rent')
+      : purpose === 'investment'
+      ? t('common.investment', 'Investment')
+      : t('common.forSale', 'For Sale');
   const isRental = purpose === 'rent';
 
   const typeKey = (property.propertyTypeSlug || property.propertyType || '').toLowerCase().replace(/\s+/g, '-');
@@ -38,14 +38,19 @@ export default function PropertyCard({ property, layout = 'grid', onFavoriteChan
 
   // If primaryImageUrl is a legacy picsum placeholder from the dev seed, use the local fallback instead
   const hasPicsumPlaceholder = property.primaryImageUrl && property.primaryImageUrl.includes('picsum.photos');
-  const displayImage = hasPicsumPlaceholder ? curatedFallback : (property.primaryImageUrl || curatedFallback);
+  const displayImage = hasPicsumPlaceholder ? curatedFallback : property.primaryImageUrl || curatedFallback;
 
   const { isInCompare, toggleCompare } = useCompare();
   const inCompare = isInCompare(property.id);
 
-  const localizedPropertyType = property.propertyType
-    ? t(`types.${typeKey}`, property.propertyType)
-    : null;
+  const localizedPropertyType = property.propertyType ? t(`types.${typeKey}`, property.propertyType) : null;
+
+  // Location display prioritizing North Coast Village & Zone
+  const locationText = property.villageName
+    ? `${property.villageName}${property.zoneName ? ` · ${property.zoneName}` : ''}${
+        property.buildingNumber ? ` (${t('propertiesPage.bldg', 'Bldg')} ${property.buildingNumber})` : ''
+      }`
+    : `${property.location || ''}${property.city ? `, ${property.city}` : ''}`;
 
   return (
     <article className={`property-card ${layout === 'list' ? 'as-list' : ''}`}>
@@ -74,9 +79,7 @@ export default function PropertyCard({ property, layout = 'grid', onFavoriteChan
               <span>{t('common.featured', 'Featured')}</span>
             </span>
           )}
-          <span className={`badge-purpose-pill ${purpose}`}>
-            {purposeLabel}
-          </span>
+          <span className={`badge-purpose-pill ${purpose}`}>{purposeLabel}</span>
         </div>
 
         {/* Top Actions: Compare & Favorite */}
@@ -89,7 +92,15 @@ export default function PropertyCard({ property, layout = 'grid', onFavoriteChan
               e.stopPropagation();
               toggleCompare(property);
             }}
-            title={inCompare ? (isRtl ? 'إزالة من المقارنة' : 'Remove from comparison') : (isRtl ? 'إضافة للمقارنة' : 'Compare property')}
+            title={
+              inCompare
+                ? isRtl
+                  ? 'إزالة من المقارنة'
+                  : 'Remove from comparison'
+                : isRtl
+                ? 'إضافة للمقارنة'
+                : 'Compare property'
+            }
             aria-label={inCompare ? 'Remove from comparison' : 'Compare property'}
           >
             <i className={`bi bi-arrow-left-right ${inCompare ? 'text-gold' : ''}`}></i>
@@ -114,9 +125,7 @@ export default function PropertyCard({ property, layout = 'grid', onFavoriteChan
             <span className="price-curr">{t('common.egp', property.currency || 'EGP')}</span>
             {isRental && <span className="price-period">{t('common.perMonth', '/ mo')}</span>}
           </div>
-          {property.referenceNumber && (
-            <span className="property-ref-badge">{property.referenceNumber}</span>
-          )}
+          {property.referenceNumber && <span className="property-ref-badge">{property.referenceNumber}</span>}
         </div>
 
         {/* Property Title */}
@@ -127,20 +136,31 @@ export default function PropertyCard({ property, layout = 'grid', onFavoriteChan
         {/* Location Line */}
         <div className="property-card-location">
           <i className="bi bi-geo-alt-fill pin-icon"></i>
-          <span>{property.location}{property.city ? `, ${property.city}` : ''}</span>
+          <span>{locationText}</span>
         </div>
 
-        {/* Amenity Badges (Sea View, Pool, Beach Access) if available */}
-        {(property.seaView || property.pool || property.beachAccess) && (
+        {/* Amenity Badges (Sea View, Pool, Beach Access, Garden) if available */}
+        {(property.seaView || property.pool || property.beachAccess || property.garden) && (
           <div className="property-chips-bar">
             {property.seaView && (
-              <span className="amenity-chip"><i className="bi bi-water"></i> {t('propertiesPage.seaView', 'Sea View')}</span>
+              <span className="amenity-chip">
+                <i className="bi bi-water"></i> {t('propertiesPage.seaView', 'Sea View')}
+              </span>
             )}
             {property.pool && (
-              <span className="amenity-chip"><i className="bi bi-droplet-half"></i> {t('propertiesPage.pool', 'Pool')}</span>
+              <span className="amenity-chip">
+                <i className="bi bi-droplet-half"></i> {t('propertiesPage.pool', 'Pool')}
+              </span>
             )}
             {property.beachAccess && (
-              <span className="amenity-chip"><i className="bi bi-umbrella"></i> {t('propertiesPage.beachAccess', 'Beach')}</span>
+              <span className="amenity-chip">
+                <i className="bi bi-umbrella"></i> {t('propertiesPage.beachAccess', 'Beach')}
+              </span>
+            )}
+            {property.garden && (
+              <span className="amenity-chip">
+                <i className="bi bi-tree"></i> {t('propertiesPage.garden', 'Garden')}
+              </span>
             )}
           </div>
         )}
@@ -151,19 +171,25 @@ export default function PropertyCard({ property, layout = 'grid', onFavoriteChan
             {property.bedrooms != null && (
               <div className="spec-unit" title={`${property.bedrooms} ${t('common.beds', 'Bedrooms')}`}>
                 <i className="bi bi-door-closed"></i>
-                <span><strong>{property.bedrooms}</strong> {t('common.beds', 'bd')}</span>
+                <span>
+                  <strong>{property.bedrooms}</strong> {t('common.beds', 'bd')}
+                </span>
               </div>
             )}
             {property.bathrooms != null && (
               <div className="spec-unit" title={`${property.bathrooms} ${t('common.baths', 'Bathrooms')}`}>
                 <i className="bi bi-droplet"></i>
-                <span><strong>{property.bathrooms}</strong> {t('common.baths', 'ba')}</span>
+                <span>
+                  <strong>{property.bathrooms}</strong> {t('common.baths', 'ba')}
+                </span>
               </div>
             )}
             {property.area != null && (
               <div className="spec-unit" title={`${property.area} ${t('common.sqm', 'm²')}`}>
                 <i className="bi bi-aspect-ratio"></i>
-                <span><strong>{property.area}</strong> {t('common.sqm', 'm²')}</span>
+                <span>
+                  <strong>{property.area}</strong> {t('common.sqm', 'm²')}
+                </span>
               </div>
             )}
           </div>

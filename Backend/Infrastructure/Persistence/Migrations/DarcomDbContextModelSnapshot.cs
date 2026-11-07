@@ -408,6 +408,9 @@ namespace Infrastructure.Persistence.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
+                    b.Property<DateTime?>("EndDate")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("FullName")
                         .IsRequired()
                         .HasMaxLength(160)
@@ -443,6 +446,8 @@ namespace Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("PropertyId");
+
                     b.HasIndex("RenterId");
 
                     b.HasIndex("RequestNumber")
@@ -455,6 +460,123 @@ namespace Infrastructure.Persistence.Migrations
                         .HasFilter("[Status] IN (0, 1, 2, 3)");
 
                     b.ToTable("BookingRequests");
+                });
+
+            modelBuilder.Entity("Domain.Entities.BrokerProfile", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AdminNotes")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<string>("AgencyName")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("nvarchar(160)");
+
+                    b.Property<DateTime?>("ApprovedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DocumentUrl")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("LicenseNumber")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("NationalId")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("UserId")
+                        .IsUnique();
+
+                    b.ToTable("BrokerProfiles");
+                });
+
+            modelBuilder.Entity("Domain.Entities.BrokerPropertyRequest", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("BrokerId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("BrokerProfileId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ClientName")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("nvarchar(160)");
+
+                    b.Property<string>("ClientPhone")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("EndDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<int>("PropertyId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Purpose")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("StartDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BrokerId");
+
+                    b.HasIndex("BrokerProfileId");
+
+                    b.HasIndex("PropertyId");
+
+                    b.HasIndex("Status");
+
+                    b.ToTable("BrokerPropertyRequests");
                 });
 
             modelBuilder.Entity("Domain.Entities.City", b =>
@@ -909,11 +1031,18 @@ namespace Infrastructure.Persistence.Migrations
                     b.Property<int?>("Bedrooms")
                         .HasColumnType("int");
 
+                    b.Property<string>("BuildingNumber")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
                     b.Property<int?>("BuiltYear")
                         .HasColumnType("int");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<int?>("CreatedByUserId")
+                        .HasColumnType("int");
 
                     b.Property<string>("Currency")
                         .IsRequired()
@@ -953,7 +1082,7 @@ namespace Infrastructure.Persistence.Migrations
                     b.Property<double?>("Latitude")
                         .HasColumnType("float");
 
-                    b.Property<int>("LocationId")
+                    b.Property<int?>("LocationId")
                         .HasColumnType("int");
 
                     b.Property<double?>("Longitude")
@@ -983,6 +1112,10 @@ namespace Infrastructure.Persistence.Migrations
                         .HasMaxLength(32)
                         .HasColumnType("nvarchar(32)");
 
+                    b.Property<string>("RejectionReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
                     b.Property<bool>("SeaView")
                         .HasColumnType("bit");
 
@@ -1008,9 +1141,17 @@ namespace Infrastructure.Persistence.Migrations
                     b.Property<long>("ViewCount")
                         .HasColumnType("bigint");
 
+                    b.Property<int>("VillageId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ZoneId")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
 
                     b.HasIndex("AgentId");
+
+                    b.HasIndex("CreatedByUserId");
 
                     b.HasIndex("LocationId");
 
@@ -1029,6 +1170,12 @@ namespace Infrastructure.Persistence.Migrations
                         .IsUnique();
 
                     b.HasIndex("Status");
+
+                    b.HasIndex("VillageId");
+
+                    b.HasIndex("ZoneId");
+
+                    b.HasIndex("Status", "Purpose", "VillageId");
 
                     b.ToTable("Properties");
                 });
@@ -1208,6 +1355,100 @@ namespace Infrastructure.Persistence.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("PropertyInquiries");
+                });
+
+            modelBuilder.Entity("Domain.Entities.PropertyRequirement", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("AssignedStaffId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("Bedrooms")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CustomerEmail")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("CustomerName")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("nvarchar(160)");
+
+                    b.Property<string>("CustomerPhone")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<string>("DesiredAmenities")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime?>("EndDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal?>("MaxPrice")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("MinPrice")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(3000)
+                        .HasColumnType("nvarchar(3000)");
+
+                    b.Property<int?>("PropertyTypeId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Purpose")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("StartDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("UserId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("VillageId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ZoneId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AssignedStaffId");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("PropertyTypeId");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("VillageId");
+
+                    b.HasIndex("ZoneId");
+
+                    b.ToTable("PropertyRequirements");
                 });
 
             modelBuilder.Entity("Domain.Entities.PropertyType", b =>
@@ -1501,6 +1742,56 @@ namespace Infrastructure.Persistence.Migrations
                     b.ToTable("PurchaseRequests");
                 });
 
+            modelBuilder.Entity("Domain.Entities.RentalPeriod", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("BookingRequestId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("EndDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<int>("PropertyId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("RenterName")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("nvarchar(160)");
+
+                    b.Property<string>("RenterPhone")
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<DateTime>("StartDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BookingRequestId");
+
+                    b.HasIndex("PropertyId");
+
+                    b.HasIndex("PropertyId", "StartDate", "EndDate");
+
+                    b.ToTable("RentalPeriods");
+                });
+
             modelBuilder.Entity("Domain.Entities.Review", b =>
                 {
                     b.Property<int>("Id")
@@ -1597,6 +1888,13 @@ namespace Infrastructure.Persistence.Migrations
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Description = "Browses, favorites and requests properties.",
                             Name = "Buyer"
+                        },
+                        new
+                        {
+                            Id = 5,
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "External real estate broker submitting client requests.",
+                            Name = "Broker"
                         });
                 });
 
@@ -1731,6 +2029,87 @@ namespace Infrastructure.Persistence.Migrations
                     b.ToTable("Users");
                 });
 
+            modelBuilder.Entity("Domain.Entities.Village", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IsActive");
+
+                    b.HasIndex("Slug")
+                        .IsUnique();
+
+                    b.ToTable("Villages");
+                });
+
+            modelBuilder.Entity("Domain.Entities.Zone", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("VillageId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("VillageId");
+
+                    b.HasIndex("VillageId", "Slug")
+                        .IsUnique();
+
+                    b.ToTable("Zones");
+                });
+
             modelBuilder.Entity("Domain.Entities.Agent", b =>
                 {
                     b.HasOne("Domain.Entities.User", "User")
@@ -1779,6 +2158,40 @@ namespace Infrastructure.Persistence.Migrations
                     b.Navigation("Property");
 
                     b.Navigation("Renter");
+                });
+
+            modelBuilder.Entity("Domain.Entities.BrokerProfile", b =>
+                {
+                    b.HasOne("Domain.Entities.User", "User")
+                        .WithOne("BrokerProfile")
+                        .HasForeignKey("Domain.Entities.BrokerProfile", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Domain.Entities.BrokerPropertyRequest", b =>
+                {
+                    b.HasOne("Domain.Entities.User", "Broker")
+                        .WithMany()
+                        .HasForeignKey("BrokerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.BrokerProfile", null)
+                        .WithMany("Requests")
+                        .HasForeignKey("BrokerProfileId");
+
+                    b.HasOne("Domain.Entities.Property", "Property")
+                        .WithMany("BrokerRequests")
+                        .HasForeignKey("PropertyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Broker");
+
+                    b.Navigation("Property");
                 });
 
             modelBuilder.Entity("Domain.Entities.Document", b =>
@@ -1870,14 +2283,18 @@ namespace Infrastructure.Persistence.Migrations
                         .HasForeignKey("AgentId")
                         .OnDelete(DeleteBehavior.SetNull);
 
+                    b.HasOne("Domain.Entities.User", "CreatedByUser")
+                        .WithMany("ManagedProperties")
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("Domain.Entities.Location", "Location")
                         .WithMany("Properties")
                         .HasForeignKey("LocationId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.HasOne("Domain.Entities.User", "Owner")
-                        .WithMany()
+                        .WithMany("OwnedProperties")
                         .HasForeignKey("OwnerId")
                         .OnDelete(DeleteBehavior.Restrict);
 
@@ -1887,13 +2304,30 @@ namespace Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("Domain.Entities.Village", "Village")
+                        .WithMany("Properties")
+                        .HasForeignKey("VillageId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.Zone", "Zone")
+                        .WithMany("Properties")
+                        .HasForeignKey("ZoneId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.Navigation("Agent");
+
+                    b.Navigation("CreatedByUser");
 
                     b.Navigation("Location");
 
                     b.Navigation("Owner");
 
                     b.Navigation("PropertyType");
+
+                    b.Navigation("Village");
+
+                    b.Navigation("Zone");
                 });
 
             modelBuilder.Entity("Domain.Entities.PropertyAmenity", b =>
@@ -1966,6 +2400,44 @@ namespace Infrastructure.Persistence.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("Domain.Entities.PropertyRequirement", b =>
+                {
+                    b.HasOne("Domain.Entities.User", "AssignedStaff")
+                        .WithMany()
+                        .HasForeignKey("AssignedStaffId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Domain.Entities.PropertyType", "PropertyType")
+                        .WithMany()
+                        .HasForeignKey("PropertyTypeId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Domain.Entities.Village", "Village")
+                        .WithMany()
+                        .HasForeignKey("VillageId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Domain.Entities.Zone", "Zone")
+                        .WithMany()
+                        .HasForeignKey("ZoneId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("AssignedStaff");
+
+                    b.Navigation("PropertyType");
+
+                    b.Navigation("User");
+
+                    b.Navigation("Village");
+
+                    b.Navigation("Zone");
+                });
+
             modelBuilder.Entity("Domain.Entities.PropertyVideo", b =>
                 {
                     b.HasOne("Domain.Entities.Property", "Property")
@@ -2003,6 +2475,24 @@ namespace Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("Buyer");
+
+                    b.Navigation("Property");
+                });
+
+            modelBuilder.Entity("Domain.Entities.RentalPeriod", b =>
+                {
+                    b.HasOne("Domain.Entities.BookingRequest", "BookingRequest")
+                        .WithMany()
+                        .HasForeignKey("BookingRequestId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Domain.Entities.Property", "Property")
+                        .WithMany("RentalPeriods")
+                        .HasForeignKey("PropertyId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("BookingRequest");
 
                     b.Navigation("Property");
                 });
@@ -2047,6 +2537,17 @@ namespace Infrastructure.Persistence.Migrations
                     b.Navigation("Role");
                 });
 
+            modelBuilder.Entity("Domain.Entities.Zone", b =>
+                {
+                    b.HasOne("Domain.Entities.Village", "Village")
+                        .WithMany("Zones")
+                        .HasForeignKey("VillageId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Village");
+                });
+
             modelBuilder.Entity("Domain.Entities.Agent", b =>
                 {
                     b.Navigation("Properties");
@@ -2060,6 +2561,11 @@ namespace Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Domain.Entities.Area", b =>
                 {
                     b.Navigation("Locations");
+                });
+
+            modelBuilder.Entity("Domain.Entities.BrokerProfile", b =>
+                {
+                    b.Navigation("Requests");
                 });
 
             modelBuilder.Entity("Domain.Entities.City", b =>
@@ -2076,6 +2582,8 @@ namespace Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("Domain.Entities.Property", b =>
                 {
+                    b.Navigation("BrokerRequests");
+
                     b.Navigation("Documents");
 
                     b.Navigation("Favorites");
@@ -2085,6 +2593,8 @@ namespace Infrastructure.Persistence.Migrations
                     b.Navigation("Images");
 
                     b.Navigation("PropertyAmenities");
+
+                    b.Navigation("RentalPeriods");
 
                     b.Navigation("Reviews");
 
@@ -2108,9 +2618,27 @@ namespace Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("Domain.Entities.User", b =>
                 {
+                    b.Navigation("BrokerProfile");
+
                     b.Navigation("Favorites");
 
+                    b.Navigation("ManagedProperties");
+
                     b.Navigation("Notifications");
+
+                    b.Navigation("OwnedProperties");
+                });
+
+            modelBuilder.Entity("Domain.Entities.Village", b =>
+                {
+                    b.Navigation("Properties");
+
+                    b.Navigation("Zones");
+                });
+
+            modelBuilder.Entity("Domain.Entities.Zone", b =>
+                {
+                    b.Navigation("Properties");
                 });
 #pragma warning restore 612, 618
         }

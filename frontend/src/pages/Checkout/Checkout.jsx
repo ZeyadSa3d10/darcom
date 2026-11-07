@@ -18,7 +18,7 @@ function formatPrice(price, currency = 'EGP') {
 }
 
 export default function Checkout() {
-  useSeo({ title: 'Request property | Darcom' });
+  useSeo({ title: 'Request Property | Darcom Luxury Real Estate' });
   const { slug } = useParams();
   const { user } = useAuth();
 
@@ -32,12 +32,25 @@ export default function Checkout() {
   const [result, setResult] = useState(null);
 
   const [customer, setCustomer] = useState({
-    fullName: '', email: '', phone: '', country: 'Egypt', city: '',
-    nationalId: '', preferredContact: 'Phone', address: '', notes: '',
+    fullName: '',
+    email: '',
+    phone: '',
+    country: 'Egypt',
+    city: '',
+    nationalId: '',
+    preferredContact: 'Phone',
+    address: '',
+    notes: '',
   });
+
   const [details, setDetails] = useState({
-    paymentMethod: 'Cash', financingRequired: false, preferredAppointment: '', timeline: '1-3 months',
-    startDate: '', duration: '12 months',
+    paymentMethod: 'Cash',
+    financingRequired: false,
+    preferredAppointment: '',
+    timeline: '1-3 months',
+    startDate: '',
+    endDate: '',
+    duration: '12 months',
   });
 
   const load = useCallback(async () => {
@@ -106,10 +119,35 @@ export default function Checkout() {
     );
   }
 
-  const setC = (key) => (e) => setCustomer((c) => ({ ...c, [key]: e.target.type === 'checkbox' ? e.target.checked : e.target.value }));
-  const setD = (key) => (e) => setDetails((d) => ({ ...d, [key]: e.target.type === 'checkbox' ? e.target.checked : e.target.value }));
+  const setC = (key) => (e) =>
+    setCustomer((c) => ({ ...c, [key]: e.target.type === 'checkbox' ? e.target.checked : e.target.value }));
+  const setD = (key) => (e) => {
+    const v = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
+    setDetails((d) => ({ ...d, [key]: v }));
+  };
 
   const customerValid = customer.fullName.trim() && /.+@.+\..+/.test(customer.email) && customer.phone.trim();
+
+  const validateStep2 = () => {
+    const errs = {};
+    if (isRental) {
+      if (!details.startDate) {
+        errs.startDate = 'Please select a preferred start date.';
+      }
+      if (!details.endDate) {
+        errs.endDate = 'Please select a preferred end date.';
+      }
+      if (details.startDate && details.endDate) {
+        if (new Date(details.endDate) <= new Date(details.startDate)) {
+          errs.endDate = 'End date must be strictly after the start date.';
+        }
+      }
+    }
+    setFieldErrors(errs);
+    if (Object.keys(errs).length === 0) {
+      setStep(3);
+    }
+  };
 
   const submit = async () => {
     setSubmitting(true);
@@ -123,8 +161,9 @@ export default function Checkout() {
           fullName: customer.fullName.trim(),
           email: customer.email.trim(),
           phone: customer.phone.trim(),
-          startDate: details.startDate || null,
-          duration: details.duration,
+          startDate: details.startDate ? new Date(details.startDate).toISOString() : null,
+          endDate: details.endDate ? new Date(details.endDate).toISOString() : null,
+          duration: details.duration || null,
           notes: customer.notes || null,
         });
       } else {
@@ -152,13 +191,16 @@ export default function Checkout() {
       const fields = mapFieldErrors(err);
       setFieldErrors(fields);
       setSubmitError(err.message || 'Could not submit your request.');
-      if (err.status === 409 || err.message?.toLowerCase().includes('already')) {
-        // Duplicate lands here with a clear path to the dashboard.
-      }
     } finally {
       setSubmitting(false);
     }
   };
+
+  const locationDisplay = property.villageName
+    ? `${property.villageName}${property.zoneName ? ` · ${property.zoneName}` : ''}${
+        property.buildingNumber ? ` (Bldg ${property.buildingNumber})` : ''
+      }`
+    : `${property.location}${property.city ? `, ${property.city}` : ''}`;
 
   return (
     <main className="container checkout-page">
@@ -167,7 +209,7 @@ export default function Checkout() {
           { label: 'Home', to: '/' },
           { label: 'Properties', to: '/properties' },
           { label: property.title, to: `/properties/${property.slug}` },
-          { label: 'Request' },
+          { label: isRental ? 'Rental Booking Request' : 'Purchase Request' },
         ]}
       />
 
@@ -186,12 +228,17 @@ export default function Checkout() {
         <section className="wizard-card">
           <h2>Confirm the property</h2>
           <div className="confirm-box">
-            <img src={property.images?.[0]?.url} alt={property.title} loading="lazy" />
+            <img src={property.images?.[0]?.url || '/images/hero-sahel.svg'} alt={property.title} loading="lazy" />
             <div>
               <strong>{property.title}</strong>
-              <p className="text-meta">{property.location}{property.city ? `, ${property.city}` : ''}</p>
-              <p className="confirm-price">{formatPrice(property.price, property.currency)}</p>
-              <p className="text-meta">Ref: {property.referenceNumber} · {property.purpose} · {property.status}</p>
+              <p className="text-meta">{locationDisplay}</p>
+              <p className="confirm-price">
+                {formatPrice(property.price, property.currency)}
+                {isRental && <span className="text-muted fs-6"> / month</span>}
+              </p>
+              <p className="text-meta">
+                Ref: {property.referenceNumber} · {property.purpose} · {property.propertyType}
+              </p>
             </div>
           </div>
           <div className="wizard-nav">
@@ -203,7 +250,7 @@ export default function Checkout() {
 
       {step === 1 && (
         <section className="wizard-card">
-          <h2>Your details</h2>
+          <h2>Your contact details</h2>
           <div className="form-grid">
             <FormField id="co-name" label="Full name" required error={fieldErrors.fullName}>
               <input id="co-name" className={`form-control ${fieldErrors.fullName ? 'is-invalid' : ''}`} value={customer.fullName} onChange={setC('fullName')} autoComplete="name" />
@@ -220,9 +267,6 @@ export default function Checkout() {
             <FormField id="co-city" label="City" error={fieldErrors.city}>
               <input id="co-city" className="form-control" value={customer.city} onChange={setC('city')} autoComplete="address-level2" />
             </FormField>
-            <FormField id="co-national" label="National ID / passport" error={fieldErrors.nationalId} hint="Only when legally required to proceed.">
-              <input id="co-national" className="form-control" value={customer.nationalId} onChange={setC('nationalId')} />
-            </FormField>
             <FormField id="co-contact" label="Preferred contact" error={fieldErrors.preferredContact}>
               <select id="co-contact" className="form-select" value={customer.preferredContact} onChange={setC('preferredContact')}>
                 <option>Phone</option>
@@ -234,7 +278,7 @@ export default function Checkout() {
               <input id="co-address" className="form-control" value={customer.address} onChange={setC('address')} autoComplete="street-address" />
             </FormField>
           </div>
-          <FormField id="co-notes" label="Notes" error={fieldErrors.notes}>
+          <FormField id="co-notes" label="Notes / Special Requests" error={fieldErrors.notes}>
             <textarea id="co-notes" rows="3" className="form-control" value={customer.notes} onChange={setC('notes')} />
           </FormField>
           <div className="wizard-nav">
@@ -246,7 +290,7 @@ export default function Checkout() {
 
       {step === 2 && (
         <section className="wizard-card">
-          <h2>{isRental ? 'Rental details' : 'Purchase details'}</h2>
+          <h2>{isRental ? 'Rental Booking Request' : 'Purchase details'}</h2>
           {!isRental ? (
             <div className="form-grid">
               <FormField id="co-pay" label="Payment method" error={fieldErrors.paymentMethod}>
@@ -274,14 +318,34 @@ export default function Checkout() {
             </div>
           ) : (
             <div className="form-grid">
-              <FormField id="co-start" label="Preferred start date" error={fieldErrors.startDate}>
-                <input id="co-start" type="date" className="form-control" value={details.startDate} onChange={setD('startDate')} />
+              <FormField id="co-start" label="Rental start date" required error={fieldErrors.startDate}>
+                <input
+                  id="co-start"
+                  type="date"
+                  className={`form-control ${fieldErrors.startDate ? 'is-invalid' : ''}`}
+                  value={details.startDate}
+                  onChange={setD('startDate')}
+                  required
+                />
               </FormField>
-              <FormField id="co-duration" label="Duration" error={fieldErrors.duration}>
+              <FormField id="co-end" label="Rental end date" required error={fieldErrors.endDate}>
+                <input
+                  id="co-end"
+                  type="date"
+                  className={`form-control ${fieldErrors.endDate ? 'is-invalid' : ''}`}
+                  value={details.endDate}
+                  onChange={setD('endDate')}
+                  required
+                />
+              </FormField>
+              <FormField id="co-duration" label="Intended stay duration" error={fieldErrors.duration}>
                 <select id="co-duration" className="form-select" value={details.duration} onChange={setD('duration')}>
-                  <option>6 months</option>
-                  <option>12 months</option>
-                  <option>24 months</option>
+                  <option>Weekend (2-3 days)</option>
+                  <option>1 Week</option>
+                  <option>2 Weeks</option>
+                  <option>1 Month</option>
+                  <option>Full Summer Season (3 months)</option>
+                  <option>Annual / Long Term</option>
                   <option>Flexible</option>
                 </select>
               </FormField>
@@ -289,7 +353,7 @@ export default function Checkout() {
           )}
           <div className="wizard-nav">
             <button type="button" className="btn btn-outline-secondary" onClick={() => setStep(1)}>Back</button>
-            <button type="button" className="btn btn-brand" onClick={() => setStep(3)}>Review request</button>
+            <button type="button" className="btn btn-brand" onClick={validateStep2}>Review request</button>
           </div>
         </section>
       )}
@@ -299,14 +363,32 @@ export default function Checkout() {
           <h2>Review your request</h2>
           <dl className="review-list">
             <div><dt>Property</dt><dd>{property.title} ({property.referenceNumber})</dd></div>
-            <div><dt>Price</dt><dd>{formatPrice(property.price, property.currency)}</dd></div>
+            <div><dt>Location</dt><dd>{locationDisplay}</dd></div>
+            <div><dt>Price</dt><dd>{formatPrice(property.price, property.currency)}{isRental ? ' / mo' : ''}</dd></div>
             <div><dt>Name</dt><dd>{customer.fullName}</dd></div>
             <div><dt>Email</dt><dd>{customer.email}</dd></div>
             <div><dt>Phone</dt><dd>{customer.phone}</dd></div>
             {!isRental && <div><dt>Payment</dt><dd>{details.paymentMethod}{details.financingRequired ? ' · financing needed' : ''}</dd></div>}
             {!isRental && <div><dt>Timeline</dt><dd>{details.timeline}</dd></div>}
-            {isRental && <div><dt>Rental</dt><dd>{details.duration}{details.startDate ? ` from ${details.startDate}` : ''}</dd></div>}
+            {isRental && (
+              <>
+                <div><dt>Start Date</dt><dd>{details.startDate}</dd></div>
+                <div><dt>End Date</dt><dd>{details.endDate}</dd></div>
+                <div><dt>Duration</dt><dd>{details.duration}</dd></div>
+              </>
+            )}
           </dl>
+
+          <div className="alert alert-info d-flex align-items-center mt-3" role="alert">
+            <i className="bi bi-info-circle-fill me-2 fs-5"></i>
+            <div>
+              <strong>Important Notice:</strong> Submitting this request sends an official inquiry to Darcom.
+              {isRental
+                ? ' This does not immediately confirm your booking; our team will review availability with the owner and contact you.'
+                : ' Our sales team will verify details and reach out to arrange viewings and contracts.'}
+            </div>
+          </div>
+
           {submitError && <div className="alert alert-danger" role="alert">{submitError}</div>}
           <div className="wizard-nav">
             <button type="button" className="btn btn-outline-secondary" onClick={() => setStep(2)} disabled={submitting}>Back</button>
@@ -323,14 +405,14 @@ export default function Checkout() {
           <i className="bi bi-check-circle"></i>
           <h2>Your request has been submitted.</h2>
           <p className="text-meta">
-            This is a request, not a completed {isRental ? 'rental' : 'purchase'}.
-            Our team will contact you shortly.
+            This is an official request, not a confirmed {isRental ? 'rental' : 'sale'}.
+            Our North Coast team will review availability and contact you shortly.
           </p>
           <dl className="review-list">
             <div><dt>Request number</dt><dd><strong>{result.requestNumber}</strong></dd></div>
             <div><dt>Date</dt><dd>{new Date(result.createdAt).toLocaleString()}</dd></div>
             <div><dt>Property</dt><dd>{result.property?.title}</dd></div>
-            <div><dt>Status</dt><dd>{result.status}</dd></div>
+            <div><dt>Status</dt><dd><span className="badge bg-warning text-dark">{result.status || 'Pending'}</span></dd></div>
           </dl>
           <div className="wizard-nav center">
             <Link to="/profile" className="btn btn-brand">Track in my account</Link>

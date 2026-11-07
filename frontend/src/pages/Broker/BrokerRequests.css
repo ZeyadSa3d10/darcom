@@ -1,0 +1,47 @@
+.broker-requests-page {
+  padding-top: 1.5rem;
+  padding-bottom: 4rem;
+  min-height: 80vh;
+}
+
+.broker-requests-table-card {
+  background: rgba(28, 27, 24, 0.85);
+  border: 1px solid rgba(212, 175, 55, 0.25);
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  margin-bottom: 2rem;
+}
+
+.broker-requests-table {
+  width: 100%;
+  margin-bottom: 0;
+  border-collapse: collapse;
+}
+
+.broker-requests-table th {
+  background: rgba(212, 175, 55, 0.1);
+  color: #d4af37;
+  font-weight: 600;
+  font-size: 0.85rem;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.2);
+  white-space: nowrap;
+}
+
+.broker-requests-table td {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  color: #ddd;
+  font-size: 0.9rem;
+  vertical-align: middle;
+}
+
+.broker-requests-table tr:hover td {
+  background: rgba(212, 175, 55, 0.04);
+}
+
+.broker-requests-table tr:last-child td {
+  border-bottom: none;
+}
+

@@ -27,7 +27,6 @@ public sealed class PurchaseRequestConfiguration : IEntityTypeConfiguration<Purc
         b.HasIndex(r => r.PropertyId);
 
         // Race-safe duplicate prevention: one active request per buyer + property.
-        // Active = Pending, UnderReview, Contacted, Negotiation (see RequestRules.IsActive).
         b.HasIndex(r => new { r.PropertyId, r.BuyerId, r.Status })
             .IsUnique()
             .HasFilter("[Status] IN (0, 1, 2, 3)");
@@ -52,6 +51,7 @@ public sealed class BookingRequestConfiguration : IEntityTypeConfiguration<Booki
 
         b.HasIndex(r => r.RequestNumber).IsUnique();
         b.HasIndex(r => r.Status);
+        b.HasIndex(r => r.PropertyId);
 
         // Race-safe duplicate prevention: one active rental request per renter + property.
         b.HasIndex(r => new { r.PropertyId, r.RenterId, r.Status })
@@ -62,6 +62,72 @@ public sealed class BookingRequestConfiguration : IEntityTypeConfiguration<Booki
             .HasForeignKey(r => r.PropertyId).OnDelete(DeleteBehavior.Restrict);
         b.HasOne(r => r.Renter).WithMany()
             .HasForeignKey(r => r.RenterId).OnDelete(DeleteBehavior.Restrict);
+    }
+}
+
+public sealed class RentalPeriodConfiguration : IEntityTypeConfiguration<RentalPeriod>
+{
+    public void Configure(EntityTypeBuilder<RentalPeriod> b)
+    {
+        b.Property(rp => rp.RenterName).HasMaxLength(160).IsRequired();
+        b.Property(rp => rp.RenterPhone).HasMaxLength(32);
+        b.Property(rp => rp.Notes).HasMaxLength(2000);
+
+        b.HasIndex(rp => rp.PropertyId);
+        b.HasIndex(rp => new { rp.PropertyId, rp.StartDate, rp.EndDate });
+
+        b.HasOne(rp => rp.Property).WithMany(p => p.RentalPeriods)
+            .HasForeignKey(rp => rp.PropertyId).OnDelete(DeleteBehavior.Cascade);
+        b.HasOne(rp => rp.BookingRequest).WithMany()
+            .HasForeignKey(rp => rp.BookingRequestId).OnDelete(DeleteBehavior.SetNull);
+    }
+}
+
+public sealed class BrokerPropertyRequestConfiguration : IEntityTypeConfiguration<BrokerPropertyRequest>
+{
+    public void Configure(EntityTypeBuilder<BrokerPropertyRequest> b)
+    {
+        b.Property(br => br.ClientName).HasMaxLength(160).IsRequired();
+        b.Property(br => br.ClientPhone).HasMaxLength(32).IsRequired();
+        b.Property(br => br.Notes).HasMaxLength(2000);
+
+        b.HasIndex(br => br.BrokerId);
+        b.HasIndex(br => br.PropertyId);
+        b.HasIndex(br => br.Status);
+
+        b.HasOne(br => br.Broker).WithMany()
+            .HasForeignKey(br => br.BrokerId).OnDelete(DeleteBehavior.Restrict);
+        b.HasOne(br => br.Property).WithMany(p => p.BrokerRequests)
+            .HasForeignKey(br => br.PropertyId).OnDelete(DeleteBehavior.Restrict);
+    }
+}
+
+public sealed class PropertyRequirementConfiguration : IEntityTypeConfiguration<PropertyRequirement>
+{
+    public void Configure(EntityTypeBuilder<PropertyRequirement> b)
+    {
+        b.Property(pr => pr.CustomerName).HasMaxLength(160).IsRequired();
+        b.Property(pr => pr.CustomerEmail).HasMaxLength(200).IsRequired();
+        b.Property(pr => pr.CustomerPhone).HasMaxLength(32).IsRequired();
+        b.Property(pr => pr.MinPrice).HasPrecision(18, 2);
+        b.Property(pr => pr.MaxPrice).HasPrecision(18, 2);
+        b.Property(pr => pr.DesiredAmenities).HasMaxLength(1000);
+        b.Property(pr => pr.Notes).HasMaxLength(3000);
+
+        b.HasIndex(pr => pr.Status);
+        b.HasIndex(pr => pr.CreatedAt);
+        b.HasIndex(pr => pr.VillageId);
+
+        b.HasOne(pr => pr.User).WithMany()
+            .HasForeignKey(pr => pr.UserId).OnDelete(DeleteBehavior.Restrict);
+        b.HasOne(pr => pr.PropertyType).WithMany()
+            .HasForeignKey(pr => pr.PropertyTypeId).OnDelete(DeleteBehavior.Restrict);
+        b.HasOne(pr => pr.Village).WithMany()
+            .HasForeignKey(pr => pr.VillageId).OnDelete(DeleteBehavior.Restrict);
+        b.HasOne(pr => pr.Zone).WithMany()
+            .HasForeignKey(pr => pr.ZoneId).OnDelete(DeleteBehavior.Restrict);
+        b.HasOne(pr => pr.AssignedStaff).WithMany()
+            .HasForeignKey(pr => pr.AssignedStaffId).OnDelete(DeleteBehavior.Restrict);
     }
 }
 

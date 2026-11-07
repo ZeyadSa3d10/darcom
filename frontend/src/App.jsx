@@ -23,6 +23,10 @@ import Profile from './pages/Profile/Profile.jsx';
 import Sell from './pages/Sell/Sell.jsx';
 // AdminDashboard is code-split: heaviest route, admin-only, rarely visited.
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard/AdminDashboard.jsx'));
+const BrokerDashboard = lazy(() => import('./pages/Broker/BrokerDashboard.jsx'));
+const BrokerProperties = lazy(() => import('./pages/Broker/BrokerProperties.jsx'));
+const BrokerSubmitProperty = lazy(() => import('./pages/Broker/BrokerSubmitProperty.jsx'));
+const BrokerRequests = lazy(() => import('./pages/Broker/BrokerRequests.jsx'));
 import Privacy from './pages/Privacy/Privacy.jsx';
 import Terms from './pages/Terms/Terms.jsx';
 import Sitemap from './pages/Sitemap/Sitemap.jsx';
@@ -162,6 +166,23 @@ export default function App() {
               <Route
                 path="/admin"
                 element={<ProtectedRoute roles={['Admin']}><Suspense fallback={null}><AdminDashboard /></Suspense></ProtectedRoute>}
+              />
+              <Route path="/broker" element={<Navigate to="/broker/dashboard" replace />} />
+              <Route
+                path="/broker/dashboard"
+                element={<ProtectedRoute roles={['Broker', 'Admin']}><Suspense fallback={null}><BrokerDashboard /></Suspense></ProtectedRoute>}
+              />
+              <Route
+                path="/broker/properties"
+                element={<ProtectedRoute roles={['Broker', 'Admin']}><Suspense fallback={null}><BrokerProperties /></Suspense></ProtectedRoute>}
+              />
+              <Route
+                path="/broker/submit-property"
+                element={<ProtectedRoute roles={['Broker', 'Admin']}><Suspense fallback={null}><BrokerSubmitProperty /></Suspense></ProtectedRoute>}
+              />
+              <Route
+                path="/broker/requests"
+                element={<ProtectedRoute roles={['Broker', 'Admin']}><Suspense fallback={null}><BrokerRequests /></Suspense></ProtectedRoute>}
               />
               <Route path="/privacy" element={<Privacy />} />
               <Route path="/terms" element={<Terms />} />

@@ -17,6 +17,9 @@ public interface IPropertyStore
     Task<bool> ReferenceExistsAsync(string reference, CancellationToken ct = default);
     Task<bool> PropertyTypeExistsAsync(int id, CancellationToken ct = default);
     Task<bool> LocationExistsAsync(int id, CancellationToken ct = default);
+    Task<bool> VillageExistsAsync(int id, CancellationToken ct = default);
+    Task<bool> ZoneExistsAsync(int id, CancellationToken ct = default);
+    Task<bool> ZoneBelongsToVillageAsync(int zoneId, int villageId, CancellationToken ct = default);
     Task AddAsync(Property property, CancellationToken ct = default);
     Task SaveChangesAsync(CancellationToken ct = default);
 
@@ -30,7 +33,12 @@ public interface IPropertyStore
     Task<(string Kind, int PropertyId, string Url)?> RemoveMediaAsync(string kind, int mediaId, CancellationToken ct = default);
     Task<(int PropertyId, int? OwnerId, string Url)?> PeekMediaAsync(string kind, int mediaId, CancellationToken ct = default);
     Task<int?> GetOwnerIdAsync(int propertyId, CancellationToken ct = default);
+    Task<bool> CanUserManagePropertyAsync(int propertyId, int userId, CancellationToken ct = default);
     Task<bool> AmenityExistsAsync(int amenityId, CancellationToken ct = default);
     Task<List<PropertyListDto>> GetRelatedAsync(int propertyId, int count, CancellationToken ct = default);
     Task<PagedResult<PropertyListDto>> GetMineAsync(int ownerId, int page, int pageSize, CancellationToken ct = default);
+    Task<PagedResult<PropertyListDto>> GetBrokerPropertiesAsync(int brokerUserId, string? status, int page, int pageSize, CancellationToken ct = default);
+    Task<(int Total, int Pending, int Approved, int Rejected)> GetBrokerPropertyCountsAsync(int brokerUserId, CancellationToken ct = default);
+    Task<List<RentalPeriodDto>> GetOwnerRentalPeriodsAsync(int ownerId, int? propertyId = null, CancellationToken ct = default);
+    Task<List<RentalPeriodDto>> GetPropertyRentalPeriodsAsync(int propertyId, CancellationToken ct = default);
 }

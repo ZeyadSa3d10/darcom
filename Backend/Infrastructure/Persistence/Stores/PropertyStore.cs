@@ -45,10 +45,11 @@ public sealed class PropertyStore : IPropertyStore
         var total = await query.CountAsync(ct);
         var totalPages = Math.Max(1, (int)Math.Ceiling(total / (double)q.PageSize));
 
-        // Out-of-range pages return empty data with correct totals (never an error, never clamped).
         var entities = await query
             .Include(p => p.PropertyType)
-            .Include(p => p.Location).ThenInclude(l => l.City)
+            .Include(p => p.Village)
+            .Include(p => p.Zone)
+            .Include(p => p.Location).ThenInclude(l => l!.City)
             .Include(p => p.Images)
             .Skip((q.Page - 1) * q.PageSize)
             .Take(q.PageSize)
@@ -84,8 +85,10 @@ public sealed class PropertyStore : IPropertyStore
                 || p.Status == PropertyStatus.Rented);
         return query
             .Include(p => p.PropertyType)
-            .Include(p => p.Location).ThenInclude(l => l.City)
-            .Include(p => p.Location).ThenInclude(l => l.Area)
+            .Include(p => p.Village)
+            .Include(p => p.Zone)
+            .Include(p => p.Location).ThenInclude(l => l!.City)
+            .Include(p => p.Location).ThenInclude(l => l!.Area)
             .Include(p => p.Agent)
             .Include(p => p.Images)
             .Include(p => p.PropertyAmenities).ThenInclude(pa => pa.Amenity)
@@ -99,7 +102,9 @@ public sealed class PropertyStore : IPropertyStore
             .OrderByDescending(p => p.CreatedAt)
             .Take(count)
             .Include(p => p.PropertyType)
-            .Include(p => p.Location).ThenInclude(l => l.City)
+            .Include(p => p.Village)
+            .Include(p => p.Zone)
+            .Include(p => p.Location).ThenInclude(l => l!.City)
             .Include(p => p.Images)
             .ToListAsync(ct);
         return entities.Select(ToListDto).ToList();
@@ -112,8 +117,11 @@ public sealed class PropertyStore : IPropertyStore
             .Where(p => PublicListStatuses.Contains(p.Status))
             .Where(p => p.Title.ToLower().Contains(lowered)
                 || (p.Description != null && p.Description.ToLower().Contains(lowered))
-                || p.Location.Name.ToLower().Contains(lowered)
-                || p.Location.City.Name.ToLower().Contains(lowered)
+                || p.Village.Name.ToLower().Contains(lowered)
+                || (p.Zone != null && p.Zone.Name.ToLower().Contains(lowered))
+                || (p.BuildingNumber != null && p.BuildingNumber.ToLower().Contains(lowered))
+                || (p.Location != null && p.Location.Name.ToLower().Contains(lowered))
+                || (p.Location != null && p.Location.City.Name.ToLower().Contains(lowered))
                 || p.PropertyType.Name.ToLower().Contains(lowered))
             .OrderByDescending(p => p.CreatedAt);
 
@@ -122,7 +130,9 @@ public sealed class PropertyStore : IPropertyStore
 
         var entities = await query
             .Include(p => p.PropertyType)
-            .Include(p => p.Location).ThenInclude(l => l.City)
+            .Include(p => p.Village)
+            .Include(p => p.Zone)
+            .Include(p => p.Location).ThenInclude(l => l!.City)
             .Include(p => p.Images)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
@@ -146,6 +156,15 @@ public sealed class PropertyStore : IPropertyStore
 
     public Task<bool> LocationExistsAsync(int id, CancellationToken ct = default)
         => _db.Locations.AnyAsync(l => l.Id == id, ct);
+
+    public Task<bool> VillageExistsAsync(int id, CancellationToken ct = default)
+        => _db.Villages.AnyAsync(v => v.Id == id, ct);
+
+    public Task<bool> ZoneExistsAsync(int id, CancellationToken ct = default)
+        => _db.Zones.AnyAsync(z => z.Id == id, ct);
+
+    public Task<bool> ZoneBelongsToVillageAsync(int zoneId, int villageId, CancellationToken ct = default)
+        => _db.Zones.AnyAsync(z => z.Id == zoneId && z.VillageId == villageId, ct);
 
     public async Task AddAsync(Property property, CancellationToken ct = default)
         => await _db.Properties.AddAsync(property, ct);
@@ -280,17 +299,22 @@ public sealed class PropertyStore : IPropertyStore
     public Task<int?> GetOwnerIdAsync(int propertyId, CancellationToken ct = default)
         => _db.Properties.Where(p => p.Id == propertyId).Select(p => p.OwnerId).FirstOrDefaultAsync(ct);
 
+    public Task<bool> CanUserManagePropertyAsync(int propertyId, int userId, CancellationToken ct = default)
+        => _db.Properties.AnyAsync(p => p.Id == propertyId && (p.OwnerId == userId || p.CreatedByUserId == userId), ct);
+
     /// <summary>Owner's own submissions in any status (seller status tracker).</summary>
     public async Task<PagedResult<PropertyListDto>> GetMineAsync(int ownerId, int page, int pageSize, CancellationToken ct = default)
     {
         var query = _db.Properties.AsNoTracking()
-            .Where(p => p.OwnerId == ownerId)
+            .Where(p => p.OwnerId == ownerId || p.CreatedByUserId == ownerId)
             .OrderByDescending(p => p.CreatedAt);
         var total = await query.CountAsync(ct);
         var totalPages = Math.Max(1, (int)Math.Ceiling(total / (double)pageSize));
         var entities = await query
             .Include(p => p.PropertyType)
-            .Include(p => p.Location).ThenInclude(l => l.City)
+            .Include(p => p.Village)
+            .Include(p => p.Zone)
+            .Include(p => p.Location).ThenInclude(l => l!.City)
             .Include(p => p.Images)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
@@ -299,15 +323,54 @@ public sealed class PropertyStore : IPropertyStore
             entities.Select(ToListDto).ToList(), page, pageSize, total, totalPages);
     }
 
+    public async Task<PagedResult<PropertyListDto>> GetBrokerPropertiesAsync(int brokerUserId, string? status, int page, int pageSize, CancellationToken ct = default)
+    {
+        var query = _db.Properties.AsNoTracking()
+            .Where(p => p.CreatedByUserId == brokerUserId || p.OwnerId == brokerUserId);
+
+        if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<PropertyStatus>(status.Replace(" ", ""), true, out var parsedStatus))
+        {
+            query = query.Where(p => p.Status == parsedStatus);
+        }
+
+        query = query.OrderByDescending(p => p.CreatedAt);
+        var total = await query.CountAsync(ct);
+        var totalPages = Math.Max(1, (int)Math.Ceiling(total / (double)pageSize));
+        var entities = await query
+            .Include(p => p.PropertyType)
+            .Include(p => p.Village)
+            .Include(p => p.Zone)
+            .Include(p => p.Location).ThenInclude(l => l!.City)
+            .Include(p => p.Images)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(ct);
+
+        return new PagedResult<PropertyListDto>(
+            entities.Select(ToListDto).ToList(), page, pageSize, total, totalPages);
+    }
+
+    public async Task<(int Total, int Pending, int Approved, int Rejected)> GetBrokerPropertyCountsAsync(int brokerUserId, CancellationToken ct = default)
+    {
+        var query = _db.Properties.AsNoTracking()
+            .Where(p => p.CreatedByUserId == brokerUserId || p.OwnerId == brokerUserId);
+
+        var total = await query.CountAsync(ct);
+        var pending = await query.CountAsync(p => p.Status == PropertyStatus.PendingReview, ct);
+        var approved = await query.CountAsync(p => p.Status == PropertyStatus.Published || p.Status == PropertyStatus.Featured, ct);
+        var rejected = await query.CountAsync(p => p.Status == PropertyStatus.Rejected, ct);
+
+        return (total, pending, approved, rejected);
+    }
+
     /// <summary>
-    /// Similar-properties heuristic (website.md #54): same type, then same city,
-    /// then closest price. A future recommendation engine plugs in here.
+    /// Similar-properties heuristic: same type, then same village/city, then closest price.
     /// </summary>
     public async Task<List<PropertyListDto>> GetRelatedAsync(int propertyId, int count, CancellationToken ct = default)
     {
         var current = await _db.Properties.AsNoTracking()
             .Where(p => p.Id == propertyId)
-            .Select(p => new { p.PropertyTypeId, p.Location.CityId, p.Price })
+            .Select(p => new { p.PropertyTypeId, p.VillageId, p.Price })
             .FirstOrDefaultAsync(ct);
         if (current is null) return new();
 
@@ -318,17 +381,44 @@ public sealed class PropertyStore : IPropertyStore
                     || p.Status == PropertyStatus.Featured
                     || p.Status == PropertyStatus.Reserved))
             .Include(p => p.PropertyType)
-            .Include(p => p.Location).ThenInclude(l => l.City)
+            .Include(p => p.Village)
+            .Include(p => p.Zone)
+            .Include(p => p.Location).ThenInclude(l => l!.City)
             .Include(p => p.Images)
             .Take(50)
             .ToListAsync(ct);
 
         return candidates
-            .OrderBy(p => p.Location.CityId == current.CityId ? 0 : 1)
+            .OrderBy(p => p.VillageId == current.VillageId ? 0 : 1)
             .ThenBy(p => Math.Abs(p.Price - current.Price))
             .Take(Math.Clamp(count, 1, 12))
             .Select(ToListDto)
             .ToList();
+    }
+
+    public async Task<List<RentalPeriodDto>> GetOwnerRentalPeriodsAsync(int ownerId, int? propertyId = null, CancellationToken ct = default)
+    {
+        var query = _db.RentalPeriods.AsNoTracking()
+            .Where(rp => rp.Property.OwnerId == ownerId);
+        if (propertyId.HasValue)
+            query = query.Where(rp => rp.PropertyId == propertyId.Value);
+
+        return await query.OrderByDescending(rp => rp.StartDate)
+            .Select(rp => new RentalPeriodDto(
+                rp.Id, rp.PropertyId, rp.BookingRequestId,
+                rp.StartDate, rp.EndDate, rp.RenterName, rp.RenterPhone, rp.Notes, rp.CreatedAt))
+            .ToListAsync(ct);
+    }
+
+    public async Task<List<RentalPeriodDto>> GetPropertyRentalPeriodsAsync(int propertyId, CancellationToken ct = default)
+    {
+        return await _db.RentalPeriods.AsNoTracking()
+            .Where(rp => rp.PropertyId == propertyId)
+            .OrderByDescending(rp => rp.StartDate)
+            .Select(rp => new RentalPeriodDto(
+                rp.Id, rp.PropertyId, rp.BookingRequestId,
+                rp.StartDate, rp.EndDate, rp.RenterName, rp.RenterPhone, rp.Notes, rp.CreatedAt))
+            .ToListAsync(ct);
     }
 
     public Task<bool> AmenityExistsAsync(int amenityId, CancellationToken ct = default)
@@ -345,10 +435,40 @@ public sealed class PropertyStore : IPropertyStore
             query = query.Where(p => p.PropertyType.Slug == type);
         }
 
+        // North Coast Village filter (by id or slug)
+        if (!string.IsNullOrWhiteSpace(q.Village))
+        {
+            var v = q.Village.Trim().ToLowerInvariant();
+            if (int.TryParse(v, out var vId))
+                query = query.Where(p => p.VillageId == vId);
+            else
+                query = query.Where(p => p.Village.Slug == v || p.Village.Name.ToLower() == v);
+        }
+
+        // North Coast Zone filter (by id or slug)
+        if (!string.IsNullOrWhiteSpace(q.Zone))
+        {
+            var z = q.Zone.Trim().ToLowerInvariant();
+            if (int.TryParse(z, out var zId))
+                query = query.Where(p => p.ZoneId == zId);
+            else
+                query = query.Where(p => p.Zone != null && (p.Zone.Slug == z || p.Zone.Name.ToLower() == z));
+        }
+
+        // BuildingNumber filter
+        if (!string.IsNullOrWhiteSpace(q.BuildingNumber))
+        {
+            var b = q.BuildingNumber.Trim().ToLowerInvariant();
+            query = query.Where(p => p.BuildingNumber != null && p.BuildingNumber.ToLower().Contains(b));
+        }
+
+        // Legacy location filter
         if (!string.IsNullOrWhiteSpace(q.Location))
         {
             var loc = q.Location.Trim().ToLowerInvariant();
-            query = query.Where(p => p.Location.City.Slug == loc || (p.Location.Area != null && p.Location.Area.Slug == loc));
+            query = query.Where(p => (p.Location != null && p.Location.City.Slug == loc)
+                || (p.Location != null && p.Location.Area != null && p.Location.Area.Slug == loc)
+                || p.Village.Slug == loc);
         }
 
         if (q.MinPrice.HasValue) query = query.Where(p => p.Price >= q.MinPrice.Value);
@@ -360,6 +480,7 @@ public sealed class PropertyStore : IPropertyStore
         if (q.Furnished == true)
             query = query.Where(p => p.FurnishedStatus != null && p.FurnishedStatus != "Unfurnished");
         if (q.Pool == true) query = query.Where(p => p.Pool);
+        if (q.Garden == true) query = query.Where(p => p.Garden);
         if (q.SeaView == true) query = query.Where(p => p.SeaView);
         if (q.BeachAccess == true) query = query.Where(p => p.BeachAccess);
         if (q.Parking == true) query = query.Where(p => p.Parking);
@@ -369,7 +490,10 @@ public sealed class PropertyStore : IPropertyStore
         {
             var term = q.Q.Trim().ToLowerInvariant();
             query = query.Where(p => p.Title.ToLower().Contains(term)
-                || (p.Description != null && p.Description.ToLower().Contains(term)));
+                || (p.Description != null && p.Description.ToLower().Contains(term))
+                || p.Village.Name.ToLower().Contains(term)
+                || (p.Zone != null && p.Zone.Name.ToLower().Contains(term))
+                || (p.BuildingNumber != null && p.BuildingNumber.ToLower().Contains(term)));
         }
 
         return query;
@@ -389,11 +513,20 @@ public sealed class PropertyStore : IPropertyStore
             p.Id, p.Title, p.Slug, p.ReferenceNumber, p.Price, p.Currency,
             p.Area, p.Bedrooms, p.Bathrooms,
             p.Purpose.ToString(), p.Status.ToString(),
-            p.PropertyType.Name, p.PropertyType.Slug,
-            p.Location.City.Name, p.Location.Name,
+            p.PropertyType?.Name ?? "", p.PropertyType?.Slug ?? "",
+            p.Location?.City?.Name ?? "North Coast",
+            p.Village?.Name ?? p.Location?.Name ?? "",
             p.Images.OrderByDescending(i => i.IsPrimary).ThenBy(i => i.Order)
                 .Select(i => i.Url).FirstOrDefault(),
-            p.IsFeatured, p.SeaView, p.Pool, p.BeachAccess, p.Parking, p.CreatedAt);
+            p.IsFeatured, p.SeaView, p.Pool, p.BeachAccess, p.Parking, p.CreatedAt,
+            p.VillageId,
+            p.Village?.Name ?? "",
+            p.Village?.Slug ?? "",
+            p.ZoneId,
+            p.Zone?.Name,
+            p.Zone?.Slug,
+            p.BuildingNumber,
+            p.RejectionReason);
 
     private static PropertyDetailsDto ToDetailsDto(Property p)
         => new(
@@ -403,13 +536,24 @@ public sealed class PropertyStore : IPropertyStore
             p.FurnishedStatus, p.FinishingStatus,
             p.Parking, p.Garden, p.Pool, p.SeaView, p.BeachAccess,
             p.Purpose.ToString(), p.Status.ToString(),
-            p.PropertyType.Name, p.PropertyType.Slug,
-            p.Location.City.Name, p.Location.Area != null ? p.Location.Area.Name : null,
-            p.Location.Name, p.Address, p.Latitude, p.Longitude,
+            p.PropertyType?.Name ?? "", p.PropertyType?.Slug ?? "",
+            p.Location?.City?.Name ?? "North Coast",
+            p.Location?.Area != null ? p.Location.Area.Name : null,
+            p.Village?.Name ?? p.Location?.Name ?? "",
+            p.Address, p.Latitude, p.Longitude,
             p.Developer, p.IsVerified, p.IsFeatured, p.ViewCount,
             p.Agent == null ? null : new PropertyAgentDto(p.Agent.Id, p.Agent.Name, p.Agent.Title, p.Agent.Agency, p.Agent.Phone, p.Agent.Email, p.Agent.PhotoUrl, p.Agent.IsVerified),
             p.Images.OrderBy(i => i.Order).Select(i => new PropertyImageDto(i.Url, i.Order, i.IsPrimary, i.AltText)).ToList(),
             p.PropertyAmenities.Select(pa => new PropertyAmenityDto(pa.Amenity.Id, pa.Amenity.Name, pa.Amenity.Icon)).ToList(),
             p.Features.Select(f => new PropertyFeatureDto(f.Title, f.Value)).ToList(),
-            p.CreatedAt);
+            p.CreatedAt,
+            p.VillageId,
+            p.Village?.Name ?? "",
+            p.Village?.Slug ?? "",
+            p.ZoneId,
+            p.Zone?.Name,
+            p.Zone?.Slug,
+            p.BuildingNumber,
+            p.CreatedByUserId,
+            p.RejectionReason);
 }

@@ -1,0 +1,185 @@
+.broker-properties-page {
+  padding-top: 1.5rem;
+  padding-bottom: 4rem;
+  min-height: 80vh;
+}
+
+.broker-status-tabs {
+  display: flex;
+  gap: 0.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 0.75rem;
+  margin-bottom: 2rem;
+  overflow-x: auto;
+}
+
+.broker-tab-btn {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  color: #a0a0a0;
+  padding: 0.45rem 1.25rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.broker-tab-btn:hover {
+  color: #fff;
+  border-color: rgba(212, 175, 55, 0.4);
+}
+
+.broker-tab-btn.active {
+  background: rgba(212, 175, 55, 0.15);
+  border-color: #d4af37;
+  color: #d4af37;
+  font-weight: 600;
+}
+
+.broker-property-card {
+  background: rgba(28, 27, 24, 0.85);
+  border: 1px solid rgba(212, 175, 55, 0.22);
+  border-radius: 18px;
+  overflow: hidden;
+  transition: all 0.25s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.broker-property-card:hover {
+  border-color: rgba(212, 175, 55, 0.5);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5), 0 0 15px rgba(212, 175, 55, 0.12);
+  transform: translateY(-3px);
+}
+
+.broker-card-img-wrap {
+  position: relative;
+  height: 200px;
+  background: #111;
+}
+
+.broker-card-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.broker-card-purpose-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: rgba(18, 18, 18, 0.85);
+  color: #d4af37;
+  border: 1px solid rgba(212, 175, 55, 0.4);
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.25rem 0.6rem;
+  text-transform: uppercase;
+}
+
+.broker-card-status-badge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.25rem 0.6rem;
+}
+
+.broker-card-status-badge.published,
+.broker-card-status-badge.featured {
+  background: rgba(46, 204, 113, 0.9);
+  color: #fff;
+}
+
+.broker-card-status-badge.pendingreview {
+  background: rgba(243, 156, 18, 0.9);
+  color: #121212;
+}
+
+.broker-card-status-badge.rejected {
+  background: rgba(231, 76, 60, 0.9);
+  color: #fff;
+}
+
+.broker-card-status-badge.draft {
+  background: rgba(127, 140, 141, 0.9);
+  color: #fff;
+}
+
+.broker-card-body {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+}
+
+.broker-card-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 0.4rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.broker-card-location {
+  color: #d4af37;
+  font-size: 0.85rem;
+  margin-bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.broker-card-specs {
+  display: flex;
+  gap: 1rem;
+  color: #aaa;
+  font-size: 0.85rem;
+  margin-bottom: 1rem;
+}
+
+.broker-card-price {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #fff;
+  margin-top: auto;
+  margin-bottom: 1rem;
+}
+
+.broker-card-price small {
+  font-size: 0.8rem;
+  color: #888;
+  font-weight: 400;
+}
+
+.broker-rejection-alert {
+  background: rgba(231, 76, 60, 0.12);
+  border: 1px solid rgba(231, 76, 60, 0.35);
+  border-radius: 8px;
+  padding: 0.65rem 0.85rem;
+  color: #ff9999;
+  font-size: 0.85rem;
+  margin-bottom: 1rem;
+}
+
+.broker-rejection-alert strong {
+  color: #ff6b6b;
+  display: block;
+  margin-bottom: 0.2rem;
+}
+
+.broker-card-actions {
+  display: flex;
+  gap: 0.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 1rem;
+}
+

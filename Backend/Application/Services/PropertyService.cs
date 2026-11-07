@@ -16,6 +16,7 @@ public interface IPropertyService
     Task<ServiceResult<PagedResult<PropertyListDto>>> QuickSearchAsync(string term, int page, int pageSize, CancellationToken ct = default);
     Task<ServiceResult<List<PropertyListDto>>> GetRelatedAsync(int id, int count, CancellationToken ct = default);
     Task<ServiceResult<PagedResult<PropertyListDto>>> MyPropertiesAsync(int ownerId, int page, int pageSize, CancellationToken ct = default);
+    Task<ServiceResult<List<RentalPeriodDto>>> GetRentalPeriodsAsync(int userId, bool isAdmin, int? propertyId = null, CancellationToken ct = default);
     Task<ServiceResult<PropertyDetailsDto>> CreateAsync(int userId, string role, CreatePropertyRequest request, CancellationToken ct = default);
     Task<ServiceResult<PropertyDetailsDto>> UpdateAsync(int userId, bool isAdmin, int id, UpdatePropertyRequest request, CancellationToken ct = default);
     Task<ServiceResult<object?>> DeleteAsync(int userId, bool isAdmin, int id, CancellationToken ct = default);
@@ -85,16 +86,49 @@ public sealed class PropertyService : IPropertyService
             await _store.GetMineAsync(ownerId, page, pageSize, ct));
     }
 
+    public async Task<ServiceResult<List<RentalPeriodDto>>> GetRentalPeriodsAsync(int userId, bool isAdmin, int? propertyId = null, CancellationToken ct = default)
+    {
+        if (isAdmin)
+        {
+            var periods = propertyId.HasValue
+                ? await _store.GetPropertyRentalPeriodsAsync(propertyId.Value, ct)
+                : await _store.GetOwnerRentalPeriodsAsync(userId, null, ct);
+            return ServiceResult<List<RentalPeriodDto>>.Ok(periods);
+        }
+
+        // Owners view their own properties' confirmed rental periods
+        var ownerPeriods = await _store.GetOwnerRentalPeriodsAsync(userId, propertyId, ct);
+        return ServiceResult<List<RentalPeriodDto>>.Ok(ownerPeriods);
+    }
+
     public async Task<ServiceResult<PropertyDetailsDto>> CreateAsync(int userId, string role, CreatePropertyRequest request, CancellationToken ct = default)
     {
-        if (role is not ("Seller" or "Agent" or "Admin"))
-            return ServiceResult<PropertyDetailsDto>.Fail("Only sellers, agents and admins can list properties.", 403);
+        // Requirement 1: Customers cannot directly create property listings.
+        if (role is not ("Admin" or "Agent" or "Seller"))
+            return ServiceResult<PropertyDetailsDto>.Fail("Only company staff/admins and registered sellers can list properties.", 403);
 
         if (!await _store.PropertyTypeExistsAsync(request.PropertyTypeId, ct))
             return ServiceResult<PropertyDetailsDto>.Fail("Property type not found.", 422,
                 new() { new("Property type not found.", "propertyTypeId") });
 
-        if (!await _store.LocationExistsAsync(request.LocationId, ct))
+        // Village validation (Requirement 3 & 4)
+        if (!await _store.VillageExistsAsync(request.VillageId, ct))
+            return ServiceResult<PropertyDetailsDto>.Fail("Village not found.", 422,
+                new() { new("Village not found.", "villageId") });
+
+        // Zone validation: must belong to the selected village
+        if (request.ZoneId.HasValue)
+        {
+            if (!await _store.ZoneExistsAsync(request.ZoneId.Value, ct))
+                return ServiceResult<PropertyDetailsDto>.Fail("Zone not found.", 422,
+                    new() { new("Zone not found.", "zoneId") });
+
+            if (!await _store.ZoneBelongsToVillageAsync(request.ZoneId.Value, request.VillageId, ct))
+                return ServiceResult<PropertyDetailsDto>.Fail("Selected zone does not belong to the selected village.", 422,
+                    new() { new("Selected zone does not belong to the selected village.", "zoneId") });
+        }
+
+        if (request.LocationId.HasValue && !await _store.LocationExistsAsync(request.LocationId.Value, ct))
             return ServiceResult<PropertyDetailsDto>.Fail("Location not found.", 422,
                 new() { new("Location not found.", "locationId") });
 
@@ -130,10 +164,14 @@ public sealed class PropertyService : IPropertyService
             Pool = request.Pool,
             SeaView = request.SeaView,
             BeachAccess = request.BeachAccess,
+            VillageId = request.VillageId,
+            ZoneId = request.ZoneId,
+            BuildingNumber = request.BuildingNumber?.Trim(),
             LocationId = request.LocationId,
             Address = request.Address,
             Developer = request.Developer,
-            OwnerId = userId
+            OwnerId = request.OwnerId ?? (role == "Seller" ? userId : null),
+            CreatedByUserId = userId
         };
 
         await _store.AddAsync(property, ct);
@@ -153,7 +191,6 @@ public sealed class PropertyService : IPropertyService
         if (!isAdmin && property.OwnerId != userId)
             return ServiceResult<PropertyDetailsDto>.Fail("You can only edit your own properties.", 403);
 
-        // Locked states: writers cannot touch sold/rented/archived inventory.
         if (!isAdmin && property.Status is PropertyStatus.Sold or PropertyStatus.Rented or PropertyStatus.Archived)
             return ServiceResult<PropertyDetailsDto>.Fail($"Property is {property.Status} and can no longer be edited.", 409);
 
@@ -180,6 +217,33 @@ public sealed class PropertyService : IPropertyService
                     new() { new("Property type not found.", "propertyTypeId") });
             property.PropertyTypeId = request.PropertyTypeId.Value;
         }
+
+        // Village & Zone validation on update
+        var targetVillageId = request.VillageId ?? property.VillageId;
+        var targetZoneId = request.ZoneId ?? property.ZoneId;
+
+        if (request.VillageId.HasValue)
+        {
+            if (!await _store.VillageExistsAsync(request.VillageId.Value, ct))
+                return ServiceResult<PropertyDetailsDto>.Fail("Village not found.", 422,
+                    new() { new("Village not found.", "villageId") });
+            property.VillageId = request.VillageId.Value;
+        }
+
+        if (request.ZoneId.HasValue)
+        {
+            if (!await _store.ZoneExistsAsync(request.ZoneId.Value, ct))
+                return ServiceResult<PropertyDetailsDto>.Fail("Zone not found.", 422,
+                    new() { new("Zone not found.", "zoneId") });
+
+            if (!await _store.ZoneBelongsToVillageAsync(request.ZoneId.Value, targetVillageId, ct))
+                return ServiceResult<PropertyDetailsDto>.Fail("Selected zone does not belong to the selected village.", 422,
+                    new() { new("Selected zone does not belong to the selected village.", "zoneId") });
+
+            property.ZoneId = request.ZoneId.Value;
+        }
+
+        if (request.BuildingNumber is not null) property.BuildingNumber = request.BuildingNumber.Trim();
         if (request.Purpose is not null) property.Purpose = Enum.Parse<PropertyPurpose>(request.Purpose, true);
         if (request.Price.HasValue) property.Price = request.Price.Value;
         if (request.Currency is not null) property.Currency = request.Currency.Trim().ToUpperInvariant();
@@ -205,6 +269,8 @@ public sealed class PropertyService : IPropertyService
         }
         if (request.Address is not null) property.Address = request.Address;
         if (request.Developer is not null) property.Developer = request.Developer;
+        if (isAdmin && request.OwnerId.HasValue) property.OwnerId = request.OwnerId.Value;
+
         if (request.IsFeatured.HasValue || request.IsVerified.HasValue)
         {
             if (!isAdmin)

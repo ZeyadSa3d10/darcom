@@ -15,25 +15,40 @@ public sealed class PropertyConfiguration : IEntityTypeConfiguration<Property>
         b.Property(p => p.Price).HasPrecision(18, 2);
         b.Property(p => p.Currency).HasMaxLength(8);
         b.Property(p => p.Area).HasPrecision(10, 2);
+        b.Property(p => p.BuildingNumber).HasMaxLength(64);
         b.Property(p => p.Address).HasMaxLength(300);
         b.Property(p => p.FurnishedStatus).HasMaxLength(64);
         b.Property(p => p.FinishingStatus).HasMaxLength(64);
         b.Property(p => p.Developer).HasMaxLength(160);
+        b.Property(p => p.RejectionReason).HasMaxLength(1000);
 
         b.HasIndex(p => p.Slug).IsUnique();
         b.HasIndex(p => p.ReferenceNumber).IsUnique();
         b.HasIndex(p => p.Status);
         b.HasIndex(p => p.Purpose);
         b.HasIndex(p => p.Price);
-        b.HasIndex(p => p.LocationId);
         b.HasIndex(p => p.PropertyTypeId);
+
+        // North Coast Village and Zone indexes (Requirements 4 & 14)
+        // BuildingNumber is NOT indexed per requirement 4.
+        b.HasIndex(p => p.VillageId);
+        b.HasIndex(p => p.ZoneId);
+        b.HasIndex(p => new { p.Status, p.Purpose, p.VillageId });
+
+        b.HasIndex(p => p.LocationId);
 
         b.HasOne(p => p.PropertyType).WithMany(t => t.Properties)
             .HasForeignKey(p => p.PropertyTypeId).OnDelete(DeleteBehavior.Restrict);
+        b.HasOne(p => p.Village).WithMany(v => v.Properties)
+            .HasForeignKey(p => p.VillageId).OnDelete(DeleteBehavior.Restrict);
+        b.HasOne(p => p.Zone).WithMany(z => z.Properties)
+            .HasForeignKey(p => p.ZoneId).OnDelete(DeleteBehavior.SetNull);
         b.HasOne(p => p.Location).WithMany(l => l.Properties)
-            .HasForeignKey(p => p.LocationId).OnDelete(DeleteBehavior.Restrict);
-        b.HasOne(p => p.Owner).WithMany()
+            .HasForeignKey(p => p.LocationId).OnDelete(DeleteBehavior.SetNull);
+        b.HasOne(p => p.Owner).WithMany(u => u.OwnedProperties)
             .HasForeignKey(p => p.OwnerId).OnDelete(DeleteBehavior.Restrict);
+        b.HasOne(p => p.CreatedByUser).WithMany(u => u.ManagedProperties)
+            .HasForeignKey(p => p.CreatedByUserId).OnDelete(DeleteBehavior.SetNull);
         b.HasOne(p => p.Agent).WithMany(a => a!.Properties)
             .HasForeignKey(p => p.AgentId).OnDelete(DeleteBehavior.SetNull);
     }

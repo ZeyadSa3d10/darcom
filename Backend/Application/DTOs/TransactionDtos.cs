@@ -50,7 +50,8 @@ public sealed record CreateBookingRequest(
     string Phone,
     DateTime? StartDate,
     string? Duration,
-    string? Notes);
+    string? Notes,
+    DateTime? EndDate = null);
 
 public sealed record BookingRequestDto(
     int Id,
@@ -60,7 +61,9 @@ public sealed record BookingRequestDto(
     RequestPropertyDto Property,
     string FullName,
     string Email,
-    string Phone);
+    string Phone,
+    DateTime? StartDate = null,
+    DateTime? EndDate = null);
 
 // ---------- Admin status changes ----------
 
@@ -102,7 +105,10 @@ public sealed record SellerSubmissionRequest(
     List<int> AmenityIds,
     List<SellerFeatureDto> Features,
     List<SellerImageDto> Images,
-    List<SellerVideoDto> Videos);
+    List<SellerVideoDto> Videos,
+    int VillageId = 0,
+    int? ZoneId = null,
+    string? BuildingNumber = null);
 
 // ---------- Inquiries ----------
 

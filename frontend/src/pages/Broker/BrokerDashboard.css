@@ -1,0 +1,270 @@
+.broker-dashboard-page {
+  padding-top: 1.5rem;
+  padding-bottom: 4rem;
+  min-height: 80vh;
+}
+
+.broker-header-card {
+  background: radial-gradient(circle at top right, rgba(212, 175, 55, 0.12), rgba(20, 20, 20, 0.85));
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  border-radius: 20px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.broker-header-title {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 0.5rem;
+}
+
+.broker-header-subtitle {
+  color: #a0a0a0;
+  font-size: 0.95rem;
+  margin-bottom: 0;
+}
+
+.broker-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.9rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.broker-status-pill.approved {
+  background: rgba(46, 204, 113, 0.15);
+  border: 1px solid rgba(46, 204, 113, 0.4);
+  color: #2ecc71;
+}
+
+.broker-status-pill.pending {
+  background: rgba(241, 196, 15, 0.15);
+  border: 1px solid rgba(241, 196, 15, 0.4);
+  color: #f1c40f;
+}
+
+.broker-status-pill.rejected {
+  background: rgba(231, 76, 60, 0.15);
+  border: 1px solid rgba(231, 76, 60, 0.4);
+  color: #e74c3c;
+}
+
+/* KPI Cards */
+.broker-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.25rem;
+  margin-bottom: 2.5rem;
+}
+
+.broker-kpi-card {
+  background: rgba(28, 27, 24, 0.7);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(212, 175, 55, 0.2);
+  border-radius: 16px;
+  padding: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.broker-kpi-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(212, 175, 55, 0.5);
+  box-shadow: 0 8px 25px rgba(212, 175, 55, 0.15);
+}
+
+.broker-kpi-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.6rem;
+  flex-shrink: 0;
+}
+
+.broker-kpi-icon.gold {
+  background: rgba(212, 175, 55, 0.15);
+  color: #d4af37;
+  border: 1px solid rgba(212, 175, 55, 0.3);
+}
+
+.broker-kpi-icon.warning {
+  background: rgba(243, 156, 18, 0.15);
+  color: #f39c12;
+  border: 1px solid rgba(243, 156, 18, 0.3);
+}
+
+.broker-kpi-icon.success {
+  background: rgba(46, 204, 113, 0.15);
+  color: #2ecc71;
+  border: 1px solid rgba(46, 204, 113, 0.3);
+}
+
+.broker-kpi-icon.info {
+  background: rgba(52, 152, 219, 0.15);
+  color: #3498db;
+  border: 1px solid rgba(52, 152, 219, 0.3);
+}
+
+.broker-kpi-num {
+  font-size: 1.85rem;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1;
+  margin-bottom: 0.25rem;
+}
+
+.broker-kpi-label {
+  font-size: 0.85rem;
+  color: #999;
+  margin-bottom: 0;
+}
+
+/* Nav Action Cards */
+.broker-nav-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 3rem;
+}
+
+.broker-action-card {
+  background: linear-gradient(145deg, #1f1e1a, #161513);
+  border: 1px solid rgba(212, 175, 55, 0.22);
+  border-radius: 18px;
+  padding: 1.75rem;
+  text-decoration: none;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.broker-action-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #d4af37, transparent);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.broker-action-card:hover {
+  transform: translateY(-5px);
+  border-color: rgba(212, 175, 55, 0.6);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6), 0 0 20px rgba(212, 175, 55, 0.15);
+  color: #fff;
+}
+
+.broker-action-card:hover::after {
+  opacity: 1;
+}
+
+.broker-action-icon {
+  font-size: 2rem;
+  color: #d4af37;
+  margin-bottom: 1rem;
+}
+
+.broker-action-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  color: #fff;
+}
+
+.broker-action-desc {
+  font-size: 0.9rem;
+  color: #a0a0a0;
+  line-height: 1.5;
+  margin-bottom: 1.25rem;
+  flex-grow: 1;
+}
+
+.broker-action-link-text {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #d4af37;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Pending Application Banner */
+.broker-pending-box {
+  background: rgba(28, 27, 24, 0.85);
+  border: 1px solid rgba(241, 196, 15, 0.4);
+  border-radius: 20px;
+  padding: 2.5rem;
+  text-align: center;
+  max-width: 800px;
+  margin: 2rem auto;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+}
+
+.broker-pending-icon {
+  font-size: 3.5rem;
+  color: #f1c40f;
+  margin-bottom: 1rem;
+}
+
+.broker-pending-title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 0.75rem;
+}
+
+.broker-pending-desc {
+  color: #bbb;
+  font-size: 1rem;
+  line-height: 1.6;
+  margin-bottom: 2rem;
+}
+
+.broker-details-table {
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto 2rem;
+  border-collapse: separate;
+  border-spacing: 0;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  overflow: hidden;
+  text-align: start;
+}
+
+.broker-details-table td {
+  padding: 0.85rem 1.25rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.broker-details-table tr:last-child td {
+  border-bottom: none;
+}
+
+.broker-details-table td:first-child {
+  color: #888;
+  font-weight: 500;
+  width: 40%;
+}
+
+.broker-details-table td:last-child {
+  color: #fff;
+  font-weight: 600;
+}
+

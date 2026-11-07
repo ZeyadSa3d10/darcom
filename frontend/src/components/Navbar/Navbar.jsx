@@ -23,7 +23,7 @@ const POPULAR_TYPES = [
 ];
 
 export default function Navbar({ transparent = false }) {
-  const { user, isAuthenticated, isAdmin, logout } = useAuth();
+  const { user, isAuthenticated, isAdmin, isBroker, logout } = useAuth();
   const { isRtl, toggleDir, toggleLang, lang, isSwitchingLang, t } = useSettings();
   const navigate = useNavigate();
   const location = useLocation();
@@ -261,6 +261,13 @@ export default function Navbar({ transparent = false }) {
             </NavLink>
           )}
 
+          {isBroker && (
+            <NavLink to="/broker/dashboard" className={({ isActive }) => `broker-nav-link nav-link-btn ${isActive ? 'active' : ''}`}>
+              <i className="bi bi-briefcase-fill me-1"></i>
+              {isRtl ? 'لوحة البروكر' : 'Broker Dashboard'}
+            </NavLink>
+          )}
+
           {/* Sell CTA button with glowing shimmer */}
           <Link to="/sell" className="btn-sell-cta" title={t('nav.sellProperty', 'Sell Property')}>
             <span className="btn-sell-shimmer"></span>
@@ -307,12 +314,19 @@ export default function Navbar({ transparent = false }) {
                       <strong>{user?.fullName}</strong>
                       <small>{user?.email}</small>
                       {isAdmin && <span className="admin-badge">{t('nav.admin', 'Admin')}</span>}
+                      {isBroker && <span className="broker-badge ms-1">{isRtl ? 'بروكر معتمد' : 'Broker'}</span>}
                     </div>
                   </div>
 
                   <div className="user-dropdown-divider"></div>
 
                   <nav className="user-dropdown-links">
+                    {isBroker && (
+                      <Link to="/broker/dashboard" className="broker-highlight" onClick={() => setUserMenuOpen(false)}>
+                        <i className="bi bi-briefcase-fill text-gold"></i>
+                        <span><strong>{isRtl ? 'لوحة تحكم البروكر' : 'Broker Dashboard'}</strong></span>
+                      </Link>
+                    )}
                     <Link to="/profile" onClick={() => setUserMenuOpen(false)}>
                       <i className="bi bi-person-gear"></i>
                       <span>{t('nav.myProfile', 'My Profile')}</span>
@@ -484,6 +498,13 @@ export default function Navbar({ transparent = false }) {
                   <i className={`bi ${isRtl ? 'bi-chevron-left' : 'bi-chevron-right'} ms-auto arrow-icon`}></i>
                 </Link>
               )}
+              {isBroker && (
+                <Link to="/broker/dashboard" className="mobile-nav-item broker-item" onClick={() => setOpen(false)}>
+                  <i className="bi bi-briefcase-fill nav-icon text-gold"></i>
+                  <span><strong>{isRtl ? 'لوحة تحكم البروكر' : 'Broker Dashboard'}</strong></span>
+                  <i className={`bi ${isRtl ? 'bi-chevron-left' : 'bi-chevron-right'} ms-auto arrow-icon`}></i>
+                </Link>
+              )}
             </nav>
 
             {/* Coastal Destinations Chips */}
@@ -516,6 +537,11 @@ export default function Navbar({ transparent = false }) {
                     </div>
                   </div>
                   <div className="mobile-auth-buttons">
+                    {isBroker && (
+                      <Link to="/broker/dashboard" className="btn btn-brand btn-sm" onClick={() => setOpen(false)}>
+                        <i className="bi bi-briefcase me-1"></i> {isRtl ? 'لوحة البروكر' : 'Broker'}
+                      </Link>
+                    )}
                     <Link to="/profile" className="btn btn-outline-secondary btn-sm" onClick={() => setOpen(false)}>
                       <i className="bi bi-person me-1"></i> {t('nav.myProfile', 'Profile')}
                     </Link>

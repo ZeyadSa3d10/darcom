@@ -25,4 +25,50 @@ export const adminService = {
   setReviewApproval: (id, approved) =>
     api.put(`/admin/reviews/${id}/approval`, { approved }).then((r) => r.data),
   deleteReview: (id) => api.delete(`/admin/reviews/${id}`).then((r) => r.data),
+
+  // Village & Zone CRUD (Requirements 3 & 13)
+  getVillages: (includeInactive = true) =>
+    api.get('/admin/villages', { params: { includeInactive } }).then((r) => r.data),
+  getVillageById: (id) => api.get(`/admin/villages/${id}`).then((r) => r.data),
+  createVillage: (payload) => api.post('/admin/villages', payload).then((r) => r.data),
+  updateVillage: (id, payload) => api.put(`/admin/villages/${id}`, payload).then((r) => r.data),
+  deleteVillage: (id) => api.delete(`/admin/villages/${id}`).then((r) => r.data),
+
+  getZones: (villageId, includeInactive = true) =>
+    api.get(`/admin/villages/${villageId}/zones`, { params: { includeInactive } }).then((r) => r.data),
+  createZone: (villageId, payload) =>
+    api.post(`/admin/villages/${villageId}/zones`, payload).then((r) => r.data),
+  updateZone: (villageId, zoneId, payload) =>
+    api.put(`/admin/villages/${villageId}/zones/${zoneId}`, payload).then((r) => r.data),
+  deleteZone: (villageId, zoneId) =>
+    api.delete(`/admin/villages/${villageId}/zones/${zoneId}`).then((r) => r.data),
+
+  // Property Types CRUD (Requirements 5 & 13)
+  createPropertyType: (payload) => api.post('/admin/property-types', payload).then((r) => r.data),
+  updatePropertyType: (id, payload) =>
+    api.put(`/admin/property-types/${id}`, payload).then((r) => r.data),
+  deletePropertyType: (id) => api.delete(`/admin/property-types/${id}`).then((r) => r.data),
+
+  // Broker Management (Requirements 7 & 8)
+  getBrokers: (params = {}) => api.get('/admin/brokers', { params }).then((r) => r.data),
+  setBrokerStatus: (id, payload) =>
+    api.put(`/admin/brokers/${id}/status`, payload).then((r) => r.data),
+  getBrokerRequests: (params = {}) =>
+    api.get('/admin/broker-requests', { params }).then((r) => r.data),
+  setBrokerRequestStatus: (id, payload) =>
+    api.put(`/admin/broker-requests/${id}/status`, payload).then((r) => r.data),
+
+  // Property Requirement Leads (Requirement 10)
+  getRequirements: (params = {}) =>
+    api.get('/admin/requirements', { params }).then((r) => r.data),
+  setRequirementStatus: (id, payload) =>
+    api.put(`/admin/requirements/${id}/status`, payload).then((r) => r.data),
+
+  // Rental Periods Tracking (Requirement 9)
+  propertyRentalPeriods: (propertyId) =>
+    api
+      .get('/admin/properties/rental-periods', {
+        params: propertyId ? { propertyId } : {},
+      })
+      .then((r) => r.data),
 };

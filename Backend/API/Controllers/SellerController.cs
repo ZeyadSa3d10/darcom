@@ -4,9 +4,10 @@ using Application.Services;
 using Application.Validators;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+
 namespace API.Controllers;
 
-/// <summary>Seller submission pipeline: Draft → PendingReview → Published / Rejected / Archived.</summary>
+/// <summary>Seller / Owner submission pipeline and rental period tracking.</summary>
 [ApiController]
 [Route("api/seller/properties")]
 [Authorize(Roles = "Seller,Agent,Admin")]
@@ -29,6 +30,16 @@ public sealed class SellerController : ApiBaseController
     {
         var result = await _properties.MyPropertiesAsync(CurrentUserId(), page, pageSize, ct);
         return Ok(ApiResponse<PagedResult<PropertyListDto>>.Ok(result.Data!));
+    }
+
+    /// <summary>Owner views confirmed rental periods for their properties (Requirement 9).</summary>
+    [HttpGet("rental-periods")]
+    [ProducesResponseType(typeof(ApiResponse<List<RentalPeriodDto>>), 200)]
+    public async Task<ActionResult<ApiResponse<List<RentalPeriodDto>>>> RentalPeriods(
+        [FromQuery] int? propertyId, CancellationToken ct = default)
+    {
+        var result = await _properties.GetRentalPeriodsAsync(CurrentUserId(), IsAdmin(), propertyId, ct);
+        return Ok(ApiResponse<List<RentalPeriodDto>>.Ok(result.Data!));
     }
 
     /// <summary>

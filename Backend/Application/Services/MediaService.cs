@@ -80,7 +80,7 @@ public sealed class MediaService : IMediaService
             return ServiceResult<object?>.NotFound("Media not found.");
 
         var (propertyId, ownerId, url) = peeked.Value;
-        if (!isAdmin && ownerId != userId)
+        if (!isAdmin && ownerId != userId && !await _properties.CanUserManagePropertyAsync(propertyId, userId, ct))
             return ServiceResult<object?>.Fail("You can only manage your own property media.", 403);
 
         await _properties.RemoveMediaAsync(kind.ToLowerInvariant(), mediaId, ct);
@@ -95,10 +95,10 @@ public sealed class MediaService : IMediaService
 
     private async Task<ServiceResult<MediaItemDto>?> CheckOwnership(int propertyId, int userId, bool isAdmin, CancellationToken ct)
     {
-        var ownerId = await _properties.GetOwnerIdAsync(propertyId, ct);
-        if (ownerId is null)
+        var property = await _properties.GetEntityAsync(propertyId, ct);
+        if (property is null)
             return ServiceResult<MediaItemDto>.NotFound("Property not found.");
-        if (!isAdmin && ownerId != userId)
+        if (!isAdmin && property.OwnerId != userId && property.CreatedByUserId != userId)
             return ServiceResult<MediaItemDto>.Fail("You can only manage your own property media.", 403);
         return null;
     }

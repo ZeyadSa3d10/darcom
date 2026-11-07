@@ -4,18 +4,66 @@ import './PropertyStats.css';
 export default function PropertyStats({ property }) {
   const { t } = useSettings();
   const stats = [
-    property.bedrooms != null && { icon: 'bi-door-closed', value: property.bedrooms, label: t('common.beds', 'Bedrooms') },
-    property.bathrooms != null && { icon: 'bi-droplet', value: property.bathrooms, label: t('common.baths', 'Bathrooms') },
-    property.area != null && { icon: 'bi-rulers', value: `${property.area} ${t('common.sqm', 'm²')}`, label: t('detailsPage.specsArea', 'Area') },
+    property.villageName && {
+      icon: 'bi-geo-alt',
+      value: property.zoneName ? `${property.villageName} (${property.zoneName})` : property.villageName,
+      label: t('propertiesPage.village', 'Village / Zone'),
+    },
+    property.buildingNumber && {
+      icon: 'bi-building',
+      value: property.buildingNumber,
+      label: t('propertiesPage.buildingNumber', 'Building Number'),
+    },
+    property.bedrooms != null && {
+      icon: 'bi-door-closed',
+      value: property.bedrooms,
+      label: t('common.beds', 'Bedrooms'),
+    },
+    property.bathrooms != null && {
+      icon: 'bi-droplet',
+      value: property.bathrooms,
+      label: t('common.baths', 'Bathrooms'),
+    },
+    property.area != null && {
+      icon: 'bi-rulers',
+      value: `${property.area} ${t('common.sqm', 'm²')}`,
+      label: t('detailsPage.specsArea', 'Area'),
+    },
     property.floor != null && {
       icon: 'bi-layers',
       value: property.totalFloors ? `${property.floor} / ${property.totalFloors}` : property.floor,
       label: t('detailsPage.floor', 'Floor'),
     },
-    { icon: 'bi-p-square', value: property.parking ? t('common.yes', 'Yes') : t('common.no', 'No'), label: t('propertiesPage.parking', 'Parking') },
-    property.builtYear != null && { icon: 'bi-calendar3', value: property.builtYear, label: t('detailsPage.built', 'Built') },
-    property.furnishedStatus && { icon: 'bi-lamp', value: property.furnishedStatus, label: t('propertiesPage.furnished', 'Furnished') },
-    property.finishingStatus && { icon: 'bi-gem', value: property.finishingStatus, label: t('detailsPage.finishing', 'Finishing') },
+    property.garden && {
+      icon: 'bi-tree',
+      value: t('common.yes', 'Yes'),
+      label: t('propertiesPage.garden', 'Garden'),
+    },
+    property.seaView && {
+      icon: 'bi-water',
+      value: t('common.yes', 'Yes'),
+      label: t('propertiesPage.seaView', 'Sea View'),
+    },
+    {
+      icon: 'bi-p-square',
+      value: property.parking ? t('common.yes', 'Yes') : t('common.no', 'No'),
+      label: t('propertiesPage.parking', 'Parking'),
+    },
+    property.builtYear != null && {
+      icon: 'bi-calendar3',
+      value: property.builtYear,
+      label: t('detailsPage.built', 'Built'),
+    },
+    property.furnishedStatus && {
+      icon: 'bi-lamp',
+      value: property.furnishedStatus,
+      label: t('propertiesPage.furnished', 'Furnished'),
+    },
+    property.finishingStatus && {
+      icon: 'bi-gem',
+      value: property.finishingStatus,
+      label: t('detailsPage.finishing', 'Finishing'),
+    },
   ].filter(Boolean);
 
   if (!stats.length) return null;

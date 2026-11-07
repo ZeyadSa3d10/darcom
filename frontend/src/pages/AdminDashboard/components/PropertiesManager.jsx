@@ -45,6 +45,18 @@ export default function PropertiesManager({ onChanged }) {
   const [uploadKind, setUploadKind] = useState('image');
   const [uploadUrl, setUploadUrl] = useState('');
   const [uploading, setUploading] = useState(false);
+  const [rentalModal, setRentalModal] = useState(null);
+
+  const openRentalPeriods = async (p) => {
+    setRentalModal({ prop: p, loading: true, periods: [] });
+    try {
+      const res = await adminService.propertyRentalPeriods(p.id);
+      setRentalModal({ prop: p, loading: false, periods: res.data ?? [] });
+    } catch {
+      toast.error(isRtl ? 'تعذر جلب فترات الإيجار' : 'Failed to load rental periods.');
+      setRentalModal(null);
+    }
+  };
 
   const getStatusLabel = (st) => {
     if (!st) return isRtl ? 'كافة الحالات' : 'All statuses';
@@ -507,6 +519,14 @@ export default function PropertiesManager({ onChanged }) {
             >
               {isRtl ? 'أرشفة' : 'Archive'}
             </button>
+            <button
+              type="button"
+              className="btn btn-outline-info btn-sm"
+              onClick={() => openRentalPeriods(selected)}
+            >
+              <i className="bi bi-calendar2-range me-1"></i>
+              <span>{isRtl ? 'فترات الإيجار' : 'Rental Periods'}</span>
+            </button>
           </div>
           <div className="apf-drawer-edit">
             <button
@@ -596,6 +616,44 @@ export default function PropertiesManager({ onChanged }) {
               <p className="text-meta">{isRtl ? 'لا توجد وسائط مرفقة حتى الآن.' : 'No media attached.'}</p>
             )}
           </div>
+        </Modal>
+      )}
+
+      {rentalModal && (
+        <Modal
+          title={isRtl ? `فترات إيجار: ${rentalModal.prop.title}` : `Rental Periods: ${rentalModal.prop.title}`}
+          onClose={() => setRentalModal(null)}
+        >
+          {rentalModal.loading ? (
+            <LoadingSkeleton count={3} />
+          ) : rentalModal.periods.length === 0 ? (
+            <p className="text-muted text-center py-4">{isRtl ? 'لا توجد فترات إيجار مؤكدة لهذا العقار.' : 'No confirmed rental periods for this property.'}</p>
+          ) : (
+            <div className="table-responsive">
+              <table className="table table-hover align-middle mb-0">
+                <thead>
+                  <tr>
+                    <th>Renter</th>
+                    <th>Phone</th>
+                    <th>Start Date</th>
+                    <th>End Date</th>
+                    <th>Notes</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rentalModal.periods.map((rp) => (
+                    <tr key={rp.id}>
+                      <td><strong>{rp.renterName}</strong></td>
+                      <td dir="ltr">{rp.renterPhone || '—'}</td>
+                      <td>{new Date(rp.startDate).toLocaleDateString()}</td>
+                      <td>{new Date(rp.endDate).toLocaleDateString()}</td>
+                      <td className="text-muted">{rp.notes || '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </Modal>
       )}
 

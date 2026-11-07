@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace API.Controllers;
 
-/// <summary>Public reference data for filters and forms (types, cities, locations, amenities).</summary>
+/// <summary>Public reference data for filters and forms (types, villages, zones, amenities, locations).</summary>
 [ApiController]
 [Route("api/[controller]")]
 public sealed class LookupsController : ControllerBase
@@ -14,6 +14,42 @@ public sealed class LookupsController : ControllerBase
     public LookupsController(DarcomDbContext db)
     {
         _db = db;
+    }
+
+    [HttpGet("villages")]
+    public async Task<IActionResult> Villages(CancellationToken ct)
+        => Ok(new
+        {
+            success = true,
+            message = "OK",
+            data = await _db.Villages.AsNoTracking()
+                .Where(v => v.IsActive)
+                .OrderBy(v => v.Name)
+                .Select(v => new
+                {
+                    v.Id,
+                    v.Name,
+                    v.Slug,
+                    Zones = v.Zones.Where(z => z.IsActive).OrderBy(z => z.Name)
+                        .Select(z => new { z.Id, z.Name, z.Slug })
+                })
+                .ToListAsync(ct)
+        });
+
+    [HttpGet("villages/{villageId:int}/zones")]
+    public async Task<IActionResult> VillageZones(int villageId, CancellationToken ct)
+    {
+        var villageExists = await _db.Villages.AnyAsync(v => v.Id == villageId, ct);
+        if (!villageExists)
+            return NotFound(new { success = false, message = "Village not found." });
+
+        var data = await _db.Zones.AsNoTracking()
+            .Where(z => z.VillageId == villageId && z.IsActive)
+            .OrderBy(z => z.Name)
+            .Select(z => new { z.Id, z.VillageId, z.Name, z.Slug })
+            .ToListAsync(ct);
+
+        return Ok(new { success = true, message = "OK", data });
     }
 
     [HttpGet("property-types")]

@@ -24,7 +24,15 @@ public sealed record PropertyListDto(
     bool Pool,
     bool BeachAccess,
     bool Parking,
-    DateTime CreatedAt);
+    DateTime CreatedAt,
+    int VillageId = 0,
+    string VillageName = "",
+    string VillageSlug = "",
+    int? ZoneId = null,
+    string? ZoneName = null,
+    string? ZoneSlug = null,
+    string? BuildingNumber = null,
+    string? RejectionReason = null);
 
 public sealed record PropertyImageDto(string Url, int Order, bool IsPrimary, string? AltText);
 
@@ -74,14 +82,26 @@ public sealed record PropertyDetailsDto(
     List<PropertyImageDto> Images,
     List<PropertyAmenityDto> Amenities,
     List<PropertyFeatureDto> Features,
-    DateTime CreatedAt);
+    DateTime CreatedAt,
+    int VillageId = 0,
+    string VillageName = "",
+    string VillageSlug = "",
+    int? ZoneId = null,
+    string? ZoneName = null,
+    string? ZoneSlug = null,
+    string? BuildingNumber = null,
+    int? CreatedByUserId = null,
+    string? RejectionReason = null);
 
-/// <summary>All listing filters from website.md #10. Every field optional; URL-shareable.</summary>
+/// <summary>All listing filters from website.md #10 + North Coast Village/Zone/BuildingNumber.</summary>
 public sealed class PropertyQuery
 {
     public string? Purpose { get; set; }
     public string? Type { get; set; }
     public string? Location { get; set; }
+    public string? Village { get; set; }
+    public string? Zone { get; set; }
+    public string? BuildingNumber { get; set; }
     public decimal? MinPrice { get; set; }
     public decimal? MaxPrice { get; set; }
     public int? Bedrooms { get; set; }
@@ -89,6 +109,7 @@ public sealed class PropertyQuery
     public decimal? MinArea { get; set; }
     public bool? Furnished { get; set; }
     public bool? Pool { get; set; }
+    public bool? Garden { get; set; }
     public bool? SeaView { get; set; }
     public bool? BeachAccess { get; set; }
     public bool? Parking { get; set; }
@@ -122,9 +143,16 @@ public sealed class CreatePropertyRequest
     public bool Pool { get; set; }
     public bool SeaView { get; set; }
     public bool BeachAccess { get; set; }
-    public int LocationId { get; set; }
+
+    // North Coast Village and Zone fields (Requirements 3 & 4)
+    public int VillageId { get; set; }
+    public int? ZoneId { get; set; }
+    public string? BuildingNumber { get; set; }
+
+    public int? LocationId { get; set; }
     public string? Address { get; set; }
     public string? Developer { get; set; }
+    public int? OwnerId { get; set; }
 }
 
 public sealed class UpdatePropertyRequest
@@ -148,9 +176,17 @@ public sealed class UpdatePropertyRequest
     public bool? Pool { get; set; }
     public bool? SeaView { get; set; }
     public bool? BeachAccess { get; set; }
+
+    // North Coast Village and Zone fields
+    public int? VillageId { get; set; }
+    public int? ZoneId { get; set; }
+    public string? BuildingNumber { get; set; }
+
     public int? LocationId { get; set; }
     public string? Address { get; set; }
     public string? Developer { get; set; }
+    public int? OwnerId { get; set; }
+
     /// <summary>Admin-only. Writers may only use Draft / PendingReview.</summary>
     public string? Status { get; set; }
     /// <summary>Admin-only spotlight flag.</summary>

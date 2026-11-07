@@ -9,6 +9,9 @@ import ApprovalQueue from './components/ApprovalQueue.jsx';
 import PropertiesManager from './components/PropertiesManager.jsx';
 import RequestsManager from './components/RequestsManager.jsx';
 import UsersManager from './components/UsersManager.jsx';
+import VillagesManager from './components/VillagesManager.jsx';
+import BrokersManager from './components/BrokersManager.jsx';
+import RequirementsManager from './components/RequirementsManager.jsx';
 import { InquiriesManager, ReviewsManager, CatalogManager, AuditViewer } from './components/MiscManagers.jsx';
 import CmsManager from './components/CmsManager.jsx';
 import { useSeo } from '../../hooks/useSeo.js';
@@ -23,8 +26,11 @@ export default function AdminDashboard() {
       { id: 'overview', label: t('admin.tabs.overview', isRtl ? 'نظرة عامة' : 'Overview'), icon: 'bi-speedometer2' },
       { id: 'approvals', label: t('admin.tabs.approvals', isRtl ? 'الموافقات' : 'Approvals'), icon: 'bi-check2-square' },
       { id: 'properties', label: t('admin.tabs.properties', isRtl ? 'إدارة العقارات' : 'Properties'), icon: 'bi-buildings' },
+      { id: 'villages', label: t('admin.tabs.villages', isRtl ? 'قرى ومناطق الساحل' : 'Villages & Zones'), icon: 'bi-geo-alt' },
       { id: 'purchases', label: t('admin.tabs.purchases', isRtl ? 'طلبات الشراء' : 'Purchases'), icon: 'bi-bag' },
       { id: 'rentals', label: t('admin.tabs.rentals', isRtl ? 'طلبات الإيجار' : 'Rentals'), icon: 'bi-key' },
+      { id: 'brokers', label: t('admin.tabs.brokers', isRtl ? 'الوسطاء العقاريون' : 'Brokers'), icon: 'bi-briefcase' },
+      { id: 'requirements', label: t('admin.tabs.requirements', isRtl ? 'طلبات العملاء (Leads)' : 'Client Leads'), icon: 'bi-person-lines-fill' },
       { id: 'users', label: t('admin.tabs.users', isRtl ? 'المستخدمون' : 'Users'), icon: 'bi-people' },
       { id: 'inquiries', label: t('admin.tabs.inquiries', isRtl ? 'الاستفسارات' : 'Inquiries'), icon: 'bi-envelope' },
       { id: 'reviews', label: t('admin.tabs.reviews', isRtl ? 'التقييمات' : 'Reviews'), icon: 'bi-star' },
@@ -133,8 +139,11 @@ export default function AdminDashboard() {
 
         {tab === 'approvals' && <ApprovalQueue onChanged={loadStats} />}
         {tab === 'properties' && <PropertiesManager onChanged={loadStats} />}
+        {tab === 'villages' && <VillagesManager />}
         {tab === 'purchases' && <RequestsManager kind="purchase" onChanged={loadStats} />}
         {tab === 'rentals' && <RequestsManager kind="booking" onChanged={loadStats} />}
+        {tab === 'brokers' && <BrokersManager />}
+        {tab === 'requirements' && <RequirementsManager />}
         {tab === 'users' && <UsersManager onChanged={loadStats} />}
         {tab === 'inquiries' && <InquiriesManager />}
         {tab === 'reviews' && <ReviewsManager onChanged={loadStats} />}

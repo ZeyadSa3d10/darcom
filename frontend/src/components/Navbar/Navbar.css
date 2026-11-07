@@ -1252,3 +1252,51 @@
   padding: 0.75rem;
 }
 
+/* Broker Navigation Elements */
+.broker-nav-link {
+  color: #d4af37 !important;
+  font-weight: 600;
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  border-radius: 999px;
+  padding: 0.45rem 1rem !important;
+  background: rgba(212, 175, 55, 0.08);
+  transition: all 0.25s ease;
+}
+
+.broker-nav-link:hover,
+.broker-nav-link.active {
+  background: rgba(212, 175, 55, 0.22);
+  border-color: #d4af37;
+  color: #fff !important;
+  box-shadow: 0 0 12px rgba(212, 175, 55, 0.3);
+}
+
+.broker-badge {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.15rem 0.5rem;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #d4af37, #aa8214);
+  color: #121212;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.user-dropdown-links a.broker-highlight {
+  background: rgba(212, 175, 55, 0.08);
+  border-inline-start: 3px solid #d4af37;
+  color: #d4af37 !important;
+}
+
+.user-dropdown-links a.broker-highlight:hover {
+  background: rgba(212, 175, 55, 0.18);
+  color: #ffd700 !important;
+}
+
+.mobile-nav-item.broker-item {
+  background: rgba(212, 175, 55, 0.06);
+  border-inline-start: 3px solid #d4af37;
+  color: #d4af37 !important;
+}
+

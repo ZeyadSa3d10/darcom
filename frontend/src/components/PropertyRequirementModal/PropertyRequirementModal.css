@@ -1,0 +1,75 @@
+.req-modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+.req-purpose-toggle {
+  display: flex;
+  background: var(--neutral-100, #f3f4f6);
+  border-radius: 10px;
+  padding: 4px;
+  gap: 4px;
+}
+
+.req-purpose-toggle button {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 0.55rem 0.5rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+  border-radius: 8px;
+  color: var(--neutral-700, #374151);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.req-purpose-toggle button.active {
+  background: #ffffff;
+  color: var(--brand-primary, #b8860b);
+  font-weight: 700;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.req-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.85rem;
+}
+
+.req-grid-3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 0.85rem;
+}
+
+@media (max-width: 640px) {
+  .req-grid-2,
+  .req-grid-3 {
+    grid-template-columns: 1fr;
+  }
+}
+
+.req-section-title {
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--brand-primary, #b8860b);
+  border-bottom: 1px solid var(--neutral-200, #e5e7eb);
+  padding-bottom: 0.35rem;
+  margin-top: 0.25rem;
+}
+
+.req-success-box {
+  text-align: center;
+  padding: 2rem 1rem;
+}
+
+.req-success-icon {
+  font-size: 3.5rem;
+  color: #10b981;
+  margin-bottom: 1rem;
+}
+

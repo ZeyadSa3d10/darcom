@@ -47,6 +47,17 @@ public sealed class SellerService : ISellerService
                 return ServiceResult<PropertyDetailsDto>.Fail($"Amenity {amenityId} not found.", 422,
                     new() { new($"Amenity {amenityId} not found.", "amenityIds") });
 
+        if (request.VillageId > 0)
+        {
+            if (!await _properties.VillageExistsAsync(request.VillageId, ct))
+                return ServiceResult<PropertyDetailsDto>.Fail("Village not found.", 422,
+                    new() { new("Village not found.", "villageId") });
+
+            if (request.ZoneId.HasValue && !await _properties.ZoneBelongsToVillageAsync(request.ZoneId.Value, request.VillageId, ct))
+                return ServiceResult<PropertyDetailsDto>.Fail("The selected zone does not belong to the selected village.", 422,
+                    new() { new("The selected zone does not belong to the selected village.", "zoneId") });
+        }
+
         var slug = SlugHelper.UniqueSlug(SlugHelper.GenerateSlug(request.Title),
             s => _properties.SlugExistsAsync(s).GetAwaiter().GetResult());
 
@@ -78,6 +89,9 @@ public sealed class SellerService : ISellerService
             Pool = request.Pool,
             SeaView = request.SeaView,
             BeachAccess = request.BeachAccess,
+            VillageId = request.VillageId > 0 ? request.VillageId : 1,
+            ZoneId = request.ZoneId,
+            BuildingNumber = request.BuildingNumber,
             LocationId = request.LocationId,
             Address = request.Address,
             Developer = request.Developer,
@@ -136,11 +150,15 @@ public sealed class SellerService : ISellerService
             return ServiceResult<PropertyDetailsDto>.Fail($"Only pending-review properties can be approved (current: {property.Status}).", 409);
 
         property.Status = PropertyStatus.Published;
+        property.RejectionReason = null;
         property.UpdatedAt = DateTime.UtcNow;
         await _properties.SaveChangesAsync(ct);
 
         if (property.OwnerId.HasValue)
             await _engagement.AddNotificationAsync(property.OwnerId.Value, "Property approved",
+                $"{property.Title} is now published.", "property-approved", ct);
+        if (property.CreatedByUserId.HasValue && property.CreatedByUserId != property.OwnerId)
+            await _engagement.AddNotificationAsync(property.CreatedByUserId.Value, "Property approved",
                 $"{property.Title} is now published.", "property-approved", ct);
         await _engagement.SaveChangesAsync(ct);
         await _audit.LogAsync(adminId, "property.approved", "Property",
@@ -159,11 +177,15 @@ public sealed class SellerService : ISellerService
             return ServiceResult<PropertyDetailsDto>.Fail($"Only pending-review properties can be rejected (current: {property.Status}).", 409);
 
         property.Status = PropertyStatus.Rejected;
+        property.RejectionReason = reason;
         property.UpdatedAt = DateTime.UtcNow;
         await _properties.SaveChangesAsync(ct);
 
         if (property.OwnerId.HasValue)
             await _engagement.AddNotificationAsync(property.OwnerId.Value, "Property rejected",
+                $"{property.Title} was rejected: {reason}", "property-rejected", ct);
+        if (property.CreatedByUserId.HasValue && property.CreatedByUserId != property.OwnerId)
+            await _engagement.AddNotificationAsync(property.CreatedByUserId.Value, "Property rejected",
                 $"{property.Title} was rejected: {reason}", "property-rejected", ct);
         await _engagement.SaveChangesAsync(ct);
         await _audit.LogAsync(adminId, "property.rejected", "Property",

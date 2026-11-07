@@ -9,8 +9,17 @@ import { useAuth } from '../../context/AuthContext.jsx';
 import { useSettings } from '../../context/SettingsContext.jsx';
 import { userService } from '../../services/userService.js';
 import { purchaseService } from '../../services/purchaseService.js';
+import { brokerService } from '../../services/brokerService.js';
+import { requirementService } from '../../services/requirementService.js';
 import { useSeo } from '../../hooks/useSeo.js';
 import './Profile.css';
+
+function getInitials(name) {
+  if (!name) return 'D';
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
 
 export default function Profile() {
   const { t, isRtl } = useSettings();
@@ -19,7 +28,7 @@ export default function Profile() {
 
   useSeo({
     title: `${t('profile.title', 'My Account')} | ${t('common.darcom', 'Darcom')}`,
-    description: t('profile.subtitle', 'Manage your luxury property requests and account settings.'),
+    description: t('profile.subtitle', 'Manage your luxury property requests, owner rental periods, and broker portal.'),
   });
 
   const [tab, setTab] = useState('requests');
@@ -32,7 +41,6 @@ export default function Profile() {
   const [profileErrors, setProfileErrors] = useState({});
   const [saving, setSaving] = useState(false);
 
-  // Sync profile when user updates
   useEffect(() => {
     if (user) {
       setProfile({
@@ -53,8 +61,40 @@ export default function Profile() {
   // Requests
   const [purchases, setPurchases] = useState([]);
   const [bookings, setBookings] = useState([]);
+  const [requirements, setRequirements] = useState([]);
   const [reqKind, setReqKind] = useState('purchases');
   const [reqLoading, setReqLoading] = useState(true);
+
+  // Owner Area (My Properties & Confirmed Rental Periods)
+  const [ownerProperties, setOwnerProperties] = useState([]);
+  const [rentalPeriods, setRentalPeriods] = useState([]);
+  const [ownerLoading, setOwnerLoading] = useState(false);
+
+  // Broker Area
+  const [brokerProfile, setBrokerProfile] = useState(null);
+  const [brokerRequests, setBrokerRequests] = useState([]);
+  const [brokerLoading, setBrokerLoading] = useState(false);
+  const [brokerRegistering, setBrokerRegistering] = useState(false);
+  const [brokerRegErrors, setBrokerRegErrors] = useState({});
+  const [brokerRegForm, setBrokerRegForm] = useState({
+    agencyName: '',
+    licenseNumber: '',
+    nationalId: '',
+    documentUrl: '',
+  });
+
+  // Broker Client Request Form
+  const [submittingClientReq, setSubmittingClientReq] = useState(false);
+  const [showClientReqModal, setShowClientReqModal] = useState(false);
+  const [clientReqForm, setClientReqForm] = useState({
+    propertyId: '',
+    clientName: '',
+    clientPhone: '',
+    purpose: 'Sale',
+    startDate: '',
+    endDate: '',
+    notes: '',
+  });
 
   // Notifications
   const [notifications, setNotifications] = useState([]);
@@ -63,16 +103,54 @@ export default function Profile() {
   const loadRequests = useCallback(async () => {
     setReqLoading(true);
     try {
-      const [p, b] = await Promise.all([
+      const [p, b, r] = await Promise.all([
         purchaseService.myPurchases(1, 20),
         purchaseService.myBookings(1, 20),
+        requirementService.myRequirements(1, 20).catch(() => ({ data: { data: [] } })),
       ]);
       setPurchases(p.data?.data ?? []);
       setBookings(b.data?.data ?? []);
+      setRequirements(r.data?.data ?? []);
     } catch {
-      // Non-fatal; keep lists empty
+      // Non-fatal
     } finally {
       setReqLoading(false);
+    }
+  }, []);
+
+  const loadOwnerData = useCallback(async () => {
+    setOwnerLoading(true);
+    try {
+      const [props, periods] = await Promise.all([
+        purchaseService.myProperties(1, 20).catch(() => ({ data: { data: [] } })),
+        purchaseService.myRentalPeriods().catch(() => ({ data: [] })),
+      ]);
+      setOwnerProperties(props.data?.data ?? []);
+      setRentalPeriods(periods.data ?? []);
+    } catch {
+      // Non-fatal
+    } finally {
+      setOwnerLoading(false);
+    }
+  }, []);
+
+  const loadBrokerData = useCallback(async () => {
+    setBrokerLoading(true);
+    try {
+      const prof = await brokerService.getProfile().catch(() => null);
+      if (prof && prof.data) {
+        setBrokerProfile(prof.data);
+        if (prof.data.status?.toLowerCase() === 'approved') {
+          const reqs = await brokerService.myRequests(1, 20).catch(() => ({ data: { data: [] } }));
+          setBrokerRequests(reqs.data?.data ?? []);
+        }
+      } else {
+        setBrokerProfile(null);
+      }
+    } catch {
+      setBrokerProfile(null);
+    } finally {
+      setBrokerLoading(false);
     }
   }, []);
 
@@ -92,7 +170,9 @@ export default function Profile() {
   useEffect(() => {
     loadRequests();
     loadNotifications();
-  }, [loadRequests, loadNotifications]);
+    loadOwnerData();
+    loadBrokerData();
+  }, [loadRequests, loadNotifications, loadOwnerData, loadBrokerData]);
 
   const saveProfile = async (e) => {
     e.preventDefault();
@@ -131,6 +211,54 @@ export default function Profile() {
     }
   };
 
+  const handleRegisterBroker = async (e) => {
+    e.preventDefault();
+    setBrokerRegistering(true);
+    setBrokerRegErrors({});
+    try {
+      await brokerService.register(brokerRegForm);
+      toast.success(isRtl ? 'تم تقديم طلب اعتماد الوسيط بنجاح' : 'Broker registration submitted successfully.');
+      loadBrokerData();
+    } catch (err) {
+      setBrokerRegErrors(mapFieldErrors(err));
+      toast.error(err.message || (isRtl ? 'فشل تسجيل الوسيط' : 'Failed to submit broker application.'));
+    } finally {
+      setBrokerRegistering(false);
+    }
+  };
+
+  const handleCreateBrokerRequest = async (e) => {
+    e.preventDefault();
+    setSubmittingClientReq(true);
+    try {
+      await brokerService.createRequest({
+        propertyId: Number(clientReqForm.propertyId),
+        clientName: clientReqForm.clientName.trim(),
+        clientPhone: clientReqForm.clientPhone.trim(),
+        purpose: clientReqForm.purpose,
+        startDate: clientReqForm.startDate ? new Date(clientReqForm.startDate).toISOString() : null,
+        endDate: clientReqForm.endDate ? new Date(clientReqForm.endDate).toISOString() : null,
+        notes: clientReqForm.notes.trim() || null,
+      });
+      toast.success(isRtl ? 'تم تقديم طلب العميل بنجاح' : 'Client request submitted successfully.');
+      setShowClientReqModal(false);
+      setClientReqForm({
+        propertyId: '',
+        clientName: '',
+        clientPhone: '',
+        purpose: 'Sale',
+        startDate: '',
+        endDate: '',
+        notes: '',
+      });
+      loadBrokerData();
+    } catch (err) {
+      toast.error(err.message || (isRtl ? 'فشل تقديم طلب العميل' : 'Failed to submit client request.'));
+    } finally {
+      setSubmittingClientReq(false);
+    }
+  };
+
   const markAll = async () => {
     await purchaseService.markAllRead();
     loadNotifications();
@@ -141,15 +269,6 @@ export default function Profile() {
     loadNotifications();
   };
 
-  // Helper: Initials
-  const getInitials = (name) => {
-    if (!name) return 'DA';
-    const parts = name.trim().split(/\s+/);
-    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-  };
-
-  // Helper: Role Info
   const getRoleInfo = (role) => {
     const r = (role || 'Buyer').toLowerCase();
     if (r === 'admin') {
@@ -180,24 +299,24 @@ export default function Profile() {
     };
   };
 
-  // Helper: Status Info
   const getStatusInfo = (status) => {
     const s = (status || '').toLowerCase();
     const map = {
-      pending: { label: t('profile.statuses.pending', 'Pending Review'), cls: 'status-pending', icon: 'bi-clock' },
-      approved: { label: t('profile.statuses.approved', 'Approved'), cls: 'status-approved', icon: 'bi-check-circle' },
-      contacted: { label: t('profile.statuses.contacted', 'Contacted'), cls: 'status-contacted', icon: 'bi-chat-dots' },
-      completed: { label: t('profile.statuses.completed', 'Completed'), cls: 'status-completed', icon: 'bi-patch-check-fill' },
-      cancelled: { label: t('profile.statuses.cancelled', 'Cancelled'), cls: 'status-cancelled', icon: 'bi-x-circle' },
-      rejected: { label: t('profile.statuses.rejected', 'Rejected'), cls: 'status-rejected', icon: 'bi-slash-circle' },
-      published: { label: t('profile.statuses.published', 'Published'), cls: 'status-published', icon: 'bi-check2' },
-      sold: { label: t('profile.statuses.sold', 'Sold'), cls: 'status-sold', icon: 'bi-lock-fill' },
-      rented: { label: t('profile.statuses.rented', 'Rented'), cls: 'status-rented', icon: 'bi-key-fill' },
+      pending: { label: isRtl ? 'قيد المراجعة' : 'Pending Review', cls: 'status-pending', icon: 'bi-clock' },
+      approved: { label: isRtl ? 'تمت الموافقة' : 'Approved', cls: 'status-approved', icon: 'bi-check-circle' },
+      contacted: { label: isRtl ? 'تم التواصل' : 'Contacted', cls: 'status-contacted', icon: 'bi-chat-dots' },
+      qualified: { label: isRtl ? 'مؤهل وجارٍ التنسيق' : 'Qualified', cls: 'status-contacted', icon: 'bi-check-all' },
+      completed: { label: isRtl ? 'مكتمل' : 'Completed', cls: 'status-completed', icon: 'bi-patch-check-fill' },
+      closed: { label: isRtl ? 'تم الإغلاق بنجاح' : 'Closed', cls: 'status-completed', icon: 'bi-patch-check' },
+      cancelled: { label: isRtl ? 'ملغي' : 'Cancelled', cls: 'status-cancelled', icon: 'bi-x-circle' },
+      rejected: { label: isRtl ? 'مرفوض' : 'Rejected', cls: 'status-rejected', icon: 'bi-slash-circle' },
+      published: { label: isRtl ? 'منشور' : 'Published', cls: 'status-published', icon: 'bi-check2' },
+      sold: { label: isRtl ? 'تم البيع' : 'Sold', cls: 'status-sold', icon: 'bi-lock-fill' },
+      rented: { label: isRtl ? 'مؤجر' : 'Rented', cls: 'status-rented', icon: 'bi-key-fill' },
     };
     return map[s] || { label: status || '—', cls: 'status-default', icon: 'bi-info-circle' };
   };
 
-  // Helper: Date Format
   const formatDate = (dateString, includeTime = false) => {
     if (!dateString) return '—';
     try {
@@ -213,9 +332,9 @@ export default function Profile() {
     }
   };
 
-  const rows = reqKind === 'purchases' ? purchases : bookings;
+  const rows = reqKind === 'purchases' ? purchases : reqKind === 'bookings' ? bookings : requirements;
   const roleInfo = getRoleInfo(user?.role);
-  const totalRequestsCount = purchases.length + bookings.length;
+  const totalRequestsCount = purchases.length + bookings.length + requirements.length;
 
   const breadcrumbs = [
     { label: t('nav.home', isRtl ? 'الرئيسية' : 'Home'), to: '/' },
@@ -233,7 +352,6 @@ export default function Profile() {
         {/* 1. Profile Hero Identity Card */}
         <header className="profile-hero-card">
           <div className="profile-hero-main">
-            {/* User Avatar */}
             <div className="profile-avatar-wrap">
               <div className="profile-avatar-circle" aria-hidden="true">
                 {getInitials(user?.fullName)}
@@ -241,19 +359,20 @@ export default function Profile() {
               <span className="profile-avatar-status-dot" title="Active"></span>
             </div>
 
-            {/* User Details */}
             <div className="profile-user-info">
               <div className="profile-user-title-row">
-                <h1 className="profile-user-name font-display">{user?.fullName || t('common.darcom', 'Darcom')}</h1>
+                <h1 className="profile-user-name font-display">{user?.fullName || 'Darcom Member'}</h1>
                 <div className="profile-badge-group">
                   <span className={`profile-role-badge ${roleInfo.cls}`}>
                     <i className={`bi ${roleInfo.icon}`}></i>
                     <span>{roleInfo.label}</span>
                   </span>
-                  <span className="profile-verified-badge">
-                    <i className="bi bi-patch-check-fill text-gold"></i>
-                    <span>{t('profile.verifiedBadge', isRtl ? 'حساب موثق ومفعل' : 'Verified Account')}</span>
-                  </span>
+                  {brokerProfile && (
+                    <span className={`profile-role-badge status-${brokerProfile.status?.toLowerCase()}`}>
+                      <i className="bi bi-briefcase"></i>
+                      <span>Broker: {brokerProfile.status}</span>
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -263,34 +382,33 @@ export default function Profile() {
                   <span>{user?.email}</span>
                 </span>
                 {user?.phoneNumber && (
-                  <span className="profile-meta-item">
+                  <span className="profile-meta-item" dir="ltr">
                     <i className="bi bi-telephone"></i>
-                    <span dir="ltr">{user.phoneNumber}</span>
+                    <span>{user?.phoneNumber}</span>
                   </span>
                 )}
               </div>
             </div>
 
-            {/* Quick Action Buttons */}
             <div className="profile-hero-actions">
-              <Link to="/favorites" className="profile-action-btn favorites-btn" title={t('profile.actions.favorites', 'Saved Properties')}>
+              <Link to="/favorites" className="profile-action-btn favorites-btn" title="Saved Properties">
                 <i className="bi bi-heart-fill"></i>
-                <span>{t('profile.actions.favorites', isRtl ? 'العقارات المفضلة' : 'Saved Properties')}</span>
+                <span>{isRtl ? 'المفضلة' : 'Saved'}</span>
               </Link>
               {isAdmin && (
-                <Link to="/admin" className="profile-action-btn admin-btn" title={t('profile.actions.adminPanel', 'Admin Dashboard')}>
+                <Link to="/admin" className="profile-action-btn admin-btn" title="Admin Dashboard">
                   <i className="bi bi-shield-lock-fill"></i>
-                  <span>{t('profile.actions.adminPanel', isRtl ? 'لوحة الإدارة' : 'Admin Panel')}</span>
+                  <span>{isRtl ? 'لوحة الإدارة' : 'Admin'}</span>
                 </Link>
               )}
               <button
                 type="button"
                 className="profile-action-btn logout-btn"
                 onClick={logout}
-                title={t('profile.actions.logout', 'Log Out')}
+                title="Log Out"
               >
                 <i className="bi bi-box-arrow-right"></i>
-                <span>{t('profile.actions.logout', isRtl ? 'تسجيل الخروج' : 'Log Out')}</span>
+                <span>{isRtl ? 'خروج' : 'Log Out'}</span>
               </button>
             </div>
           </div>
@@ -303,7 +421,7 @@ export default function Profile() {
               </div>
               <div className="stat-meta">
                 <strong>{totalRequestsCount}</strong>
-                <span>{t('profile.stats.totalRequests', isRtl ? 'إجمالي الطلبات' : 'Total Inquiries')}</span>
+                <span>{isRtl ? 'إجمالي الطلبات' : 'Total Inquiries'}</span>
               </div>
             </div>
 
@@ -313,7 +431,7 @@ export default function Profile() {
               </div>
               <div className="stat-meta">
                 <strong>{purchases.length}</strong>
-                <span>{t('profile.stats.purchases', isRtl ? 'طلبات الشراء' : 'Purchase Inquiries')}</span>
+                <span>{isRtl ? 'طلبات الشراء' : 'Purchases'}</span>
               </div>
             </div>
 
@@ -323,18 +441,17 @@ export default function Profile() {
               </div>
               <div className="stat-meta">
                 <strong>{bookings.length}</strong>
-                <span>{t('profile.stats.rentals', isRtl ? 'طلبات الإيجار' : 'Rental Bookings')}</span>
+                <span>{isRtl ? 'طلبات الإيجار' : 'Rentals'}</span>
               </div>
             </div>
 
             <div className="profile-stat-box">
               <div className="stat-icon-bubble">
-                <i className="bi bi-bell-fill"></i>
+                <i className="bi bi-calendar2-range"></i>
               </div>
               <div className="stat-meta">
-                <strong>{notifications.length}</strong>
-                <span>{t('profile.stats.notifications', isRtl ? 'الإشعارات' : 'Notifications')}</span>
-                {unread > 0 && <span className="stat-unread-pill">{unread}</span>}
+                <strong>{rentalPeriods.length}</strong>
+                <span>{isRtl ? 'فترات الإيجار المؤكدة' : 'Confirmed Stays'}</span>
               </div>
             </div>
           </div>
@@ -350,8 +467,32 @@ export default function Profile() {
             onClick={() => setTab('requests')}
           >
             <i className="bi bi-card-checklist"></i>
-            <span>{t('profile.tabs.requests', isRtl ? 'طلباتي والمعاملات' : 'My Requests')}</span>
+            <span>{isRtl ? 'طلباتي والمعاملات' : 'My Requests'}</span>
             <span className="tab-counter-badge">{totalRequestsCount}</span>
+          </button>
+
+          <button
+            type="button"
+            role="tab"
+            aria-selected={tab === 'owner'}
+            className={`profile-tab-btn ${tab === 'owner' ? 'active' : ''}`}
+            onClick={() => setTab('owner')}
+          >
+            <i className="bi bi-house-heart"></i>
+            <span>{isRtl ? 'بوابة المالك والإيجارات' : 'Owner Area & Rentals'}</span>
+            {rentalPeriods.length > 0 && <span className="tab-counter-badge">{rentalPeriods.length}</span>}
+          </button>
+
+          <button
+            type="button"
+            role="tab"
+            aria-selected={tab === 'broker'}
+            className={`profile-tab-btn ${tab === 'broker' ? 'active' : ''}`}
+            onClick={() => setTab('broker')}
+          >
+            <i className="bi bi-briefcase"></i>
+            <span>{isRtl ? 'بوابة الوسطاء' : 'Broker Portal'}</span>
+            {brokerProfile && <span className="tab-counter-badge">{brokerProfile.status}</span>}
           </button>
 
           <button
@@ -362,7 +503,7 @@ export default function Profile() {
             onClick={() => setTab('notifications')}
           >
             <i className="bi bi-bell"></i>
-            <span>{t('profile.tabs.notifications', isRtl ? 'الإشعارات' : 'Notifications')}</span>
+            <span>{isRtl ? 'الإشعارات' : 'Notifications'}</span>
             {unread > 0 ? (
               <span className="tab-counter-badge unread">{unread}</span>
             ) : (
@@ -378,7 +519,7 @@ export default function Profile() {
             onClick={() => setTab('settings')}
           >
             <i className="bi bi-person-gear"></i>
-            <span>{t('profile.tabs.settings', isRtl ? 'البيانات والأمان' : 'Profile & Security')}</span>
+            <span>{isRtl ? 'البيانات والأمان' : 'Profile & Security'}</span>
           </button>
         </div>
 
@@ -386,8 +527,7 @@ export default function Profile() {
 
         {/* TAB 1: REQUESTS */}
         {tab === 'requests' && (
-          <section className="profile-tab-panel" aria-label={t('profile.tabs.requests', 'My Requests')}>
-            {/* Kind Switcher Pills */}
+          <section className="profile-tab-panel" aria-label="My Requests">
             <div className="req-kind-bar">
               <button
                 type="button"
@@ -395,7 +535,7 @@ export default function Profile() {
                 onClick={() => setReqKind('purchases')}
               >
                 <i className="bi bi-house-check"></i>
-                <span>{t('profile.reqKind.purchases', isRtl ? 'طلبات الشراء' : 'Purchases')}</span>
+                <span>{isRtl ? 'طلبات الشراء' : 'Purchases'}</span>
                 <span className="pill-badge">{purchases.length}</span>
               </button>
               <button
@@ -404,8 +544,17 @@ export default function Profile() {
                 onClick={() => setReqKind('bookings')}
               >
                 <i className="bi bi-key"></i>
-                <span>{t('profile.reqKind.rentals', isRtl ? 'طلبات الإيجار' : 'Rentals')}</span>
+                <span>{isRtl ? 'طلبات الإيجار' : 'Rentals'}</span>
                 <span className="pill-badge">{bookings.length}</span>
+              </button>
+              <button
+                type="button"
+                className={`req-kind-pill ${reqKind === 'requirements' ? 'active' : ''}`}
+                onClick={() => setReqKind('requirements')}
+              >
+                <i className="bi bi-file-earmark-text"></i>
+                <span>{isRtl ? 'مواصفاتي العقارية المطلوبة' : 'Custom Requirements'}</span>
+                <span className="pill-badge">{requirements.length}</span>
               </button>
             </div>
 
@@ -416,34 +565,68 @@ export default function Profile() {
             ) : rows.length === 0 ? (
               <div className="profile-empty-card">
                 <EmptyState
-                  icon={reqKind === 'purchases' ? 'bi-house-slash' : 'bi-key'}
+                  icon={reqKind === 'purchases' ? 'bi-house-slash' : reqKind === 'bookings' ? 'bi-key' : 'bi-file-earmark-plus'}
                   title={
                     reqKind === 'purchases'
-                      ? t('profile.emptyPurchases.title', isRtl ? 'لا توجد طلبات شراء مسجلة حتى الآن' : 'No purchase inquiries yet')
-                      : t('profile.emptyRentals.title', isRtl ? 'لا توجد طلبات إيجار مسجلة حتى الآن' : 'No rental requests yet')
+                      ? 'لا توجد طلبات شراء مسجلة حتى الآن'
+                      : reqKind === 'bookings'
+                      ? 'لا توجد طلبات إيجار مسجلة حتى الآن'
+                      : 'لم ترسل مواصفات طلب عقار مخصص بعد'
                   }
                   message={
                     reqKind === 'purchases'
-                      ? t(
-                          'profile.emptyPurchases.message',
-                          isRtl
-                            ? 'عند تقديم طلب شراء أو استفسار عن أي عقار، سيظهر هنا مع رقم المعاملة وحالتها للمتابعة المباشرة.'
-                            : 'When you inquire or request to purchase a property, it appears here with its tracking reference and status.'
-                        )
-                      : t(
-                          'profile.emptyRentals.message',
-                          isRtl
-                            ? 'حجوزات الإيجار الموسمي أو السنوي للوحدات والفلل الشاطئية ستظهر هنا فور تسجيلها.'
-                            : 'Your seasonal and annual rental booking requests will appear here with confirmation dates.'
-                        )
+                      ? 'عند تقديم طلب شراء أو استفسار عن أي عقار، سيظهر هنا للمتابعة المباشرة.'
+                      : reqKind === 'bookings'
+                      ? 'طلبات استئجار الوحدات الشاطئية ستظهر هنا فور تسجيلها.'
+                      : 'إذا لم تجد العقار المناسب بالساحل الشمالي، يمكنك إرسال مواصفاتك وسيتواصل معك مستشارونا.'
                   }
-                  actionLabel={
-                    reqKind === 'purchases'
-                      ? t('profile.emptyPurchases.action', isRtl ? 'تصفح نخبة العقارات' : 'Browse Premier Residences')
-                      : t('profile.emptyRentals.action', isRtl ? 'استكشف شاليهات وفلل الإيجار' : 'Explore Rental Chalets & Villas')
-                  }
-                  actionTo={reqKind === 'purchases' ? '/properties?purpose=sale' : '/properties?purpose=rent'}
+                  actionLabel={isRtl ? 'تصفح العقارات المتاحة' : 'Browse Properties'}
+                  actionTo="/properties"
                 />
+              </div>
+            ) : reqKind === 'requirements' ? (
+              <div className="request-cards-grid">
+                {requirements.map((req) => {
+                  const statusObj = getStatusInfo(req.status);
+                  return (
+                    <article key={req.id} className="request-item-card">
+                      <div className="request-card-header">
+                        <div className="request-ref-box">
+                          <span className="request-ref-label">{isRtl ? 'رقم الطلب' : 'Request #'}</span>
+                          <strong className="request-ref-value">REQ-{req.id}</strong>
+                        </div>
+                        <span className={`request-status-pill ${statusObj.cls}`}>
+                          <i className={`bi ${statusObj.icon}`}></i>
+                          <span>{statusObj.label}</span>
+                        </span>
+                      </div>
+                      <div className="request-card-body">
+                        <h3 className="request-prop-title">
+                          {req.purpose} · {req.propertyTypeName || 'Any Type'}
+                        </h3>
+                        <p className="request-meta-line">
+                          <i className="bi bi-geo-alt"></i>
+                          <span>
+                            {req.villageName || 'North Coast'}
+                            {req.zoneName ? ` (${req.zoneName})` : ''}
+                          </span>
+                        </p>
+                        <div className="request-dates-box mt-2">
+                          {req.minPrice && <div>Budget: ≥ {req.minPrice.toLocaleString()} EGP</div>}
+                          {req.maxPrice && <div>Budget: ≤ {req.maxPrice.toLocaleString()} EGP</div>}
+                          {req.bedrooms && <div>Bedrooms: {req.bedrooms}+</div>}
+                          {req.desiredAmenities && <div>Notes: {req.desiredAmenities}</div>}
+                        </div>
+                      </div>
+                      <div className="request-card-footer">
+                        <span className="text-meta">{formatDate(req.createdAt)}</span>
+                        {req.assignedStaffName && (
+                          <span className="badge bg-light text-dark">Advisor: {req.assignedStaffName}</span>
+                        )}
+                      </div>
+                    </article>
+                  );
+                })}
               </div>
             ) : (
               <div className="request-cards-grid">
@@ -458,44 +641,49 @@ export default function Profile() {
                   return (
                     <article key={r.id} className="request-item-card">
                       <div className="request-card-header">
-                        <div className="req-ref-box">
-                          <i className="bi bi-hash text-gold"></i>
-                          <strong>{r.requestNumber || `DAR-${r.id}`}</strong>
+                        <div className="request-ref-box">
+                          <span className="request-ref-label">{isRtl ? 'رقم المعاملة' : 'Reference'}</span>
+                          <strong className="request-ref-value">{r.requestNumber || `#${r.id}`}</strong>
                         </div>
-                        <span className={`badge-status-pill ${statusObj.cls}`}>
+                        <span className={`request-status-pill ${statusObj.cls}`}>
                           <i className={`bi ${statusObj.icon}`}></i>
                           <span>{statusObj.label}</span>
                         </span>
                       </div>
 
                       <div className="request-card-body">
-                        <h3 className="request-prop-name">
-                          {propLink ? (
-                            <Link to={propLink}>{r.property?.title || t('profile.requests.property', 'Property')}</Link>
-                          ) : (
-                            r.property?.title || t('profile.requests.property', 'Property')
-                          )}
-                        </h3>
-
-                        <div className="request-card-meta">
-                          <span className="req-meta-item">
-                            <i className="bi bi-calendar3"></i>
-                            <span>{formatDate(r.createdAt)}</span>
-                          </span>
-                          {r.property?.price && (
-                            <span className="req-meta-item">
-                              <i className="bi bi-tag"></i>
-                              <span>{Number(r.property.price).toLocaleString('en-US')} {t('common.egp', 'EGP')}</span>
+                        {r.property?.title && (
+                          <h3 className="request-prop-title">
+                            {propLink ? (
+                              <Link to={propLink} className="request-prop-link">
+                                {r.property.title}
+                              </Link>
+                            ) : (
+                              r.property.title
+                            )}
+                          </h3>
+                        )}
+                        <p className="request-meta-line">
+                          <i className="bi bi-clock"></i>
+                          <span>{formatDate(r.createdAt, true)}</span>
+                        </p>
+                        {r.startDate && (
+                          <div className="request-dates-box">
+                            <span className="rental-date-badge">
+                              <i className="bi bi-calendar-event"></i>
+                              <span>
+                                {formatDate(r.startDate)} → {r.endDate ? formatDate(r.endDate) : r.duration || 'Flexible'}
+                              </span>
                             </span>
-                          )}
-                        </div>
+                          </div>
+                        )}
                       </div>
 
                       {propLink && (
                         <div className="request-card-footer">
-                          <Link to={propLink} className="btn-view-property">
-                            <span>{t('profile.requests.viewProperty', isRtl ? 'معاينة العقار' : 'View Property')}</span>
-                            <i className={`bi ${isRtl ? 'bi-arrow-left-short' : 'bi-arrow-right-short'}`}></i>
+                          <Link to={propLink} className="btn-view-prop">
+                            <span>{isRtl ? 'عرض تفاصيل العقار' : 'View Property'}</span>
+                            <i className={`bi ${isRtl ? 'bi-arrow-left' : 'bi-arrow-right'}`}></i>
                           </Link>
                         </div>
                       )}
@@ -507,9 +695,391 @@ export default function Profile() {
           </section>
         )}
 
-        {/* TAB 2: NOTIFICATIONS */}
+        {/* TAB 2: OWNER PORTAL & RENTAL PERIODS */}
+        {tab === 'owner' && (
+          <section className="profile-tab-panel owner-portal-panel" aria-label="Owner Area">
+            <div className="portal-subhead">
+              <div>
+                <h3>{isRtl ? 'فترات الإيجار المؤكدة لوحداتك' : 'Confirmed Rental Periods For Your Properties'}</h3>
+                <p className="text-muted m-0 fs-6">
+                  {isRtl
+                    ? 'جدول تفصيلي بفترات الحجز المؤكدة والمعتمدة من داركم لمتابعة إشغال وحداتك.'
+                    : 'Track occupied dates and confirmed rental agreements on your properties.'}
+                </p>
+              </div>
+            </div>
+
+            {ownerLoading ? (
+              <LoadingSkeleton count={3} />
+            ) : rentalPeriods.length === 0 ? (
+              <div className="profile-empty-card">
+                <EmptyState
+                  icon="bi-calendar-check"
+                  title={isRtl ? 'لا توجد فترات إيجار مؤكدة حالياً' : 'No confirmed rental periods'}
+                  message={
+                    isRtl
+                      ? 'عندما يعتمد فريق داركم حجوزات إيجار لوحداتك، ستظهر مواعيد البداية والنهاية هنا مباشرة.'
+                      : 'When Darcom confirms tenant bookings for your property, the exact rental periods appear here.'
+                  }
+                />
+              </div>
+            ) : (
+              <div className="rental-periods-table-wrap">
+                <table className="rental-periods-table">
+                  <thead>
+                    <tr>
+                      <th>{isRtl ? 'رقم العقار' : 'Property'}</th>
+                      <th>{isRtl ? 'تاريخ البدء' : 'Start Date'}</th>
+                      <th>{isRtl ? 'تاريخ الانتهاء' : 'End Date'}</th>
+                      <th>{isRtl ? 'اسم المستأجر' : 'Renter'}</th>
+                      <th>{isRtl ? 'ملاحظات' : 'Notes'}</th>
+                      <th>{isRtl ? 'تاريخ التسجيل' : 'Confirmed At'}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rentalPeriods.map((p) => (
+                      <tr key={p.id}>
+                        <td>
+                          <strong>Property #{p.propertyId}</strong>
+                        </td>
+                        <td>
+                          <span className="rental-date-badge">
+                            <i className="bi bi-calendar-check"></i>
+                            {formatDate(p.startDate)}
+                          </span>
+                        </td>
+                        <td>
+                          <span className="rental-date-badge">
+                            <i className="bi bi-calendar-x"></i>
+                            {formatDate(p.endDate)}
+                          </span>
+                        </td>
+                        <td>{p.renterName}</td>
+                        <td className="text-meta">{p.notes || '—'}</td>
+                        <td>{formatDate(p.createdAt)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {/* Owned Properties List */}
+            <div className="portal-subhead mt-4">
+              <div>
+                <h3>{isRtl ? 'عقاراتي المسجلة' : 'My Registered Properties'}</h3>
+                <p className="text-muted m-0 fs-6">
+                  {isRtl ? 'قائمة الوحدات المسجلة باسمك في نظام داركم' : 'Properties managed on your behalf.'}
+                </p>
+              </div>
+            </div>
+
+            {ownerProperties.length === 0 ? (
+              <p className="text-muted">{isRtl ? 'لا توجد عقارات مسجلة حتى الآن.' : 'No owned properties listed yet.'}</p>
+            ) : (
+              <div className="request-cards-grid">
+                {ownerProperties.map((op) => (
+                  <article key={op.id} className="request-item-card">
+                    <div className="request-card-header">
+                      <strong>{op.title}</strong>
+                      <span className={`badge ${op.status === 'Published' ? 'bg-success' : 'bg-secondary'}`}>
+                        {op.status}
+                      </span>
+                    </div>
+                    <div className="request-card-body">
+                      <p className="text-meta">
+                        {op.villageName || op.location} · Ref: {op.referenceNumber}
+                      </p>
+                      <p className="fw-bold">
+                        {op.price?.toLocaleString()} {op.currency || 'EGP'}
+                      </p>
+                    </div>
+                    {op.slug && (
+                      <div className="request-card-footer">
+                        <Link to={`/properties/${op.slug}`} className="btn btn-outline-brand btn-sm">
+                          {isRtl ? 'عرض الإعلان' : 'View Listing'}
+                        </Link>
+                      </div>
+                    )}
+                  </article>
+                ))}
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* TAB 3: BROKER PORTAL */}
+        {tab === 'broker' && (
+          <section className="profile-tab-panel broker-portal-panel" aria-label="Broker Portal">
+            {brokerLoading ? (
+              <LoadingSkeleton count={3} />
+            ) : !brokerProfile ? (
+              /* Registration Form */
+              <div className="settings-card-surface">
+                <div className="settings-card-header">
+                  <div className="settings-icon-bubble">
+                    <i className="bi bi-briefcase-fill"></i>
+                  </div>
+                  <div>
+                    <h2 className="settings-card-title">
+                      {isRtl ? 'التسجيل كوسيط عقاري معتمد' : 'Register as an Accredited Broker'}
+                    </h2>
+                    <p className="settings-card-subtitle">
+                      {isRtl
+                        ? 'انضم لشبكة وسطاء داركم بالساحل الشمالي وقدم طلبات الشراء والإيجار لعملائك بعد مراجعة واعتماد الإدارة.'
+                        : 'Join the Darcom North Coast broker network. Submit requests on behalf of your clients once approved by admin.'}
+                    </p>
+                  </div>
+                </div>
+
+                <form onSubmit={handleRegisterBroker} className="settings-form-fields mt-3" noValidate>
+                  <FormField id="br-agency" label={isRtl ? 'اسم الشركة / المكتب' : 'Agency / Company Name'} required error={brokerRegErrors.agencyName}>
+                    <input
+                      id="br-agency"
+                      className="form-control"
+                      value={brokerRegForm.agencyName}
+                      onChange={(e) => setBrokerRegForm({ ...brokerRegForm, agencyName: e.target.value })}
+                      placeholder="e.g. Coastline Real Estate"
+                      required
+                    />
+                  </FormField>
+
+                  <FormField id="br-license" label={isRtl ? 'رقم السجل التجاري / الترخيص' : 'License / Registration Number'} required error={brokerRegErrors.licenseNumber}>
+                    <input
+                      id="br-license"
+                      className="form-control"
+                      value={brokerRegForm.licenseNumber}
+                      onChange={(e) => setBrokerRegForm({ ...brokerRegForm, licenseNumber: e.target.value })}
+                      placeholder="e.g. CR-89472"
+                      required
+                    />
+                  </FormField>
+
+                  <FormField id="br-national" label={isRtl ? 'الرقم القومي للمسؤول' : 'National ID'} error={brokerRegErrors.nationalId}>
+                    <input
+                      id="br-national"
+                      className="form-control"
+                      value={brokerRegForm.nationalId}
+                      onChange={(e) => setBrokerRegForm({ ...brokerRegForm, nationalId: e.target.value })}
+                      placeholder="14-digit National ID"
+                    />
+                  </FormField>
+
+                  <FormField id="br-doc" label={isRtl ? 'رابط المستند / الملف الرسمي' : 'Document / Profile URL'} error={brokerRegErrors.documentUrl}>
+                    <input
+                      id="br-doc"
+                      type="url"
+                      className="form-control"
+                      value={brokerRegForm.documentUrl}
+                      onChange={(e) => setBrokerRegForm({ ...brokerRegForm, documentUrl: e.target.value })}
+                      placeholder="https://..."
+                    />
+                  </FormField>
+
+                  <div className="mt-3">
+                    <button type="submit" className="btn btn-brand" disabled={brokerRegistering}>
+                      {brokerRegistering ? (isRtl ? 'جارٍ الإرسال…' : 'Submitting…') : (isRtl ? 'إرسال طلب اعتماد الوسيط' : 'Submit Broker Application')}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            ) : (
+              /* Already Registered -> Status and Requests */
+              <div>
+                <div className={`broker-status-banner ${brokerProfile.status?.toLowerCase()}`}>
+                  <div className="broker-status-info">
+                    <h4>
+                      {brokerProfile.agencyName}
+                      <span className="ms-2 text-muted fs-6">({brokerProfile.licenseNumber})</span>
+                    </h4>
+                    <p>
+                      {isRtl ? 'حالة الاعتماد' : 'Approval Status'}:{' '}
+                      <strong>{brokerProfile.status}</strong>
+                      {brokerProfile.approvedAt && ` · Approved on ${formatDate(brokerProfile.approvedAt)}`}
+                    </p>
+                    {brokerProfile.adminNotes && (
+                      <p className="mt-1 text-info">
+                        <strong>Admin Note:</strong> {brokerProfile.adminNotes}
+                      </p>
+                    )}
+                  </div>
+                  <span className={`broker-status-badge ${brokerProfile.status?.toLowerCase()}`}>
+                    {brokerProfile.status}
+                  </span>
+                </div>
+
+                {brokerProfile.status?.toLowerCase() === 'pending' && (
+                  <div className="alert alert-warning mt-3">
+                    <i className="bi bi-clock-history me-2"></i>
+                    {isRtl
+                      ? 'طلبك قيد المراجعة والتدقيق بواسطة إدارة داركم. ستتمكن من تقديم طلبات العملاء فور اعتماد الحساب.'
+                      : 'Your broker application is under review by Darcom administration. You will be able to submit client requests once approved.'}
+                  </div>
+                )}
+
+                {brokerProfile.status?.toLowerCase() === 'approved' && (
+                  <div className="mt-4">
+                    <div className="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                      <h4>{isRtl ? 'طلبات العملاء المسجلة باسمك' : 'Client Requests Submitted'}</h4>
+                      <div className="d-flex gap-2">
+                        <Link to="/broker/dashboard" className="btn btn-outline-warning btn-sm">
+                          <i className="bi bi-briefcase-fill me-1"></i>
+                          {isRtl ? 'لوحة تحكم البروكر المتكاملة' : 'Full Broker Dashboard'}
+                        </Link>
+                        <button
+                          type="button"
+                          className="btn btn-brand btn-sm"
+                          onClick={() => setShowClientReqModal(true)}
+                        >
+                          <i className="bi bi-plus-lg me-1"></i>
+                          {isRtl ? 'تقديم طلب جديد لعميل' : 'Submit Client Request'}
+                        </button>
+                      </div>
+                    </div>
+
+                    {brokerRequests.length === 0 ? (
+                      <p className="text-muted">{isRtl ? 'لم تقدم أي طلبات عملاء حتى الآن.' : 'No client requests submitted yet.'}</p>
+                    ) : (
+                      <div className="rental-periods-table-wrap">
+                        <table className="rental-periods-table">
+                          <thead>
+                            <tr>
+                              <th>Ref</th>
+                              <th>Property</th>
+                              <th>Client</th>
+                              <th>Phone</th>
+                              <th>Purpose</th>
+                              <th>Status</th>
+                              <th>Date</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {brokerRequests.map((br) => (
+                              <tr key={br.id}>
+                                <td><strong>BR-{br.id}</strong></td>
+                                <td>{br.propertyTitle || `#${br.propertyId}`}</td>
+                                <td>{br.clientName}</td>
+                                <td>{br.clientPhone}</td>
+                                <td>{br.purpose}</td>
+                                <td><span className="badge bg-warning text-dark">{br.status}</span></td>
+                                <td>{formatDate(br.createdAt)}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Modal for creating a broker request */}
+            {showClientReqModal && (
+              <div className="modal show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}>
+                <div className="modal-dialog modal-dialog-centered">
+                  <div className="modal-content" style={{ background: '#1c1b18', border: '1px solid #b8860b', color: '#fff' }}>
+                    <div className="modal-header border-bottom border-secondary">
+                      <h5 className="modal-title">{isRtl ? 'تقديم طلب نيابة عن عميل' : 'Submit Client Request'}</h5>
+                      <button type="button" className="btn-close btn-close-white" onClick={() => setShowClientReqModal(false)}></button>
+                    </div>
+                    <form onSubmit={handleCreateBrokerRequest}>
+                      <div className="modal-body d-flex flex-direction-column gap-3">
+                        <div>
+                          <label className="form-label">{isRtl ? 'معرف العقار (Property ID)' : 'Property ID'} *</label>
+                          <input
+                            type="number"
+                            required
+                            className="form-control"
+                            value={clientReqForm.propertyId}
+                            onChange={(e) => setClientReqForm({ ...clientReqForm, propertyId: e.target.value })}
+                            placeholder="e.g. 1"
+                          />
+                        </div>
+                        <div>
+                          <label className="form-label">{isRtl ? 'اسم العميل' : 'Client Name'} *</label>
+                          <input
+                            type="text"
+                            required
+                            className="form-control"
+                            value={clientReqForm.clientName}
+                            onChange={(e) => setClientReqForm({ ...clientReqForm, clientName: e.target.value })}
+                            placeholder="e.g. Ahmed Fouad"
+                          />
+                        </div>
+                        <div>
+                          <label className="form-label">{isRtl ? 'هاتف العميل' : 'Client Phone'} *</label>
+                          <input
+                            type="tel"
+                            required
+                            className="form-control"
+                            value={clientReqForm.clientPhone}
+                            onChange={(e) => setClientReqForm({ ...clientReqForm, clientPhone: e.target.value })}
+                            placeholder="010..."
+                          />
+                        </div>
+                        <div>
+                          <label className="form-label">{isRtl ? 'نوع الطلب' : 'Purpose'}</label>
+                          <select
+                            className="form-select"
+                            value={clientReqForm.purpose}
+                            onChange={(e) => setClientReqForm({ ...clientReqForm, purpose: e.target.value })}
+                          >
+                            <option value="Sale">Sale (شراء)</option>
+                            <option value="Rent">Rent (إيجار)</option>
+                          </select>
+                        </div>
+                        {clientReqForm.purpose === 'Rent' && (
+                          <div className="row g-2">
+                            <div className="col-6">
+                              <label className="form-label">Start Date</label>
+                              <input
+                                type="date"
+                                className="form-control"
+                                value={clientReqForm.startDate}
+                                onChange={(e) => setClientReqForm({ ...clientReqForm, startDate: e.target.value })}
+                              />
+                            </div>
+                            <div className="col-6">
+                              <label className="form-label">End Date</label>
+                              <input
+                                type="date"
+                                className="form-control"
+                                value={clientReqForm.endDate}
+                                onChange={(e) => setClientReqForm({ ...clientReqForm, endDate: e.target.value })}
+                              />
+                            </div>
+                          </div>
+                        )}
+                        <div>
+                          <label className="form-label">{isRtl ? 'ملاحظات' : 'Notes'}</label>
+                          <textarea
+                            className="form-control"
+                            rows="2"
+                            value={clientReqForm.notes}
+                            onChange={(e) => setClientReqForm({ ...clientReqForm, notes: e.target.value })}
+                          />
+                        </div>
+                      </div>
+                      <div className="modal-footer border-top border-secondary">
+                        <button type="button" className="btn btn-secondary" onClick={() => setShowClientReqModal(false)}>
+                          {isRtl ? 'إلغاء' : 'Cancel'}
+                        </button>
+                        <button type="submit" className="btn btn-brand" disabled={submittingClientReq}>
+                          {submittingClientReq ? (isRtl ? 'جارٍ الإرسال…' : 'Submitting…') : (isRtl ? 'إرسال الطلب' : 'Submit')}
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* TAB 4: NOTIFICATIONS */}
         {tab === 'notifications' && (
-          <section className="profile-tab-panel" aria-label={t('profile.tabs.notifications', 'Notifications')}>
+          <section className="profile-tab-panel" aria-label="Notifications">
             <div className="notifications-header-row">
               <div className="notifications-title-box">
                 <h2>{t('profile.notifications.title', isRtl ? 'سجل الإشعارات والتحديثات' : 'Activity Notifications')}</h2>
@@ -536,7 +1106,7 @@ export default function Profile() {
                     'profile.notifications.emptyMessage',
                     isRtl
                       ? 'ستظهر هنا كافة الإشعارات الرسمية المتعلقة بمواعيد المعاينات وتحديثات طلباتك العقارية.'
-                      : 'Official updates about your inquiries, property inspections, and agreements will appear here.'
+                      : 'Official updates about your inquiries and agreements will appear here.'
                   )}
                 />
               </div>
@@ -563,10 +1133,7 @@ export default function Profile() {
                       <p className="notification-body">{n.body}</p>
                     </div>
                     {!n.isRead && (
-                      <span
-                        className="notification-unread-dot"
-                        title={t('profile.notifications.unreadBadge', 'Unread')}
-                      ></span>
+                      <span className="notification-unread-dot" title="Unread"></span>
                     )}
                   </button>
                 ))}
@@ -575,11 +1142,10 @@ export default function Profile() {
           </section>
         )}
 
-        {/* TAB 3: SETTINGS & SECURITY */}
+        {/* TAB 5: SETTINGS & SECURITY */}
         {tab === 'settings' && (
-          <section className="profile-tab-panel" aria-label={t('profile.tabs.settings', 'Profile & Security')}>
+          <section className="profile-tab-panel" aria-label="Profile & Security">
             <div className="settings-cards-grid">
-              {/* Form 1: Personal Details */}
               <form onSubmit={saveProfile} noValidate className="settings-card-surface">
                 <div className="settings-card-header">
                   <div className="settings-icon-bubble">
@@ -593,7 +1159,7 @@ export default function Profile() {
                       {t(
                         'profile.settings.personalSubtitle',
                         isRtl
-                          ? 'تأكد من دقة بيانات الاتصال لتسهيل التواصل المباشر مع كبار المستشارين وتوثيق العقود.'
+                          ? 'تأكد من دقة بيانات الاتصال لتسهيل التواصل المباشر وتوثيق العقود.'
                           : 'Keep your contact information up-to-date for prompt advisory assistance and official contracts.'
                       )}
                     </p>
@@ -673,7 +1239,6 @@ export default function Profile() {
                 </div>
               </form>
 
-              {/* Form 2: Change Password */}
               <form onSubmit={changePassword} noValidate className="settings-card-surface">
                 <div className="settings-card-header">
                   <div className="settings-icon-bubble">

@@ -26,4 +26,10 @@ public static class RequestRules
             or RequestStatus.UnderReview
             or RequestStatus.Contacted
             or RequestStatus.Negotiation;
+
+    /// <summary>
+    /// Requirement 9 date-overlap logic: Existing.StartDate < Requested.EndDate && Existing.EndDate > Requested.StartDate
+    /// </summary>
+    public static bool HasDateOverlap(DateTime startA, DateTime endA, DateTime startB, DateTime endB)
+        => startA < endB && endA > startB;
 }

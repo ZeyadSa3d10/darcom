@@ -1,6 +1,7 @@
 using Application.Common;
 using Application.DTOs;
 using Application.Stores;
+using Domain.Entities;
 using Domain.Enums;
 using Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -123,5 +124,198 @@ public sealed class AdminStore : IAdminStore
         inquiry.UpdatedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync(ct);
         return true;
+    }
+
+    // Village & Zone Management
+    public async Task<List<VillageDto>> GetVillagesAsync(bool includeInactive, CancellationToken ct = default)
+    {
+        var query = _db.Villages.AsNoTracking().Include(v => v.Zones).AsQueryable();
+        if (!includeInactive)
+            query = query.Where(v => v.IsActive);
+
+        return await query
+            .OrderBy(v => v.Name)
+            .Select(v => new VillageDto(
+                v.Id,
+                v.Name,
+                v.Slug,
+                v.IsActive,
+                v.Zones
+                    .Where(z => includeInactive || z.IsActive)
+                    .OrderBy(z => z.Name)
+                    .Select(z => new ZoneDto(z.Id, z.VillageId, z.Name, z.Slug, z.IsActive))
+                    .ToList()))
+            .ToListAsync(ct);
+    }
+
+    public async Task<VillageDto?> GetVillageByIdAsync(int id, CancellationToken ct = default)
+    {
+        return await _db.Villages.AsNoTracking()
+            .Include(v => v.Zones)
+            .Where(v => v.Id == id)
+            .Select(v => new VillageDto(
+                v.Id,
+                v.Name,
+                v.Slug,
+                v.IsActive,
+                v.Zones.OrderBy(z => z.Name)
+                    .Select(z => new ZoneDto(z.Id, z.VillageId, z.Name, z.Slug, z.IsActive))
+                    .ToList()))
+            .FirstOrDefaultAsync(ct);
+    }
+
+    public async Task<bool> VillageSlugExistsAsync(string slug, int? excludeId = null, CancellationToken ct = default)
+    {
+        var normalized = slug.Trim().ToLowerInvariant();
+        return await _db.Villages.AnyAsync(v => v.Slug == normalized && (!excludeId.HasValue || v.Id != excludeId.Value), ct);
+    }
+
+    public async Task<VillageDto> AddVillageAsync(Village village, CancellationToken ct = default)
+    {
+        _db.Villages.Add(village);
+        await _db.SaveChangesAsync(ct);
+        return new VillageDto(village.Id, village.Name, village.Slug, village.IsActive, new());
+    }
+
+    public async Task<bool> UpdateVillageAsync(int id, string? name, string? slug, bool? isActive, CancellationToken ct = default)
+    {
+        var village = await _db.Villages.FirstOrDefaultAsync(v => v.Id == id, ct);
+        if (village is null) return false;
+        if (!string.IsNullOrWhiteSpace(name)) village.Name = name.Trim();
+        if (!string.IsNullOrWhiteSpace(slug)) village.Slug = slug.Trim().ToLowerInvariant();
+        if (isActive.HasValue) village.IsActive = isActive.Value;
+        village.UpdatedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync(ct);
+        return true;
+    }
+
+    public async Task<(bool Success, string? Error)> DeleteVillageAsync(int id, CancellationToken ct = default)
+    {
+        var village = await _db.Villages.Include(v => v.Zones).FirstOrDefaultAsync(v => v.Id == id, ct);
+        if (village is null) return (false, "Village not found.");
+
+        var hasProps = await _db.Properties.AnyAsync(p => p.VillageId == id, ct);
+        if (hasProps)
+            return (false, "Cannot delete village because properties are assigned to it. You may deactivate it instead.");
+
+        _db.Villages.Remove(village);
+        await _db.SaveChangesAsync(ct);
+        return (true, null);
+    }
+
+    public async Task<List<ZoneDto>> GetZonesByVillageIdAsync(int villageId, bool includeInactive, CancellationToken ct = default)
+    {
+        var query = _db.Zones.AsNoTracking().Where(z => z.VillageId == villageId);
+        if (!includeInactive)
+            query = query.Where(z => z.IsActive);
+
+        return await query
+            .OrderBy(z => z.Name)
+            .Select(z => new ZoneDto(z.Id, z.VillageId, z.Name, z.Slug, z.IsActive))
+            .ToListAsync(ct);
+    }
+
+    public async Task<ZoneDto?> GetZoneByIdAsync(int villageId, int zoneId, CancellationToken ct = default)
+    {
+        return await _db.Zones.AsNoTracking()
+            .Where(z => z.VillageId == villageId && z.Id == zoneId)
+            .Select(z => new ZoneDto(z.Id, z.VillageId, z.Name, z.Slug, z.IsActive))
+            .FirstOrDefaultAsync(ct);
+    }
+
+    public async Task<bool> ZoneSlugExistsAsync(int villageId, string slug, int? excludeId = null, CancellationToken ct = default)
+    {
+        var normalized = slug.Trim().ToLowerInvariant();
+        return await _db.Zones.AnyAsync(z => z.VillageId == villageId && z.Slug == normalized && (!excludeId.HasValue || z.Id != excludeId.Value), ct);
+    }
+
+    public async Task<ZoneDto> AddZoneAsync(Zone zone, CancellationToken ct = default)
+    {
+        _db.Zones.Add(zone);
+        await _db.SaveChangesAsync(ct);
+        return new ZoneDto(zone.Id, zone.VillageId, zone.Name, zone.Slug, zone.IsActive);
+    }
+
+    public async Task<bool> UpdateZoneAsync(int villageId, int zoneId, string? name, string? slug, bool? isActive, CancellationToken ct = default)
+    {
+        var zone = await _db.Zones.FirstOrDefaultAsync(z => z.VillageId == villageId && z.Id == zoneId, ct);
+        if (zone is null) return false;
+        if (!string.IsNullOrWhiteSpace(name)) zone.Name = name.Trim();
+        if (!string.IsNullOrWhiteSpace(slug)) zone.Slug = slug.Trim().ToLowerInvariant();
+        if (isActive.HasValue) zone.IsActive = isActive.Value;
+        zone.UpdatedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync(ct);
+        return true;
+    }
+
+    public async Task<(bool Success, string? Error)> DeleteZoneAsync(int villageId, int zoneId, CancellationToken ct = default)
+    {
+        var zone = await _db.Zones.FirstOrDefaultAsync(z => z.VillageId == villageId && z.Id == zoneId, ct);
+        if (zone is null) return (false, "Zone not found.");
+
+        var hasProps = await _db.Properties.AnyAsync(p => p.ZoneId == zoneId, ct);
+        if (hasProps)
+            return (false, "Cannot delete zone because properties are assigned to it. You may deactivate it instead.");
+
+        _db.Zones.Remove(zone);
+        await _db.SaveChangesAsync(ct);
+        return (true, null);
+    }
+
+    // Property Types Management
+    public async Task<List<PropertyTypeDto>> GetPropertyTypesAsync(CancellationToken ct = default)
+    {
+        return await _db.PropertyTypes.AsNoTracking()
+            .OrderBy(pt => pt.Id)
+            .Select(pt => new PropertyTypeDto(pt.Id, pt.Name, pt.Slug, pt.Description, pt.Icon))
+            .ToListAsync(ct);
+    }
+
+    public async Task<PropertyTypeDto?> GetPropertyTypeByIdAsync(int id, CancellationToken ct = default)
+    {
+        return await _db.PropertyTypes.AsNoTracking()
+            .Where(pt => pt.Id == id)
+            .Select(pt => new PropertyTypeDto(pt.Id, pt.Name, pt.Slug, pt.Description, pt.Icon))
+            .FirstOrDefaultAsync(ct);
+    }
+
+    public async Task<bool> PropertyTypeSlugExistsAsync(string slug, int? excludeId = null, CancellationToken ct = default)
+    {
+        var normalized = slug.Trim().ToLowerInvariant();
+        return await _db.PropertyTypes.AnyAsync(pt => pt.Slug == normalized && (!excludeId.HasValue || pt.Id != excludeId.Value), ct);
+    }
+
+    public async Task<PropertyTypeDto> AddPropertyTypeAsync(PropertyType type, CancellationToken ct = default)
+    {
+        _db.PropertyTypes.Add(type);
+        await _db.SaveChangesAsync(ct);
+        return new PropertyTypeDto(type.Id, type.Name, type.Slug, type.Description, type.Icon);
+    }
+
+    public async Task<bool> UpdatePropertyTypeAsync(int id, string? name, string? slug, string? description, string? icon, CancellationToken ct = default)
+    {
+        var pt = await _db.PropertyTypes.FirstOrDefaultAsync(t => t.Id == id, ct);
+        if (pt is null) return false;
+        if (!string.IsNullOrWhiteSpace(name)) pt.Name = name.Trim();
+        if (!string.IsNullOrWhiteSpace(slug)) pt.Slug = slug.Trim().ToLowerInvariant();
+        if (description is not null) pt.Description = description;
+        if (icon is not null) pt.Icon = icon;
+        pt.UpdatedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync(ct);
+        return true;
+    }
+
+    public async Task<(bool Success, string? Error)> DeletePropertyTypeAsync(int id, CancellationToken ct = default)
+    {
+        var pt = await _db.PropertyTypes.FirstOrDefaultAsync(t => t.Id == id, ct);
+        if (pt is null) return (false, "Property type not found.");
+
+        var hasProps = await _db.Properties.AnyAsync(p => p.PropertyTypeId == id, ct);
+        if (hasProps)
+            return (false, "Cannot delete property type because properties are assigned to it.");
+
+        _db.PropertyTypes.Remove(pt);
+        await _db.SaveChangesAsync(ct);
+        return (true, null);
     }
 }

@@ -10,13 +10,14 @@ import ErrorState from '../../components/ErrorState/ErrorState.jsx';
 import EmptyState from '../../components/EmptyState/EmptyState.jsx';
 import Pagination from '../../components/Pagination/Pagination.jsx';
 import Modal from '../../components/Modal/Modal.jsx';
+import PropertyRequirementModal from '../../components/PropertyRequirementModal/PropertyRequirementModal.jsx';
 import { useSeo } from '../../hooks/useSeo.js';
 import { useCmsSeo } from '../../hooks/useCmsSeo.js';
 import { propertyService } from '../../services/propertyService.js';
 import { locationService } from '../../services/locationService.js';
 import './Properties.css';
 
-// URL <-> filters. Accepts legacy aliases (beds, area) on read; writes canonical names.
+// URL <-> filters. Accepts legacy aliases on read; writes canonical names.
 function parseParams(params) {
   const pick = (...keys) => {
     for (const k of keys) {
@@ -31,6 +32,9 @@ function parseParams(params) {
     purpose: pick('purpose'),
     type: pick('type'),
     location: pick('location'),
+    village: pick('village'),
+    zone: pick('zone'),
+    buildingNumber: pick('buildingNumber'),
     minPrice: pick('minPrice'),
     maxPrice: pick('maxPrice'),
     bedrooms: pick('bedrooms', 'beds'),
@@ -38,6 +42,7 @@ function parseParams(params) {
     minArea: pick('minArea', 'area'),
     furnished: bool('furnished'),
     pool: bool('pool'),
+    garden: bool('garden'),
     seaView: bool('seaView'),
     beachAccess: bool('beachAccess'),
     parking: bool('parking'),
@@ -57,6 +62,9 @@ function toQuery(applied) {
   if (applied.purpose) q.purpose = applied.purpose;
   if (applied.type) q.type = applied.type;
   if (applied.location) q.location = applied.location;
+  if (applied.village) q.village = applied.village;
+  if (applied.zone) q.zone = applied.zone;
+  if (applied.buildingNumber) q.buildingNumber = applied.buildingNumber;
   if (applied.minPrice !== '') q.minPrice = applied.minPrice;
   if (applied.maxPrice !== '') q.maxPrice = applied.maxPrice;
   if (applied.maxDownPayment !== '') q.maxDownPayment = applied.maxDownPayment;
@@ -66,7 +74,7 @@ function toQuery(applied) {
   if (applied.bedrooms !== '') q.bedrooms = applied.bedrooms;
   if (applied.bathrooms !== '') q.bathrooms = applied.bathrooms;
   if (applied.minArea !== '') q.minArea = applied.minArea;
-  for (const k of ['furnished', 'pool', 'seaView', 'beachAccess', 'parking', 'featured']) {
+  for (const k of ['furnished', 'pool', 'garden', 'seaView', 'beachAccess', 'parking', 'featured']) {
     if (applied[k]) q[k] = 'true';
   }
   if (applied.sort) q.sort = applied.sort;
@@ -86,6 +94,7 @@ export default function Properties() {
   const [error, setError] = useState(null);
   const [view, setView] = useState('grid');
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [leadModalOpen, setLeadModalOpen] = useState(false);
   const [maps, setMaps] = useState({ types: {}, cities: {} });
   const [input, setInput] = useState(applied.q);
   const debounce = useRef(null);
@@ -199,6 +208,12 @@ export default function Properties() {
         return t(`types.${v}`, maps.types[v] || v);
       case 'location':
         return t(`destinations.${v}`, maps.cities[v] || v);
+      case 'village':
+        return `${t('propertiesPage.village', 'Village')}: ${v}`;
+      case 'zone':
+        return `${t('propertiesPage.zone', 'Zone')}: ${v}`;
+      case 'buildingNumber':
+        return `${t('propertiesPage.buildingNumber', 'Building')}: ${v}`;
       case 'minPrice':
         return `≥ ${Number(v).toLocaleString()} ${t('common.egp', 'EGP')}`;
       case 'maxPrice':
@@ -221,6 +236,8 @@ export default function Properties() {
         return t('propertiesPage.furnished', 'Furnished');
       case 'pool':
         return t('propertiesPage.pool', 'Swimming Pool');
+      case 'garden':
+        return t('propertiesPage.garden', 'Garden');
       case 'seaView':
         return t('propertiesPage.seaView', 'Sea View');
       case 'beachAccess':
@@ -241,6 +258,9 @@ export default function Properties() {
       'purpose',
       'type',
       'location',
+      'village',
+      'zone',
+      'buildingNumber',
       'minPrice',
       'maxPrice',
       'maxDownPayment',
@@ -252,6 +272,7 @@ export default function Properties() {
       'minArea',
       'furnished',
       'pool',
+      'garden',
       'seaView',
       'beachAccess',
       'parking',
@@ -259,32 +280,41 @@ export default function Properties() {
     ];
     for (const key of filterKeys) {
       const v = applied[key];
-      if (v === '' || v === false || v == null) continue;
-      list.push({ key, label: getChipLabel(key, v) });
+      if (typeof v === 'boolean') {
+        if (v) list.push({ key, label: getChipLabel(key, true) });
+      } else if (v !== '' && v != null) {
+        list.push({ key, label: getChipLabel(key, v) });
+      }
     }
     return list;
   }, [applied, getChipLabel]);
 
+  const appliedFilters = useMemo(() => {
+    const res = { ...EMPTY_FILTERS };
+    for (const k of Object.keys(EMPTY_FILTERS)) {
+      if (applied[k] !== undefined) res[k] = applied[k];
+    }
+    return res;
+  }, [applied]);
+
   const changePage = (p) => {
     push({ page: p }, false);
-    resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    resultsRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
-
-  const appliedFilters = { ...EMPTY_FILTERS, ...applied };
 
   const seoTitle = useMemo(() => {
     const bits = [];
-    if (applied.type) bits.push(applied.type.replace(/-/g, ' '));
-    if (applied.purpose === 'sale') bits.push('for sale');
-    else if (applied.purpose) bits.push(`for ${applied.purpose}`);
-    if (applied.location) bits.push(`in ${applied.location.replace(/-/g, ' ')}`);
+    if (applied.type) bits.push(maps.types[applied.type] || applied.type);
+    if (applied.purpose) bits.push(`for ${applied.purpose}`);
+    if (applied.village) bits.push(`in ${applied.village}`);
+    else if (applied.location) bits.push(`in ${applied.location.replace(/-/g, ' ')}`);
     const head = bits.length ? bits.join(' ') : 'Luxury Properties';
     return `${head[0].toUpperCase()}${head.slice(1)} | Darcom`;
-  }, [applied]);
+  }, [applied, maps.types]);
 
   // CMS override applies to the unfiltered view only; filtered views keep dynamic titles.
   const cmsSeo = useCmsSeo('properties');
-  const isDefaultView = !applied.purpose && !applied.type && !applied.location && !applied.q;
+  const isDefaultView = !applied.purpose && !applied.type && !applied.location && !applied.village && !applied.q;
   useSeo({
     title: (isDefaultView && cmsSeo?.title) || seoTitle,
     description: (isDefaultView && cmsSeo?.description) || `Browse ${total || ''} verified luxury properties on Darcom — transparent pricing, direct developer partnerships.`.trim(),
@@ -347,7 +377,7 @@ export default function Properties() {
             <i className="bi bi-search search-icon"></i>
             <input
               type="search"
-              placeholder={t('propertiesPage.searchPlaceholder', 'Search compounds, cities, keywords…')}
+              placeholder={t('propertiesPage.searchPlaceholder', 'Search compounds, villages, keywords…')}
               value={input}
               onChange={onSearchInput}
               aria-label={t('common.search', 'Search properties')}
@@ -366,6 +396,17 @@ export default function Properties() {
               </button>
             )}
           </div>
+
+          {/* Request Custom Property Lead Button */}
+          <button
+            type="button"
+            className="btn btn-outline-gold d-none d-md-inline-flex align-items-center"
+            onClick={() => setLeadModalOpen(true)}
+            title="Request a Custom Property in North Coast"
+          >
+            <i className="bi bi-send me-1"></i>
+            <span>{t('leads.requestPropertyBtn', 'Request Property')}</span>
+          </button>
 
           {/* Sort Selector */}
           <div className="sort-wrapper-luxury">
@@ -444,13 +485,25 @@ export default function Properties() {
           {state === 'loading' && <LoadingSkeleton variant="card" count={6} />}
           {state === 'error' && <ErrorState error={error} onRetry={fetchList} />}
           {state === 'done' && items.length === 0 && (
-            <EmptyState
-              icon="bi-house-search"
-              title={t('propertiesPage.noPropertiesFound', 'No properties match your criteria.')}
-              message={t('propertiesPage.noPropertiesSub', 'Try broadening your destination, adjusting your budget range, or clearing current filters.')}
-              actionLabel={t('propertiesPage.resetAllFilters', 'Reset All Filters')}
-              onAction={clearAll}
-            />
+            <div className="empty-results-container">
+              <EmptyState
+                icon="bi-house-search"
+                title={t('propertiesPage.noPropertiesFound', 'No properties match your criteria.')}
+                message={t('propertiesPage.noPropertiesSub', 'Try broadening your village, adjusting your budget range, or clearing current filters.')}
+                actionLabel={t('propertiesPage.resetAllFilters', 'Reset All Filters')}
+                onAction={clearAll}
+              />
+              <div className="text-center mt-3">
+                <button
+                  type="button"
+                  className="btn btn-brand"
+                  onClick={() => setLeadModalOpen(true)}
+                >
+                  <i className="bi bi-file-earmark-plus me-1"></i>
+                  <span>{t('leads.emptyRequestCta', 'Submit a Custom Property Request')}</span>
+                </button>
+              </div>
+            </div>
           )}
           {state === 'done' && items.length > 0 && view === 'grid' && (
             <PropertyGrid items={items} />
@@ -474,6 +527,13 @@ export default function Properties() {
           <PropertyFilters applied={appliedFilters} onApply={applyFilters} onClear={clearAll} />
         </Modal>
       )}
+
+      {/* Customer Property Requirement Lead Modal */}
+      <PropertyRequirementModal
+        isOpen={leadModalOpen}
+        onClose={() => setLeadModalOpen(false)}
+        initialPurpose={applied.purpose || 'Sale'}
+      />
     </main>
   );
 }

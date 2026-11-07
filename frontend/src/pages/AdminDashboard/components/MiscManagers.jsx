@@ -148,13 +148,9 @@ export function ReviewsManager({ onChanged }) {
   const setApproval = async (id, approved) => {
     try {
       await adminService.setReviewApproval(id, approved);
-      toast.success(
-        approved
-          ? (isRtl ? 'تمت الموافقة على التقييم ونشره.' : 'Review approved.')
-          : (isRtl ? 'تم إخفاء التقييم.' : 'Review hidden.')
-      );
-      load(page, filter);
+      toast.success(isRtl ? 'تم تحديث حالة التقييم.' : 'Review status updated.');
       onChanged?.();
+      load(page, filter);
     } catch {
       toast.error(isRtl ? 'تعذر تحديث حالة التقييم.' : 'Could not update review.');
     }
@@ -165,10 +161,10 @@ export function ReviewsManager({ onChanged }) {
     setBusy(true);
     try {
       await adminService.deleteReview(confirmDelete.id);
-      toast.success(isRtl ? 'تم حذف التقييم بنجاح.' : 'Review deleted.');
+      toast.success(isRtl ? 'تم حذف التقييم.' : 'Review deleted.');
       setConfirmDelete(null);
-      load(page, filter);
       onChanged?.();
+      load(page, filter);
     } catch {
       toast.error(isRtl ? 'تعذر حذف التقييم.' : 'Could not delete review.');
     } finally {
@@ -188,8 +184,8 @@ export function ReviewsManager({ onChanged }) {
           aria-label="Filter reviews"
         >
           <option value="">{isRtl ? 'كافة التقييمات' : 'All reviews'}</option>
-          <option value="true">{isRtl ? 'المعتمدة والمنشورة' : 'Approved'}</option>
-          <option value="false">{isRtl ? 'بانتظار الموافقة' : 'Pending'}</option>
+          <option value="false">{isRtl ? 'قيد المراجعة فقط' : 'Pending only'}</option>
+          <option value="true">{isRtl ? 'المعتمدة والمعروضة' : 'Approved only'}</option>
         </select>
       </div>
       {state === 'loading' && <LoadingSkeleton count={4} />}
@@ -290,9 +286,15 @@ export function ReviewsManager({ onChanged }) {
 
 export function CatalogManager() {
   const { isRtl } = useSettings();
+  const toast = useToast();
   const [tab, setTab] = useState('types');
   const [rows, setRows] = useState([]);
   const [state, setState] = useState('loading');
+
+  // Add Type Modal
+  const [showAddType, setShowAddType] = useState(false);
+  const [typeForm, setTypeForm] = useState({ name: '', slug: '', icon: 'bi-building' });
+  const [savingType, setSavingType] = useState(false);
 
   const subTabs = [
     ['types', isRtl ? 'أنواع العقارات' : 'Property types'],
@@ -319,6 +321,33 @@ export function CatalogManager() {
   useEffect(() => {
     load(tab);
   }, [load, tab]);
+
+  const handleCreateType = async (e) => {
+    e.preventDefault();
+    setSavingType(true);
+    try {
+      await adminService.createPropertyType(typeForm);
+      toast.success(isRtl ? 'تمت إضافة نوع العقار' : 'Property type created.');
+      setShowAddType(false);
+      setTypeForm({ name: '', slug: '', icon: 'bi-building' });
+      load('types');
+    } catch (err) {
+      toast.error(err.message || 'Failed to create type.');
+    } finally {
+      setSavingType(false);
+    }
+  };
+
+  const handleDeleteType = async (id) => {
+    if (!window.confirm(isRtl ? 'هل أنت متأكد من حذف هذا النوع؟' : 'Delete this property type?')) return;
+    try {
+      await adminService.deletePropertyType(id);
+      toast.success(isRtl ? 'تم حذف نوع العقار' : 'Property type deleted.');
+      load('types');
+    } catch (err) {
+      toast.error(err.message || 'Failed to delete type.');
+    }
+  };
 
   const renderRow = (r) => {
     if (tab === 'locations') {
@@ -351,6 +380,24 @@ export function CatalogManager() {
         </tr>
       );
     }
+    if (tab === 'types') {
+      return (
+        <tr key={r.id || r.slug}>
+          <td><strong>{r.name}</strong></td>
+          <td className="text-meta">{r.slug || `#${r.id}`}</td>
+          <td>{r.icon ? <i className={`bi ${r.icon}`}></i> : '—'}</td>
+          <td>
+            <button
+              type="button"
+              className="btn btn-link btn-sm text-danger"
+              onClick={() => handleDeleteType(r.id)}
+            >
+              <i className="bi bi-trash"></i>
+            </button>
+          </td>
+        </tr>
+      );
+    }
     return (
       <tr key={r.id || r.slug}>
         <td><strong>{r.name}</strong></td>
@@ -362,11 +409,19 @@ export function CatalogManager() {
 
   return (
     <div>
-      <p className="text-meta">
-        {isRtl
-          ? 'البيانات المرجعية والمصنفات للنظام (للقراءة والاستعراض هنا — التعديل يتم عبر التهيئة ونماذج الإدخال).'
-          : 'Reference data (read-only here — edits via data seeding and property forms).'}
-      </p>
+      <div className="d-flex justify-content-between align-items-center mb-2">
+        <p className="text-meta m-0">
+          {isRtl
+            ? 'البيانات المرجعية والمصنفات للنظام.'
+            : 'Reference catalog and lookups.'}
+        </p>
+        {tab === 'types' && (
+          <button type="button" className="btn btn-brand btn-sm" onClick={() => setShowAddType(true)}>
+            <i className="bi bi-plus-lg me-1"></i>
+            {isRtl ? 'إضافة نوع عقار' : 'Add Property Type'}
+          </button>
+        )}
+      </div>
       <div className="req-kind">
         {subTabs.map(([id, label]) => (
           <button
@@ -394,10 +449,67 @@ export function CatalogManager() {
                 <th>{isRtl ? 'الاسم' : 'Name'}</th>
                 <th>{isRtl ? 'التفاصيل / الرمز' : 'Detail'}</th>
                 <th>{tab === 'agents' ? (isRtl ? 'الحالة' : 'Status') : (isRtl ? 'الأيقونة' : 'Icon')}</th>
+                {tab === 'types' && <th>{isRtl ? 'الإجراء' : 'Action'}</th>}
               </tr>
             </thead>
             <tbody>{rows.map(renderRow)}</tbody>
           </table>
+        </div>
+      )}
+
+      {showAddType && (
+        <div className="modal show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <div className="modal-dialog modal-dialog-centered">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">{isRtl ? 'إضافة نوع عقار جديد' : 'Add Property Type'}</h5>
+                <button type="button" className="btn-close" onClick={() => setShowAddType(false)}></button>
+              </div>
+              <form onSubmit={handleCreateType}>
+                <div className="modal-body">
+                  <div className="mb-3">
+                    <label className="form-label fw-bold">Name *</label>
+                    <input
+                      type="text"
+                      required
+                      className="form-control"
+                      value={typeForm.name}
+                      onChange={(e) => setTypeForm({ ...typeForm, name: e.target.value })}
+                      placeholder="e.g. Studio, Townhouse, Standalone Villa"
+                    />
+                  </div>
+                  <div className="mb-3">
+                    <label className="form-label fw-bold">Slug (Optional)</label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      value={typeForm.slug}
+                      onChange={(e) => setTypeForm({ ...typeForm, slug: e.target.value })}
+                      placeholder="e.g. studio"
+                    />
+                  </div>
+                  <div className="mb-3">
+                    <label className="form-label fw-bold">Bootstrap Icon (Optional)</label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      value={typeForm.icon}
+                      onChange={(e) => setTypeForm({ ...typeForm, icon: e.target.value })}
+                      placeholder="e.g. bi-house"
+                    />
+                  </div>
+                </div>
+                <div className="modal-footer">
+                  <button type="button" className="btn btn-secondary" onClick={() => setShowAddType(false)}>
+                    Cancel
+                  </button>
+                  <button type="submit" className="btn btn-brand" disabled={savingType}>
+                    {savingType ? 'Saving…' : 'Save Type'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
         </div>
       )}
     </div>

@@ -12,7 +12,13 @@ public sealed class DarcomDbContext : DbContext
     public DbSet<Role> Roles => Set<Role>();
     public DbSet<User> Users => Set<User>();
     public DbSet<Agent> Agents => Set<Agent>();
+    public DbSet<BrokerProfile> BrokerProfiles => Set<BrokerProfile>();
 
+    // North Coast Villages & Zones (Requirements 3 & 4)
+    public DbSet<Village> Villages => Set<Village>();
+    public DbSet<Zone> Zones => Set<Zone>();
+
+    // Legacy location hierarchy
     public DbSet<City> Cities => Set<City>();
     public DbSet<Area> Areas => Set<Area>();
     public DbSet<Location> Locations => Set<Location>();
@@ -36,6 +42,10 @@ public sealed class DarcomDbContext : DbContext
 
     public DbSet<PurchaseRequest> PurchaseRequests => Set<PurchaseRequest>();
     public DbSet<BookingRequest> BookingRequests => Set<BookingRequest>();
+    public DbSet<RentalPeriod> RentalPeriods => Set<RentalPeriod>();
+    public DbSet<BrokerPropertyRequest> BrokerPropertyRequests => Set<BrokerPropertyRequest>();
+    public DbSet<PropertyRequirement> PropertyRequirements => Set<PropertyRequirement>();
+
     public DbSet<Payment> Payments => Set<Payment>();
     public DbSet<Document> Documents => Set<Document>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();

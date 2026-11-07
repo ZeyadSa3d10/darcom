@@ -32,7 +32,13 @@ public sealed class Property : EntityBase
     public bool SeaView { get; set; }
     public bool BeachAccess { get; set; }
 
-    public int LocationId { get; set; }
+    // North Coast Village and Zone structure (Requirements 3 & 4)
+    public int VillageId { get; set; }
+    public int? ZoneId { get; set; }
+    public string? BuildingNumber { get; set; }
+
+    // Optional legacy location link for backwards compatibility
+    public int? LocationId { get; set; }
     public string? Address { get; set; }
     public double? Latitude { get; set; }
     public double? Longitude { get; set; }
@@ -40,14 +46,19 @@ public sealed class Property : EntityBase
     public string? Developer { get; set; }
     public int? OwnerId { get; set; }
     public int? AgentId { get; set; }
+    public int? CreatedByUserId { get; set; }
     public bool IsVerified { get; set; }
     public bool IsFeatured { get; set; }
     public long ViewCount { get; set; }
+    public string? RejectionReason { get; set; }
 
     public PropertyType PropertyType { get; set; } = null!;
-    public Location Location { get; set; } = null!;
+    public Village Village { get; set; } = null!;
+    public Zone? Zone { get; set; }
+    public Location? Location { get; set; }
     public User? Owner { get; set; }
     public Agent? Agent { get; set; }
+    public User? CreatedByUser { get; set; }
 
     public ICollection<PropertyImage> Images { get; set; } = new List<PropertyImage>();
     public ICollection<PropertyVideo> Videos { get; set; } = new List<PropertyVideo>();
@@ -56,4 +67,6 @@ public sealed class Property : EntityBase
     public ICollection<PropertyAmenity> PropertyAmenities { get; set; } = new List<PropertyAmenity>();
     public ICollection<Favorite> Favorites { get; set; } = new List<Favorite>();
     public ICollection<Review> Reviews { get; set; } = new List<Review>();
+    public ICollection<RentalPeriod> RentalPeriods { get; set; } = new List<RentalPeriod>();
+    public ICollection<BrokerPropertyRequest> BrokerRequests { get; set; } = new List<BrokerPropertyRequest>();
 }

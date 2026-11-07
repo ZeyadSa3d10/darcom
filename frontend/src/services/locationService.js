@@ -1,12 +1,10 @@
 import api from './api.js';
 
-// There is no dedicated lookups endpoint yet (planned with admin lookups management).
-// These static fallbacks mirror the PHASE-01 seed so filters work today; once the
-// backend exposes /api/lookups, only this module changes.
+// Fallbacks if backend lookup table is empty.
 const FALLBACK_CITIES = [
+  { name: 'North Coast', slug: 'north-coast' },
   { name: 'Ain Sokhna', slug: 'ain-sokhna' },
   { name: 'New Cairo', slug: 'new-cairo' },
-  { name: 'North Coast', slug: 'north-coast' },
   { name: 'Hurghada', slug: 'hurghada' },
   { name: 'El Gouna', slug: 'el-gouna' },
 ];
@@ -26,6 +24,23 @@ const FALLBACK_TYPES = [
 ];
 
 export const locationService = {
+  async getVillages() {
+    try {
+      const res = await api.get('/lookups/villages');
+      return res.data;
+    } catch {
+      return { success: true, data: [] };
+    }
+  },
+  async getZones(villageId) {
+    if (!villageId) return { success: true, data: [] };
+    try {
+      const res = await api.get(`/lookups/villages/${villageId}/zones`);
+      return res.data;
+    } catch {
+      return { success: true, data: [] };
+    }
+  },
   async getCities() {
     try {
       const res = await api.get('/lookups/cities');

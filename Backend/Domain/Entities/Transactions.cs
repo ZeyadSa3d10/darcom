@@ -44,11 +44,82 @@ public sealed class BookingRequest : EntityBase
     public string Email { get; set; } = string.Empty;
     public string Phone { get; set; } = string.Empty;
     public DateTime? StartDate { get; set; }
+    public DateTime? EndDate { get; set; }
     public string? Duration { get; set; }
     public string? Notes { get; set; }
 
     public Property Property { get; set; } = null!;
     public User Renter { get; set; } = null!;
+}
+
+/// <summary>
+/// Confirmed rental reservation period for a property.
+/// Prevents overlapping confirmed bookings and lets owners view rental periods.
+/// </summary>
+public sealed class RentalPeriod : EntityBase
+{
+    public int PropertyId { get; set; }
+    public int? BookingRequestId { get; set; }
+    public DateTime StartDate { get; set; }
+    public DateTime EndDate { get; set; }
+    public string RenterName { get; set; } = string.Empty;
+    public string? RenterPhone { get; set; }
+    public string? Notes { get; set; }
+
+    public Property Property { get; set; } = null!;
+    public BookingRequest? BookingRequest { get; set; }
+}
+
+/// <summary>
+/// Broker request submitted on behalf of a client.
+/// </summary>
+public sealed class BrokerPropertyRequest : EntityBase
+{
+    public int BrokerId { get; set; }
+    public int PropertyId { get; set; }
+    public string ClientName { get; set; } = string.Empty;
+    public string ClientPhone { get; set; } = string.Empty;
+    public PropertyPurpose Purpose { get; set; } = PropertyPurpose.Sale;
+    public DateTime? StartDate { get; set; }
+    public DateTime? EndDate { get; set; }
+    public RequestStatus Status { get; set; } = RequestStatus.Pending;
+    public string? Notes { get; set; }
+
+    public User Broker { get; set; } = null!;
+    public Property Property { get; set; } = null!;
+}
+
+/// <summary>
+/// Customer property requirement (lead when no matching property is available).
+/// </summary>
+public sealed class PropertyRequirement : EntityBase
+{
+    public int? UserId { get; set; }
+    public string CustomerName { get; set; } = string.Empty;
+    public string CustomerEmail { get; set; } = string.Empty;
+    public string CustomerPhone { get; set; } = string.Empty;
+    public PropertyPurpose Purpose { get; set; } = PropertyPurpose.Sale;
+
+    public int? PropertyTypeId { get; set; }
+    public int? VillageId { get; set; }
+    public int? ZoneId { get; set; }
+
+    public decimal? MinPrice { get; set; }
+    public decimal? MaxPrice { get; set; }
+    public int? Bedrooms { get; set; }
+    public DateTime? StartDate { get; set; }
+    public DateTime? EndDate { get; set; }
+    public string? DesiredAmenities { get; set; }
+    public string? Notes { get; set; }
+
+    public RequestStatus Status { get; set; } = RequestStatus.Pending;
+    public int? AssignedStaffId { get; set; }
+
+    public User? User { get; set; }
+    public PropertyType? PropertyType { get; set; }
+    public Village? Village { get; set; }
+    public Zone? Zone { get; set; }
+    public User? AssignedStaff { get; set; }
 }
 
 public sealed class Payment : EntityBase

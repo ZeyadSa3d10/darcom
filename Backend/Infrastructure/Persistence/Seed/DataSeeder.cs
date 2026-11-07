@@ -63,6 +63,83 @@ public static class DataSeeder
             await db.SaveChangesAsync();
         }
 
+        if (!await db.Users.AnyAsync(u => u.Email == "seller@darcom.local"))
+        {
+            db.Users.Add(new User
+            {
+                FullName = "Demo Owner",
+                Email = "seller@darcom.local",
+                PasswordHash = PasswordHasher.Hash("Seller123!"),
+                RoleId = 3,
+                IsActive = true
+            });
+            await db.SaveChangesAsync();
+        }
+
+        if (!await db.Users.AnyAsync(u => u.Email == "broker@darcom.local"))
+        {
+            var brokerUser = new User
+            {
+                FullName = "Demo Broker",
+                Email = "broker@darcom.local",
+                PasswordHash = PasswordHasher.Hash("Broker123!"),
+                RoleId = 5,
+                IsActive = true
+            };
+            db.Users.Add(brokerUser);
+            await db.SaveChangesAsync();
+
+            db.BrokerProfiles.Add(new BrokerProfile
+            {
+                UserId = brokerUser.Id,
+                AgencyName = "North Coast Premier Realty",
+                LicenseNumber = "EG-NC-9872",
+                NationalId = "29001011234567",
+                DocumentUrl = "https://example.com/docs/broker-license.pdf",
+                Status = BrokerStatus.Approved,
+                ApprovedAt = DateTime.UtcNow
+            });
+            await db.SaveChangesAsync();
+        }
+
+        if (!await db.Villages.AnyAsync())
+        {
+            var marassi = new Village { Name = "Marassi", Slug = "marassi", IsActive = true };
+            marassi.Zones.Add(new Zone { Name = "Marina", Slug = "marina", IsActive = true });
+            marassi.Zones.Add(new Zone { Name = "Blanca", Slug = "blanca", IsActive = true });
+            marassi.Zones.Add(new Zone { Name = "Greek Village", Slug = "greek-village", IsActive = true });
+            marassi.Zones.Add(new Zone { Name = "Arezzo", Slug = "arezzo", IsActive = true });
+
+            var hacienda = new Village { Name = "Hacienda Bay", Slug = "hacienda-bay", IsActive = true };
+            hacienda.Zones.Add(new Zone { Name = "Water Villas", Slug = "water-villas", IsActive = true });
+            hacienda.Zones.Add(new Zone { Name = "Golf Residences", Slug = "golf-residences", IsActive = true });
+            hacienda.Zones.Add(new Zone { Name = "Bay", Slug = "bay", IsActive = true });
+            hacienda.Zones.Add(new Zone { Name = "Lagoon", Slug = "lagoon", IsActive = true });
+
+            var telal = new Village { Name = "Telal", Slug = "telal", IsActive = true };
+            telal.Zones.Add(new Zone { Name = "First Row", Slug = "first-row", IsActive = true });
+            telal.Zones.Add(new Zone { Name = "Aqua", Slug = "aqua", IsActive = true });
+            telal.Zones.Add(new Zone { Name = "Walk", Slug = "walk", IsActive = true });
+
+            var amwaj = new Village { Name = "Amwaj", Slug = "amwaj", IsActive = true };
+            amwaj.Zones.Add(new Zone { Name = "Beachfront", Slug = "beachfront", IsActive = true });
+            amwaj.Zones.Add(new Zone { Name = "Central", Slug = "central", IsActive = true });
+            amwaj.Zones.Add(new Zone { Name = "Lake View", Slug = "lake-view", IsActive = true });
+
+            var mountainView = new Village { Name = "Mountain View Ras El Hekma", Slug = "mountain-view-ras-el-hekma", IsActive = true };
+            mountainView.Zones.Add(new Zone { Name = "Paros", Slug = "paros", IsActive = true });
+            mountainView.Zones.Add(new Zone { Name = "Rhodes", Slug = "rhodes", IsActive = true });
+            mountainView.Zones.Add(new Zone { Name = "Santorini", Slug = "santorini", IsActive = true });
+
+            var silversands = new Village { Name = "Silversands", Slug = "silversands", IsActive = true };
+            silversands.Zones.Add(new Zone { Name = "Beachfront", Slug = "beachfront", IsActive = true });
+            silversands.Zones.Add(new Zone { Name = "Island", Slug = "island", IsActive = true });
+
+            db.Villages.AddRange(marassi, hacienda, telal, amwaj, mountainView, silversands);
+            await db.SaveChangesAsync();
+            logger.LogInformation("Seeded North Coast Villages and Zones.");
+        }
+
         if (!await db.SiteContents.AnyAsync())
         {
             db.SiteContents.AddRange(
@@ -201,12 +278,50 @@ public static class DataSeeder
             logger.LogInformation("Seeded initial CMS SiteContent.");
         }
 
+        if (!await db.SiteContents.AnyAsync(s => s.ContentKey == "site.seo"))
+        {
+            db.SiteContents.Add(new SiteContent
+            {
+                ContentKey = "site.seo",
+                Description = "Global CMS SEO overrides",
+                ContentValue = """
+                {
+                  "home": {
+                    "title": "Darcom | Luxury Real Estate & Summer Chalets in North Coast Egypt",
+                    "description": "Discover beachfront chalets, luxury villas, and exclusive coastal residences in North Coast Egypt."
+                  },
+                  "properties": {
+                    "title": "Properties for Sale & Rent in North Coast | Darcom",
+                    "description": "Browse premium chalets, villas and apartments in Marassi, Hacienda, Telal and prime Sahel destinations."
+                  },
+                  "rent": {
+                    "title": "Summer Chalets for Rent in North Coast | Darcom",
+                    "description": "Book luxury summer chalets and villas for rent across North Coast Egypt."
+                  },
+                  "sell": {
+                    "title": "List Your North Coast Property with Darcom",
+                    "description": "Sell or rent your chalet or villa in North Coast Egypt through our verified advisory."
+                  }
+                }
+                """
+            });
+            await db.SaveChangesAsync();
+        }
+
         if (await db.Properties.AnyAsync()) return;
+
+        var villages = await db.Villages.Include(v => v.Zones).ToListAsync();
+        var defaultVillage = villages.First();
+        var demoSeller = await db.Users.FirstOrDefaultAsync(u => u.Email == "seller@darcom.local");
+        var adminUser = await db.Users.FirstOrDefaultAsync(u => u.Email == adminEmail);
 
         var P = SeedCatalog.All;
         var refNo = 1000;
         foreach (var s in P)
         {
+            var assignedVillage = villages[(refNo - 1000) % villages.Count];
+            var assignedZone = assignedVillage.Zones.FirstOrDefault();
+
             var property = new Property
             {
                 Title = s.Title,
@@ -231,6 +346,11 @@ public static class DataSeeder
                 Pool = s.Pool,
                 SeaView = s.SeaView,
                 BeachAccess = s.Beach,
+                VillageId = assignedVillage.Id,
+                ZoneId = assignedZone?.Id,
+                BuildingNumber = $"B-{(refNo % 25 + 1):D2}",
+                OwnerId = demoSeller?.Id,
+                CreatedByUserId = adminUser?.Id,
                 LocationId = s.LocationId,
                 Developer = s.Developer,
                 AgentId = s.AgentId,

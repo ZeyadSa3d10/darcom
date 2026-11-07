@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useSettings } from '../../context/SettingsContext.jsx';
 import { locationService } from '../../services/locationService.js';
 import './PropertyFilters.css';
@@ -7,6 +7,9 @@ export const EMPTY_FILTERS = {
   purpose: '',
   type: '',
   location: '',
+  village: '',
+  zone: '',
+  buildingNumber: '',
   minPrice: '',
   maxPrice: '',
   maxDownPayment: '',
@@ -18,6 +21,7 @@ export const EMPTY_FILTERS = {
   minArea: '',
   furnished: false,
   pool: false,
+  garden: false,
   seaView: false,
   beachAccess: false,
   parking: false,
@@ -31,6 +35,7 @@ export default function PropertyFilters({ applied, onApply, onClear }) {
   const [draft, setDraft] = useState({ ...EMPTY_FILTERS, ...applied });
   const [types, setTypes] = useState([]);
   const [cities, setCities] = useState([]);
+  const [villages, setVillages] = useState([]);
 
   // Re-sync when applied filters change from outside (chips, clear, back/forward).
   useEffect(() => {
@@ -40,11 +45,49 @@ export default function PropertyFilters({ applied, onApply, onClear }) {
   useEffect(() => {
     locationService.getPropertyTypes().then((r) => setTypes(r.data ?? []));
     locationService.getCities().then((r) => setCities(r.data ?? []));
+    locationService.getVillages().then((r) => setVillages(r.data ?? []));
   }, []);
+
+  // Compute available zones for currently selected village
+  const availableZones = useMemo(() => {
+    if (!draft.village) return [];
+    const selectedV = villages.find(
+      (v) =>
+        (v.slug && v.slug.toLowerCase() === draft.village.toLowerCase()) ||
+        (v.name && v.name.toLowerCase() === draft.village.toLowerCase()) ||
+        String(v.id) === String(draft.village)
+    );
+    return selectedV?.zones ?? [];
+  }, [draft.village, villages]);
 
   const set = (key) => (e) => {
     const v = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
     setDraft((d) => ({ ...d, [key]: v }));
+  };
+
+  const handleVillageChange = (e) => {
+    const nextVillage = e.target.value;
+    setDraft((d) => {
+      // Find zones of new village
+      const selectedV = villages.find(
+        (v) =>
+          (v.slug && v.slug.toLowerCase() === nextVillage.toLowerCase()) ||
+          (v.name && v.name.toLowerCase() === nextVillage.toLowerCase()) ||
+          String(v.id) === String(nextVillage)
+      );
+      const validZones = selectedV?.zones ?? [];
+      const isZoneStillValid = validZones.some(
+        (z) =>
+          (z.slug && z.slug.toLowerCase() === d.zone.toLowerCase()) ||
+          (z.name && z.name.toLowerCase() === d.zone.toLowerCase())
+      );
+
+      return {
+        ...d,
+        village: nextVillage,
+        zone: isZoneStillValid ? d.zone : '',
+      };
+    });
   };
 
   const dirtyCount = Object.keys(EMPTY_FILTERS).filter((k) => {
@@ -55,6 +98,7 @@ export default function PropertyFilters({ applied, onApply, onClear }) {
   const checks = [
     { key: 'furnished', label: t('propertiesPage.furnished', 'Furnished') },
     { key: 'pool', label: t('propertiesPage.pool', 'Swimming Pool') },
+    { key: 'garden', label: t('propertiesPage.garden', 'Garden') },
     { key: 'seaView', label: t('propertiesPage.seaView', 'Sea View') },
     { key: 'beachAccess', label: t('propertiesPage.beachAccess', 'Beach Access') },
     { key: 'parking', label: t('propertiesPage.parking', 'Parking') },
@@ -97,9 +141,9 @@ export default function PropertyFilters({ applied, onApply, onClear }) {
           </select>
         </div>
         <div className="filters-group">
-          <label htmlFor="f-location">{t('propertiesPage.destination', 'Location')}</label>
+          <label htmlFor="f-location">{t('propertiesPage.destination', 'Destination')}</label>
           <select id="f-location" value={draft.location} onChange={set('location')}>
-            <option value="">{t('destinations.all', 'All locations')}</option>
+            <option value="">{t('destinations.all', 'All destinations')}</option>
             {cities.map((c) => (
               <option key={c.slug} value={c.slug}>
                 {t(`destinations.${c.slug}`, c.name)}
@@ -109,14 +153,83 @@ export default function PropertyFilters({ applied, onApply, onClear }) {
         </div>
       </div>
 
+      {/* North Coast Village & Zone Filters */}
+      <div className="filters-row">
+        <div className="filters-group">
+          <label htmlFor="f-village">{t('propertiesPage.village', 'North Coast Village')}</label>
+          <select id="f-village" value={draft.village} onChange={handleVillageChange}>
+            <option value="">{t('propertiesPage.allVillages', 'All Villages')}</option>
+            {villages.map((v) => (
+              <option key={v.slug || v.id} value={v.slug || v.name}>
+                {v.name}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="filters-group">
+          <label htmlFor="f-zone">{t('propertiesPage.zone', 'Zone / Bay')}</label>
+          <select
+            id="f-zone"
+            value={draft.zone}
+            onChange={set('zone')}
+            disabled={!draft.village || availableZones.length === 0}
+          >
+            <option value="">{t('propertiesPage.allZones', 'All Zones')}</option>
+            {availableZones.map((z) => (
+              <option key={z.slug || z.id} value={z.slug || z.name}>
+                {z.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      <div className="filters-row">
+        <div className="filters-group">
+          <label htmlFor="f-buildingNumber">{t('propertiesPage.buildingNumber', 'Building Number')}</label>
+          <input
+            id="f-buildingNumber"
+            type="text"
+            placeholder={t('propertiesPage.buildingNumberPlaceholder', 'e.g. B-12')}
+            value={draft.buildingNumber}
+            onChange={set('buildingNumber')}
+          />
+        </div>
+        <div className="filters-group">
+          <label htmlFor="f-minArea">{t('detailsPage.specsArea', 'Min area m²')}</label>
+          <input
+            id="f-minArea"
+            type="number"
+            min="0"
+            placeholder={t('common.sqm', 'm²')}
+            value={draft.minArea}
+            onChange={set('minArea')}
+          />
+        </div>
+      </div>
+
       <div className="filters-row">
         <div className="filters-group">
           <label htmlFor="f-minPrice">{t('propertiesPage.minPrice', 'Min price')}</label>
-          <input id="f-minPrice" type="number" min="0" placeholder={t('common.egp', 'EGP')} value={draft.minPrice} onChange={set('minPrice')} />
+          <input
+            id="f-minPrice"
+            type="number"
+            min="0"
+            placeholder={t('common.egp', 'EGP')}
+            value={draft.minPrice}
+            onChange={set('minPrice')}
+          />
         </div>
         <div className="filters-group">
           <label htmlFor="f-maxPrice">{t('propertiesPage.maxPrice', 'Max price')}</label>
-          <input id="f-maxPrice" type="number" min="0" placeholder={t('common.egp', 'EGP')} value={draft.maxPrice} onChange={set('maxPrice')} />
+          <input
+            id="f-maxPrice"
+            type="number"
+            min="0"
+            placeholder={t('common.egp', 'EGP')}
+            value={draft.maxPrice}
+            onChange={set('maxPrice')}
+          />
         </div>
       </div>
 
@@ -193,14 +306,10 @@ export default function PropertyFilters({ applied, onApply, onClear }) {
             ))}
           </select>
         </div>
-        <div className="filters-group">
-          <label htmlFor="f-minArea">{t('detailsPage.specsArea', 'Min area m²')}</label>
-          <input id="f-minArea" type="number" min="0" placeholder={t('common.sqm', 'm²')} value={draft.minArea} onChange={set('minArea')} />
-        </div>
       </div>
 
       <div className="filters-group">
-        <span className="filters-label">{t('propertiesPage.amenities', 'Features')}</span>
+        <span className="filters-label">{t('propertiesPage.amenities', 'Features & Amenities')}</span>
         <div className="filters-checks">
           {checks.map((c) => (
             <label key={c.key} className="check-item">
