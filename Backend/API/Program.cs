@@ -23,6 +23,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Controllers (kept thin — business logic lives in Application/Infrastructure).
 builder.Services.AddControllers();
+builder.Services.AddMemoryCache();
 
 // SQL Server via EF Core. Connection string from configuration (never hard-coded).
 builder.Services.AddDbContext<DarcomDbContext>(options =>
@@ -48,6 +49,9 @@ builder.Services.AddScoped<IEngagementStore, EngagementStore>();
 builder.Services.AddScoped<IAdminStore, AdminStore>();
 builder.Services.AddScoped<IAuditWriter, AuditWriter>();
 builder.Services.AddScoped<IPasswordHasher, PasswordHasherService>();
+builder.Services.AddScoped<IOtpService, OtpService>();
+builder.Services.AddSingleton<IPrivateDocumentStorage>(_ =>
+    new PrivateDocumentStorage(Path.Combine(builder.Environment.ContentRootPath, "App_Data", "private-documents")));
 builder.Services.AddScoped<ISiteContentService, SiteContentService>();
 builder.Services.AddScoped<ISiteContentStore, SiteContentStore>();
 

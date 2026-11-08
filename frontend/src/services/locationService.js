@@ -1,12 +1,8 @@
 import api from './api.js';
 
-// Fallbacks if backend lookup table is empty.
+// Fallbacks if backend lookup table is empty (North Coast only).
 const FALLBACK_CITIES = [
   { name: 'North Coast', slug: 'north-coast' },
-  { name: 'Ain Sokhna', slug: 'ain-sokhna' },
-  { name: 'New Cairo', slug: 'new-cairo' },
-  { name: 'Hurghada', slug: 'hurghada' },
-  { name: 'El Gouna', slug: 'el-gouna' },
 ];
 
 const FALLBACK_TYPES = [

@@ -16,8 +16,9 @@ export default function VillagesManager() {
   // Village Modal (Add / Edit)
   const [villageModal, setVillageModal] = useState(false);
   const [editingVillage, setEditingVillage] = useState(null);
-  const [villageForm, setVillageForm] = useState({ name: '', slug: '', isActive: true });
+  const [villageForm, setVillageForm] = useState({ name: '', nameAr: '', slug: '', imageUrl: '', isActive: true });
   const [savingVillage, setSavingVillage] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   // Zones Management for Selected Village
   const [selectedVillage, setSelectedVillage] = useState(null);
@@ -25,7 +26,7 @@ export default function VillagesManager() {
   const [loadingZones, setLoadingZones] = useState(false);
   const [zoneModal, setZoneModal] = useState(false);
   const [editingZone, setEditingZone] = useState(null);
-  const [zoneForm, setZoneForm] = useState({ name: '', slug: '', isActive: true });
+  const [zoneForm, setZoneForm] = useState({ name: '', nameAr: '', slug: '', isActive: true });
   const [savingZone, setSavingZone] = useState(false);
 
   const loadVillages = useCallback(async () => {
@@ -60,14 +61,45 @@ export default function VillagesManager() {
 
   const openAddVillage = () => {
     setEditingVillage(null);
-    setVillageForm({ name: '', slug: '', isActive: true });
+    setVillageForm({ name: '', nameAr: '', slug: '', imageUrl: '', isActive: true });
     setVillageModal(true);
   };
 
   const openEditVillage = (v) => {
     setEditingVillage(v);
-    setVillageForm({ name: v.name, slug: v.slug || '', isActive: v.isActive ?? true });
+    setVillageForm({
+      name: v.name,
+      nameAr: v.nameAr || '',
+      slug: v.slug || '',
+      imageUrl: v.imageUrl || '',
+      isActive: v.isActive ?? true,
+    });
     setVillageModal(true);
+  };
+
+  const handleImageFileChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (editingVillage) {
+      setUploadingImage(true);
+      try {
+        const fd = new FormData();
+        fd.append('file', file);
+        const res = await adminService.uploadVillageImage(editingVillage.id, fd);
+        const newUrl = res.data?.imageUrl;
+        if (newUrl) {
+          setVillageForm((prev) => ({ ...prev, imageUrl: newUrl }));
+          toast.success(isRtl ? 'تم رفع صورة القرية بنجاح' : 'Village image uploaded.');
+          loadVillages();
+        }
+      } catch (err) {
+        toast.error(err.message || 'Failed to upload image.');
+      } finally {
+        setUploadingImage(false);
+      }
+    } else {
+      toast.info(isRtl ? 'احفظ القرية أولاً ثم يمكنك رفع الصورة' : 'Please save the village first, or enter an image URL.');
+    }
   };
 
   const handleSaveVillage = async (e) => {
@@ -106,13 +138,13 @@ export default function VillagesManager() {
 
   const openAddZone = () => {
     setEditingZone(null);
-    setZoneForm({ name: '', slug: '', isActive: true });
+    setZoneForm({ name: '', nameAr: '', slug: '', isActive: true });
     setZoneModal(true);
   };
 
   const openEditZone = (z) => {
     setEditingZone(z);
-    setZoneForm({ name: z.name, slug: z.slug || '', isActive: z.isActive ?? true });
+    setZoneForm({ name: z.name, nameAr: z.nameAr || '', slug: z.slug || '', isActive: z.isActive ?? true });
     setZoneModal(true);
   };
 
@@ -184,9 +216,11 @@ export default function VillagesManager() {
                 <thead className="table-light">
                   <tr>
                     <th>ID</th>
+                    <th>{isRtl ? 'الصورة' : 'Photo'}</th>
                     <th>{isRtl ? 'اسم القرية' : 'Village Name'}</th>
                     <th>Slug</th>
                     <th>{isRtl ? 'المناطق' : 'Zones'}</th>
+                    <th>{isRtl ? 'الوحدات' : 'Listings'}</th>
                     <th>{isRtl ? 'الحالة' : 'Status'}</th>
                     <th>{isRtl ? 'الإجراءات' : 'Actions'}</th>
                   </tr>
@@ -194,7 +228,7 @@ export default function VillagesManager() {
                 <tbody>
                   {villages.length === 0 ? (
                     <tr>
-                      <td colSpan="6" className="text-center py-4 text-muted">
+                      <td colSpan="8" className="text-center py-4 text-muted">
                         No villages configured yet.
                       </td>
                     </tr>
@@ -205,7 +239,15 @@ export default function VillagesManager() {
                         <tr key={v.id} className={isSelected ? 'table-warning' : ''}>
                           <td><strong>#{v.id}</strong></td>
                           <td>
+                            <img
+                              src={v.imageUrl || '/images/hero-sahel.svg'}
+                              alt={v.name}
+                              style={{ width: 44, height: 32, objectFit: 'cover', borderRadius: 4 }}
+                            />
+                          </td>
+                          <td>
                             <strong>{v.name}</strong>
+                            {v.nameAr && <div className="text-muted small">{v.nameAr}</div>}
                           </td>
                           <td className="text-meta small">{v.slug}</td>
                           <td>
@@ -217,6 +259,11 @@ export default function VillagesManager() {
                               <i className="bi bi-diagram-3 me-1"></i>
                               {v.zoneCount ?? v.zones?.length ?? 0} {isRtl ? 'مناطق' : 'Zones'}
                             </button>
+                          </td>
+                          <td>
+                            <span className="badge bg-light text-dark border">
+                              {v.propertiesCount ?? 0} {isRtl ? 'وحدة' : 'units'}
+                            </span>
                           </td>
                           <td>
                             <span className={`badge ${v.isActive ? 'bg-success' : 'bg-secondary'}`}>
@@ -300,7 +347,10 @@ export default function VillagesManager() {
                           {zones.map((z) => (
                             <tr key={z.id}>
                               <td>#{z.id}</td>
-                              <td><strong>{z.name}</strong></td>
+                              <td>
+                                <strong>{z.name}</strong>
+                                {z.nameAr && <div className="text-muted small">{z.nameAr}</div>}
+                              </td>
                               <td className="text-meta small">{z.slug}</td>
                               <td>
                                 <span className={`badge ${z.isActive ? 'bg-success' : 'bg-secondary'}`}>
@@ -352,7 +402,7 @@ export default function VillagesManager() {
               <form onSubmit={handleSaveVillage}>
                 <div className="modal-body">
                   <div className="mb-3">
-                    <label className="form-label fw-bold">Village Name *</label>
+                    <label className="form-label fw-bold">Village Name (English) *</label>
                     <input
                       type="text"
                       required
@@ -360,6 +410,17 @@ export default function VillagesManager() {
                       value={villageForm.name}
                       onChange={(e) => setVillageForm({ ...villageForm, name: e.target.value })}
                       placeholder="e.g. Marassi, Hacienda Bay, Telal"
+                    />
+                  </div>
+                  <div className="mb-3">
+                    <label className="form-label fw-bold">{isRtl ? 'اسم القرية (بالعربية)' : 'Village Name (Arabic)'}</label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      value={villageForm.nameAr}
+                      onChange={(e) => setVillageForm({ ...villageForm, nameAr: e.target.value })}
+                      placeholder="مثال: مراسي، هاسيندا باي، تلال الساحل"
+                      dir="rtl"
                     />
                   </div>
                   <div className="mb-3">
@@ -372,6 +433,32 @@ export default function VillagesManager() {
                       placeholder="e.g. marassi"
                     />
                   </div>
+                  <div className="mb-3">
+                    <label className="form-label fw-bold">{isRtl ? 'رابط صورة القرية (URL)' : 'Village Image URL'}</label>
+                    <input
+                      type="url"
+                      className="form-control"
+                      value={villageForm.imageUrl}
+                      onChange={(e) => setVillageForm({ ...villageForm, imageUrl: e.target.value })}
+                      placeholder="https://..."
+                    />
+                  </div>
+                  {editingVillage && (
+                    <div className="mb-3 p-2 bg-light rounded border">
+                      <label className="form-label small fw-bold mb-1">
+                        <i className="bi bi-cloud-arrow-up me-1"></i>
+                        {isRtl ? 'أو ارفع صورة من جهازك' : 'Or Upload Image File'}
+                      </label>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="form-control form-control-sm"
+                        onChange={handleImageFileChange}
+                        disabled={uploadingImage}
+                      />
+                      {uploadingImage && <small className="text-info mt-1 d-block">Uploading image…</small>}
+                    </div>
+                  )}
                   <div className="form-check form-switch mb-2">
                     <input
                       type="checkbox"
@@ -387,7 +474,7 @@ export default function VillagesManager() {
                   <button type="button" className="btn btn-secondary" onClick={() => setVillageModal(false)}>
                     Cancel
                   </button>
-                  <button type="submit" className="btn btn-brand" disabled={savingVillage}>
+                  <button type="submit" className="btn btn-brand" disabled={savingVillage || uploadingImage}>
                     {savingVillage ? 'Saving…' : 'Save Village'}
                   </button>
                 </div>
@@ -411,14 +498,25 @@ export default function VillagesManager() {
               <form onSubmit={handleSaveZone}>
                 <div className="modal-body">
                   <div className="mb-3">
-                    <label className="form-label fw-bold">Zone Name *</label>
+                    <label className="form-label fw-bold">Zone Name (English) *</label>
                     <input
                       type="text"
                       required
                       className="form-control"
                       value={zoneForm.name}
                       onChange={(e) => setZoneForm({ ...zoneForm, name: e.target.value })}
-                      placeholder="e.g. Greek Village, Marina West, Sidi Heneish"
+                      placeholder="e.g. Marina 1, Greek Village, Silver Beach"
+                    />
+                  </div>
+                  <div className="mb-3">
+                    <label className="form-label fw-bold">{isRtl ? 'اسم المنطقة / المرحلة (بالعربية)' : 'Zone Name (Arabic)'}</label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      value={zoneForm.nameAr}
+                      onChange={(e) => setZoneForm({ ...zoneForm, nameAr: e.target.value })}
+                      placeholder="مثال: مارينا ١، القرية اليونانية"
+                      dir="rtl"
                     />
                   </div>
                   <div className="mb-3">
@@ -428,7 +526,7 @@ export default function VillagesManager() {
                       className="form-control"
                       value={zoneForm.slug}
                       onChange={(e) => setZoneForm({ ...zoneForm, slug: e.target.value })}
-                      placeholder="e.g. greek-village"
+                      placeholder="e.g. marina-1"
                     />
                   </div>
                   <div className="form-check form-switch mb-2">

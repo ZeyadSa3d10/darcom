@@ -45,10 +45,12 @@ public sealed class BrokerProfileConfiguration : IEntityTypeConfiguration<Broker
 {
     public void Configure(EntityTypeBuilder<BrokerProfile> b)
     {
-        b.Property(bp => bp.AgencyName).HasMaxLength(160).IsRequired();
-        b.Property(bp => bp.LicenseNumber).HasMaxLength(100).IsRequired();
+        b.Property(bp => bp.AgencyName).HasMaxLength(160);
+        b.Property(bp => bp.LicenseNumber).HasMaxLength(100);
         b.Property(bp => bp.NationalId).HasMaxLength(64);
         b.Property(bp => bp.DocumentUrl).HasMaxLength(1000);
+        b.Property(bp => bp.IdCardFrontPath).HasMaxLength(500);
+        b.Property(bp => bp.IdCardBackPath).HasMaxLength(500);
         b.Property(bp => bp.AdminNotes).HasMaxLength(2000);
 
         b.HasIndex(bp => bp.UserId).IsUnique();

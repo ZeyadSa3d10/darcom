@@ -129,7 +129,7 @@ public sealed class AdminStore : IAdminStore
     // Village & Zone Management
     public async Task<List<VillageDto>> GetVillagesAsync(bool includeInactive, CancellationToken ct = default)
     {
-        var query = _db.Villages.AsNoTracking().Include(v => v.Zones).AsQueryable();
+        var query = _db.Villages.AsNoTracking().Include(v => v.Zones).Include(v => v.Properties).AsQueryable();
         if (!includeInactive)
             query = query.Where(v => v.IsActive);
 
@@ -138,12 +138,15 @@ public sealed class AdminStore : IAdminStore
             .Select(v => new VillageDto(
                 v.Id,
                 v.Name,
+                v.NameAr,
                 v.Slug,
+                v.ImageUrl,
                 v.IsActive,
+                v.Properties.Count(p => p.Status == PropertyStatus.Published || p.Status == PropertyStatus.Featured || p.Status == PropertyStatus.Reserved),
                 v.Zones
                     .Where(z => includeInactive || z.IsActive)
                     .OrderBy(z => z.Name)
-                    .Select(z => new ZoneDto(z.Id, z.VillageId, z.Name, z.Slug, z.IsActive))
+                    .Select(z => new ZoneDto(z.Id, z.VillageId, z.Name, z.NameAr, z.Slug, z.IsActive))
                     .ToList()))
             .ToListAsync(ct);
     }
@@ -152,14 +155,18 @@ public sealed class AdminStore : IAdminStore
     {
         return await _db.Villages.AsNoTracking()
             .Include(v => v.Zones)
+            .Include(v => v.Properties)
             .Where(v => v.Id == id)
             .Select(v => new VillageDto(
                 v.Id,
                 v.Name,
+                v.NameAr,
                 v.Slug,
+                v.ImageUrl,
                 v.IsActive,
+                v.Properties.Count(p => p.Status == PropertyStatus.Published || p.Status == PropertyStatus.Featured || p.Status == PropertyStatus.Reserved),
                 v.Zones.OrderBy(z => z.Name)
-                    .Select(z => new ZoneDto(z.Id, z.VillageId, z.Name, z.Slug, z.IsActive))
+                    .Select(z => new ZoneDto(z.Id, z.VillageId, z.Name, z.NameAr, z.Slug, z.IsActive))
                     .ToList()))
             .FirstOrDefaultAsync(ct);
     }
@@ -174,15 +181,17 @@ public sealed class AdminStore : IAdminStore
     {
         _db.Villages.Add(village);
         await _db.SaveChangesAsync(ct);
-        return new VillageDto(village.Id, village.Name, village.Slug, village.IsActive, new());
+        return new VillageDto(village.Id, village.Name, village.NameAr, village.Slug, village.ImageUrl, village.IsActive, 0, new());
     }
 
-    public async Task<bool> UpdateVillageAsync(int id, string? name, string? slug, bool? isActive, CancellationToken ct = default)
+    public async Task<bool> UpdateVillageAsync(int id, string? name, string? nameAr, string? slug, string? imageUrl, bool? isActive, CancellationToken ct = default)
     {
         var village = await _db.Villages.FirstOrDefaultAsync(v => v.Id == id, ct);
         if (village is null) return false;
         if (!string.IsNullOrWhiteSpace(name)) village.Name = name.Trim();
+        if (nameAr is not null) village.NameAr = string.IsNullOrWhiteSpace(nameAr) ? null : nameAr.Trim();
         if (!string.IsNullOrWhiteSpace(slug)) village.Slug = slug.Trim().ToLowerInvariant();
+        if (imageUrl is not null) village.ImageUrl = string.IsNullOrWhiteSpace(imageUrl) ? null : imageUrl.Trim();
         if (isActive.HasValue) village.IsActive = isActive.Value;
         village.UpdatedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync(ct);
@@ -211,7 +220,7 @@ public sealed class AdminStore : IAdminStore
 
         return await query
             .OrderBy(z => z.Name)
-            .Select(z => new ZoneDto(z.Id, z.VillageId, z.Name, z.Slug, z.IsActive))
+            .Select(z => new ZoneDto(z.Id, z.VillageId, z.Name, z.NameAr, z.Slug, z.IsActive))
             .ToListAsync(ct);
     }
 
@@ -219,7 +228,7 @@ public sealed class AdminStore : IAdminStore
     {
         return await _db.Zones.AsNoTracking()
             .Where(z => z.VillageId == villageId && z.Id == zoneId)
-            .Select(z => new ZoneDto(z.Id, z.VillageId, z.Name, z.Slug, z.IsActive))
+            .Select(z => new ZoneDto(z.Id, z.VillageId, z.Name, z.NameAr, z.Slug, z.IsActive))
             .FirstOrDefaultAsync(ct);
     }
 
@@ -233,14 +242,15 @@ public sealed class AdminStore : IAdminStore
     {
         _db.Zones.Add(zone);
         await _db.SaveChangesAsync(ct);
-        return new ZoneDto(zone.Id, zone.VillageId, zone.Name, zone.Slug, zone.IsActive);
+        return new ZoneDto(zone.Id, zone.VillageId, zone.Name, zone.NameAr, zone.Slug, zone.IsActive);
     }
 
-    public async Task<bool> UpdateZoneAsync(int villageId, int zoneId, string? name, string? slug, bool? isActive, CancellationToken ct = default)
+    public async Task<bool> UpdateZoneAsync(int villageId, int zoneId, string? name, string? nameAr, string? slug, bool? isActive, CancellationToken ct = default)
     {
         var zone = await _db.Zones.FirstOrDefaultAsync(z => z.VillageId == villageId && z.Id == zoneId, ct);
         if (zone is null) return false;
         if (!string.IsNullOrWhiteSpace(name)) zone.Name = name.Trim();
+        if (nameAr is not null) zone.NameAr = string.IsNullOrWhiteSpace(nameAr) ? null : nameAr.Trim();
         if (!string.IsNullOrWhiteSpace(slug)) zone.Slug = slug.Trim().ToLowerInvariant();
         if (isActive.HasValue) zone.IsActive = isActive.Value;
         zone.UpdatedAt = DateTime.UtcNow;

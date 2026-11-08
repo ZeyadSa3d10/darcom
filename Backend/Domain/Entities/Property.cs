@@ -47,6 +47,9 @@ public sealed class Property : EntityBase
     public int? OwnerId { get; set; }
     public int? AgentId { get; set; }
     public int? CreatedByUserId { get; set; }
+    public int? BrokerId { get; set; }
+    public int? BrokerSubmissionId { get; set; }
+    public int? PropertyListingRequestId { get; set; }
     public bool IsVerified { get; set; }
     public bool IsFeatured { get; set; }
     public long ViewCount { get; set; }
@@ -59,6 +62,9 @@ public sealed class Property : EntityBase
     public User? Owner { get; set; }
     public Agent? Agent { get; set; }
     public User? CreatedByUser { get; set; }
+    public User? Broker { get; set; }
+    public BrokerPropertySubmission? BrokerSubmission { get; set; }
+    public PropertyListingRequest? PropertyListingRequest { get; set; }
 
     public ICollection<PropertyImage> Images { get; set; } = new List<PropertyImage>();
     public ICollection<PropertyVideo> Videos { get; set; } = new List<PropertyVideo>();

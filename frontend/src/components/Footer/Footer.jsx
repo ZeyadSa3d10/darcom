@@ -31,11 +31,12 @@ export default function Footer() {
   };
 
   const destinationLinks = [
-    { label: t('destinations.ain-sokhna', 'Ain Sokhna · Red Sea'), to: '/properties?location=ain-sokhna' },
-    { label: t('destinations.north-coast', 'North Coast · Ras El Hekma'), to: '/properties?location=north-coast' },
-    { label: t('destinations.el-gouna', 'El Gouna · Red Sea Lagoons'), to: '/properties?location=el-gouna' },
-    { label: t('destinations.new-cairo', 'New Cairo · Prime Compounds'), to: '/properties?location=new-cairo' },
-    { label: t('destinations.hurghada', 'Hurghada · Waterfront'), to: '/properties?location=hurghada' },
+    { label: isRtl ? 'مراسي · سيدي عبد الرحمن' : 'Marassi · Sidi Abdel Rahman', to: '/properties?villageId=1' },
+    { label: isRtl ? 'هاسيندا باي · الساحل الشمالي' : 'Hacienda Bay · North Coast', to: '/properties?villageId=2' },
+    { label: isRtl ? 'تلال الساحل · سيدي عبد الرحمن' : 'Telal · Sidi Abdel Rahman', to: '/properties?villageId=3' },
+    { label: isRtl ? 'أمواج · سيدي عبد الرحمن' : 'Amwaj · North Coast', to: '/properties?villageId=4' },
+    { label: isRtl ? 'ماونتن فيو رأس الحكمة' : 'Mountain View · Ras El Hekma', to: '/properties?villageId=5' },
+    { label: isRtl ? 'سيلفرساندز · الساحل الشمالي' : 'Silversands · North Coast', to: '/properties?villageId=6' },
   ];
 
   const typologyLinks = [

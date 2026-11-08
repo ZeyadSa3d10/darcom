@@ -91,29 +91,39 @@ public sealed record PropertyDetailsDto(
     string? ZoneSlug = null,
     string? BuildingNumber = null,
     int? CreatedByUserId = null,
-    string? RejectionReason = null);
+    string? RejectionReason = null,
+    int? PropertyListingRequestId = null,
+    int? OwnerId = null);
 
 /// <summary>All listing filters from website.md #10 + North Coast Village/Zone/BuildingNumber.</summary>
 public sealed class PropertyQuery
 {
     public string? Purpose { get; set; }
     public string? Type { get; set; }
+    public int? PropertyTypeId { get; set; }
     public string? Location { get; set; }
     public string? Village { get; set; }
+    public int? VillageId { get; set; }
     public string? Zone { get; set; }
+    public int? ZoneId { get; set; }
     public string? BuildingNumber { get; set; }
     public decimal? MinPrice { get; set; }
     public decimal? MaxPrice { get; set; }
     public int? Bedrooms { get; set; }
     public int? Bathrooms { get; set; }
+    public int? Floor { get; set; }
     public decimal? MinArea { get; set; }
+    public decimal? MaxArea { get; set; }
     public bool? Furnished { get; set; }
+    public string? FurnishedStatus { get; set; }
+    public string? FinishingStatus { get; set; }
     public bool? Pool { get; set; }
     public bool? Garden { get; set; }
     public bool? SeaView { get; set; }
     public bool? BeachAccess { get; set; }
     public bool? Parking { get; set; }
     public bool? Featured { get; set; }
+    public List<int>? AmenityIds { get; set; }
     /// <summary>Admin-only. Ignored for other callers.</summary>
     public string? Status { get; set; }
     public string? Q { get; set; }
@@ -153,6 +163,7 @@ public sealed class CreatePropertyRequest
     public string? Address { get; set; }
     public string? Developer { get; set; }
     public int? OwnerId { get; set; }
+    public int? PropertyListingRequestId { get; set; }
 }
 
 public sealed class UpdatePropertyRequest

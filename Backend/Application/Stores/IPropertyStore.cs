@@ -41,4 +41,5 @@ public interface IPropertyStore
     Task<(int Total, int Pending, int Approved, int Rejected)> GetBrokerPropertyCountsAsync(int brokerUserId, CancellationToken ct = default);
     Task<List<RentalPeriodDto>> GetOwnerRentalPeriodsAsync(int ownerId, int? propertyId = null, CancellationToken ct = default);
     Task<List<RentalPeriodDto>> GetPropertyRentalPeriodsAsync(int propertyId, CancellationToken ct = default);
+    Task<PropertyListingRequest?> GetListingRequestAsync(int id, CancellationToken ct = default);
 }

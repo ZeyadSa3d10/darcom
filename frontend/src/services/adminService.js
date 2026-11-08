@@ -32,6 +32,8 @@ export const adminService = {
   getVillageById: (id) => api.get(`/admin/villages/${id}`).then((r) => r.data),
   createVillage: (payload) => api.post('/admin/villages', payload).then((r) => r.data),
   updateVillage: (id, payload) => api.put(`/admin/villages/${id}`, payload).then((r) => r.data),
+  uploadVillageImage: (id, formData) =>
+    api.post(`/admin/villages/${id}/image`, formData, { headers: { 'Content-Type': 'multipart/form-data' } }).then((r) => r.data),
   deleteVillage: (id) => api.delete(`/admin/villages/${id}`).then((r) => r.data),
 
   getZones: (villageId, includeInactive = true) =>
@@ -53,6 +55,12 @@ export const adminService = {
   getBrokers: (params = {}) => api.get('/admin/brokers', { params }).then((r) => r.data),
   setBrokerStatus: (id, payload) =>
     api.put(`/admin/brokers/${id}/status`, payload).then((r) => r.data),
+  getBrokerIdDocumentBlob: (brokerId, side) =>
+    api.get(`/admin/brokers/${brokerId}/id-document?side=${side}`, { responseType: 'blob' }),
+  getBrokerSubmissions: (params = {}) =>
+    api.get('/admin/broker-submissions', { params }).then((r) => r.data),
+  setBrokerSubmissionStatus: (id, payload) =>
+    api.put(`/admin/broker-submissions/${id}/status`, payload).then((r) => r.data),
   getBrokerRequests: (params = {}) =>
     api.get('/admin/broker-requests', { params }).then((r) => r.data),
   setBrokerRequestStatus: (id, payload) =>

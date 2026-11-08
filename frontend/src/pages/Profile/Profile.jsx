@@ -11,6 +11,7 @@ import { userService } from '../../services/userService.js';
 import { purchaseService } from '../../services/purchaseService.js';
 import { brokerService } from '../../services/brokerService.js';
 import { requirementService } from '../../services/requirementService.js';
+import { listingRequestService } from '../../services/listingRequestService.js';
 import { useSeo } from '../../hooks/useSeo.js';
 import './Profile.css';
 
@@ -62,6 +63,7 @@ export default function Profile() {
   const [purchases, setPurchases] = useState([]);
   const [bookings, setBookings] = useState([]);
   const [requirements, setRequirements] = useState([]);
+  const [listingRequests, setListingRequests] = useState([]);
   const [reqKind, setReqKind] = useState('purchases');
   const [reqLoading, setReqLoading] = useState(true);
 
@@ -103,14 +105,16 @@ export default function Profile() {
   const loadRequests = useCallback(async () => {
     setReqLoading(true);
     try {
-      const [p, b, r] = await Promise.all([
+      const [p, b, r, l] = await Promise.all([
         purchaseService.myPurchases(1, 20),
         purchaseService.myBookings(1, 20),
         requirementService.myRequirements(1, 20).catch(() => ({ data: { data: [] } })),
+        listingRequestService.myRequests(1, 20).catch(() => ({ data: { data: [] } })),
       ]);
       setPurchases(p.data?.data ?? []);
       setBookings(b.data?.data ?? []);
       setRequirements(r.data?.data ?? []);
+      setListingRequests(l.data?.data ?? []);
     } catch {
       // Non-fatal
     } finally {
@@ -305,6 +309,8 @@ export default function Profile() {
       pending: { label: isRtl ? 'قيد المراجعة' : 'Pending Review', cls: 'status-pending', icon: 'bi-clock' },
       approved: { label: isRtl ? 'تمت الموافقة' : 'Approved', cls: 'status-approved', icon: 'bi-check-circle' },
       contacted: { label: isRtl ? 'تم التواصل' : 'Contacted', cls: 'status-contacted', icon: 'bi-chat-dots' },
+      inspectionscheduled: { label: isRtl ? 'موعد المعاينة محدد' : 'Inspection Scheduled', cls: 'status-approved', icon: 'bi-calendar-check' },
+      inspected: { label: isRtl ? 'تمت المعاينة' : 'Inspected', cls: 'status-contacted', icon: 'bi-camera' },
       qualified: { label: isRtl ? 'مؤهل وجارٍ التنسيق' : 'Qualified', cls: 'status-contacted', icon: 'bi-check-all' },
       completed: { label: isRtl ? 'مكتمل' : 'Completed', cls: 'status-completed', icon: 'bi-patch-check-fill' },
       closed: { label: isRtl ? 'تم الإغلاق بنجاح' : 'Closed', cls: 'status-completed', icon: 'bi-patch-check' },
@@ -332,9 +338,9 @@ export default function Profile() {
     }
   };
 
-  const rows = reqKind === 'purchases' ? purchases : reqKind === 'bookings' ? bookings : requirements;
+  const rows = reqKind === 'purchases' ? purchases : reqKind === 'bookings' ? bookings : reqKind === 'requirements' ? requirements : listingRequests;
   const roleInfo = getRoleInfo(user?.role);
-  const totalRequestsCount = purchases.length + bookings.length + requirements.length;
+  const totalRequestsCount = purchases.length + bookings.length + requirements.length + listingRequests.length;
 
   const breadcrumbs = [
     { label: t('nav.home', isRtl ? 'الرئيسية' : 'Home'), to: '/' },
@@ -556,6 +562,15 @@ export default function Profile() {
                 <span>{isRtl ? 'مواصفاتي العقارية المطلوبة' : 'Custom Requirements'}</span>
                 <span className="pill-badge">{requirements.length}</span>
               </button>
+              <button
+                type="button"
+                className={`req-kind-pill ${reqKind === 'listing-requests' ? 'active' : ''}`}
+                onClick={() => setReqKind('listing-requests')}
+              >
+                <i className="bi bi-houses"></i>
+                <span>{isRtl ? 'طلباتي لعرض العقارات' : 'Listing Requests'}</span>
+                <span className="pill-badge">{listingRequests.length}</span>
+              </button>
             </div>
 
             {reqLoading ? (
@@ -565,24 +580,94 @@ export default function Profile() {
             ) : rows.length === 0 ? (
               <div className="profile-empty-card">
                 <EmptyState
-                  icon={reqKind === 'purchases' ? 'bi-house-slash' : reqKind === 'bookings' ? 'bi-key' : 'bi-file-earmark-plus'}
+                  icon={
+                    reqKind === 'purchases'
+                      ? 'bi-house-slash'
+                      : reqKind === 'bookings'
+                      ? 'bi-key'
+                      : reqKind === 'requirements'
+                      ? 'bi-file-earmark-plus'
+                      : 'bi-houses'
+                  }
                   title={
                     reqKind === 'purchases'
                       ? 'لا توجد طلبات شراء مسجلة حتى الآن'
                       : reqKind === 'bookings'
                       ? 'لا توجد طلبات إيجار مسجلة حتى الآن'
-                      : 'لم ترسل مواصفات طلب عقار مخصص بعد'
+                      : reqKind === 'requirements'
+                      ? 'لم ترسل مواصفات طلب عقار مخصص بعد'
+                      : 'لا توجد طلبات عرض عقار مسجلة'
                   }
                   message={
                     reqKind === 'purchases'
                       ? 'عند تقديم طلب شراء أو استفسار عن أي عقار، سيظهر هنا للمتابعة المباشرة.'
                       : reqKind === 'bookings'
                       ? 'طلبات استئجار الوحدات الشاطئية ستظهر هنا فور تسجيلها.'
-                      : 'إذا لم تجد العقار المناسب بالساحل الشمالي، يمكنك إرسال مواصفاتك وسيتواصل معك مستشارونا.'
+                      : reqKind === 'requirements'
+                      ? 'إذا لم تجد العقار المناسب بالساحل الشمالي، يمكنك إرسال مواصفاتك وسيتواصل معك مستشارونا.'
+                      : 'يمكنك تقديم طلب لعرض وحدتك أو شاليهك بالساحل الشمالي وسيتواصل معك فريق داركم لمعاينتها وتصويرها.'
                   }
-                  actionLabel={isRtl ? 'تصفح العقارات المتاحة' : 'Browse Properties'}
-                  actionTo="/properties"
+                  actionLabel={
+                    reqKind === 'listing-requests'
+                      ? (isRtl ? 'اعرض عقارك الآن' : 'List Property Now')
+                      : (isRtl ? 'تصفح العقارات المتاحة' : 'Browse Properties')
+                  }
+                  actionTo={reqKind === 'listing-requests' ? '/sell' : '/properties'}
                 />
+              </div>
+            ) : reqKind === 'listing-requests' ? (
+              <div className="request-cards-grid">
+                {listingRequests.map((req) => {
+                  const statusObj = getStatusInfo(req.status);
+                  return (
+                    <article key={req.id} className="request-item-card">
+                      <div className="request-card-header">
+                        <div className="request-ref-box">
+                          <span className="request-ref-label">{isRtl ? 'رقم الطلب' : 'Request #'}</span>
+                          <strong className="request-ref-value">{req.requestNumber}</strong>
+                        </div>
+                        <span className={`request-status-pill ${statusObj.cls}`}>
+                          <i className={`bi ${statusObj.icon}`}></i>
+                          <span>{statusObj.label}</span>
+                        </span>
+                      </div>
+                      <div className="request-card-body">
+                        <h3 className="request-prop-title">
+                          {req.villageNameAr || req.villageName}
+                          <small className="text-muted d-block fs-6 mt-1">
+                            {req.zoneNameAr || req.zoneName}
+                          </small>
+                        </h3>
+                        <p className="request-meta-line">
+                          <i className="bi bi-geo-alt"></i>
+                          <span>
+                            مبنى: {req.buildingNumber} · وحدة: {req.unitNumber}
+                          </span>
+                        </p>
+                        <div className="request-dates-box mt-2">
+                          <div>
+                            <i className="bi bi-telephone me-1" />
+                            <strong>الهاتف:</strong> <span dir="ltr">{req.phoneNumber}</span>
+                          </div>
+                          {req.inspectionDate && (
+                            <div className="text-primary mt-1">
+                              <i className="bi bi-calendar-check me-1" />
+                              <strong>موعد المعاينة:</strong> {formatDate(req.inspectionDate)}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="request-card-footer">
+                        <span className="text-meta">{formatDate(req.createdAt)}</span>
+                        {req.status === 'Completed' && req.propertyId && (
+                          <Link to={`/properties/${req.propertyId}`} className="btn btn-outline-secondary btn-sm">
+                            {isRtl ? 'عرض العقار المنشور' : 'View Property'}
+                          </Link>
+                        )}
+                      </div>
+                    </article>
+                  );
+                })}
               </div>
             ) : reqKind === 'requirements' ? (
               <div className="request-cards-grid">

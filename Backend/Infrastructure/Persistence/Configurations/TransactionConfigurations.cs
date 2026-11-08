@@ -87,18 +87,39 @@ public sealed class BrokerPropertyRequestConfiguration : IEntityTypeConfiguratio
 {
     public void Configure(EntityTypeBuilder<BrokerPropertyRequest> b)
     {
-        b.Property(br => br.ClientName).HasMaxLength(160).IsRequired();
-        b.Property(br => br.ClientPhone).HasMaxLength(32).IsRequired();
+        b.Property(br => br.ClientName).HasMaxLength(160);
+        b.Property(br => br.ClientPhone).HasMaxLength(32);
         b.Property(br => br.Notes).HasMaxLength(2000);
 
         b.HasIndex(br => br.BrokerId);
         b.HasIndex(br => br.PropertyId);
         b.HasIndex(br => br.Status);
 
-        b.HasOne(br => br.Broker).WithMany()
+        b.HasOne(br => br.Broker).WithMany(u => u.BrokerRequests)
             .HasForeignKey(br => br.BrokerId).OnDelete(DeleteBehavior.Restrict);
         b.HasOne(br => br.Property).WithMany(p => p.BrokerRequests)
             .HasForeignKey(br => br.PropertyId).OnDelete(DeleteBehavior.Restrict);
+    }
+}
+
+public sealed class BrokerPropertySubmissionConfiguration : IEntityTypeConfiguration<BrokerPropertySubmission>
+{
+    public void Configure(EntityTypeBuilder<BrokerPropertySubmission> b)
+    {
+        b.Property(s => s.Area).HasPrecision(10, 2);
+        b.Property(s => s.UnitNumber).HasMaxLength(64).IsRequired();
+        b.Property(s => s.AdminNotes).HasMaxLength(2000);
+
+        b.HasIndex(s => s.BrokerId);
+        b.HasIndex(s => s.VillageId);
+        b.HasIndex(s => s.Status);
+
+        b.HasOne(s => s.Broker).WithMany(u => u.BrokerSubmissions)
+            .HasForeignKey(s => s.BrokerId).OnDelete(DeleteBehavior.Restrict);
+        b.HasOne(s => s.Village).WithMany()
+            .HasForeignKey(s => s.VillageId).OnDelete(DeleteBehavior.Restrict);
+        b.HasOne(s => s.Zone).WithMany()
+            .HasForeignKey(s => s.ZoneId).OnDelete(DeleteBehavior.Restrict);
     }
 }
 
@@ -111,6 +132,7 @@ public sealed class PropertyRequirementConfiguration : IEntityTypeConfiguration<
         b.Property(pr => pr.CustomerPhone).HasMaxLength(32).IsRequired();
         b.Property(pr => pr.MinPrice).HasPrecision(18, 2);
         b.Property(pr => pr.MaxPrice).HasPrecision(18, 2);
+        b.Property(pr => pr.Area).HasPrecision(10, 2);
         b.Property(pr => pr.DesiredAmenities).HasMaxLength(1000);
         b.Property(pr => pr.Notes).HasMaxLength(3000);
 

@@ -5,11 +5,11 @@ import './NavbarSearch.css';
 
 const TRENDING_QUICK_TAGS = [
   { key: 'marassi', label: 'Marassi' },
+  { key: 'hacienda', label: 'Hacienda Bay' },
   { key: 'seaChalet', label: 'Beachfront Chalet' },
-  { key: 'poolVilla', label: 'Pool Villa' },
-  { key: 'gounaLagoon', label: 'El Gouna Lagoon' },
-  { key: 'sokhnaWaterfront', label: 'Ain Sokhna' },
-  { key: 'newCairoPenthouse', label: 'New Cairo Penthouse' },
+  { key: 'poolVilla', label: 'Ras El Hekma Villa' },
+  { key: 'telal', label: 'Telal Sahel' },
+  { key: 'amwaj', label: 'Amwaj' },
 ];
 
 export default function NavbarSearch({ solid = true }) {

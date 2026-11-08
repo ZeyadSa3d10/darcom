@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useSettings } from '../../context/SettingsContext.jsx';
+import { useAuth } from '../../context/AuthContext.jsx';
 import Breadcrumbs from '../../components/Breadcrumbs/Breadcrumbs.jsx';
 import PropertyFilters, { EMPTY_FILTERS } from '../../components/PropertyFilters/PropertyFilters.jsx';
 import PropertyGrid from '../../components/PropertyGrid/PropertyGrid.jsx';
@@ -31,7 +32,10 @@ function parseParams(params) {
     q: pick('q'),
     purpose: pick('purpose'),
     type: pick('type'),
+    propertyTypeId: pick('propertyTypeId') ? parseInt(pick('propertyTypeId'), 10) : '',
     location: pick('location'),
+    villageId: pick('villageId') ? parseInt(pick('villageId'), 10) : '',
+    zoneId: pick('zoneId') ? parseInt(pick('zoneId'), 10) : '',
     village: pick('village'),
     zone: pick('zone'),
     buildingNumber: pick('buildingNumber'),
@@ -40,6 +44,13 @@ function parseParams(params) {
     bedrooms: pick('bedrooms', 'beds'),
     bathrooms: pick('bathrooms'),
     minArea: pick('minArea', 'area'),
+    maxArea: pick('maxArea'),
+    floor: pick('floor'),
+    finishingStatus: pick('finishingStatus'),
+    furnishedStatus: pick('furnishedStatus'),
+    amenityIds: params.getAll('amenityIds').length > 0
+      ? params.getAll('amenityIds').map(Number)
+      : (params.get('amenityIds') ? params.get('amenityIds').split(',').map(Number).filter(Boolean) : []),
     furnished: bool('furnished'),
     pool: bool('pool'),
     garden: bool('garden'),
@@ -61,7 +72,10 @@ function toQuery(applied) {
   if (applied.q) q.q = applied.q;
   if (applied.purpose) q.purpose = applied.purpose;
   if (applied.type) q.type = applied.type;
+  if (applied.propertyTypeId) q.propertyTypeId = String(applied.propertyTypeId);
   if (applied.location) q.location = applied.location;
+  if (applied.villageId) q.villageId = String(applied.villageId);
+  if (applied.zoneId) q.zoneId = String(applied.zoneId);
   if (applied.village) q.village = applied.village;
   if (applied.zone) q.zone = applied.zone;
   if (applied.buildingNumber) q.buildingNumber = applied.buildingNumber;
@@ -74,6 +88,13 @@ function toQuery(applied) {
   if (applied.bedrooms !== '') q.bedrooms = applied.bedrooms;
   if (applied.bathrooms !== '') q.bathrooms = applied.bathrooms;
   if (applied.minArea !== '') q.minArea = applied.minArea;
+  if (applied.maxArea !== '') q.maxArea = applied.maxArea;
+  if (applied.floor !== '') q.floor = applied.floor;
+  if (applied.finishingStatus !== '') q.finishingStatus = applied.finishingStatus;
+  if (applied.furnishedStatus !== '') q.furnishedStatus = applied.furnishedStatus;
+  if (Array.isArray(applied.amenityIds) && applied.amenityIds.length > 0) {
+    q.amenityIds = applied.amenityIds.join(',');
+  }
   for (const k of ['furnished', 'pool', 'garden', 'seaView', 'beachAccess', 'parking', 'featured']) {
     if (applied[k]) q[k] = 'true';
   }
@@ -84,6 +105,7 @@ function toQuery(applied) {
 
 export default function Properties() {
   const { t, isRtl } = useSettings();
+  const { isBroker } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const applied = useMemo(() => parseParams(searchParams), [searchParams]);
 
@@ -95,7 +117,7 @@ export default function Properties() {
   const [view, setView] = useState('grid');
   const [sheetOpen, setSheetOpen] = useState(false);
   const [leadModalOpen, setLeadModalOpen] = useState(false);
-  const [maps, setMaps] = useState({ types: {}, cities: {} });
+  const [maps, setMaps] = useState({ types: {}, cities: {}, villages: {}, zones: {} });
   const [input, setInput] = useState(applied.q);
   const debounce = useRef(null);
   const resultsRef = useRef(null);
@@ -107,13 +129,14 @@ export default function Properties() {
     { v: 'area_desc', l: t('propertiesPage.sortAreaDesc', 'Largest Area') },
   ];
 
-  const popularDestinations = [
-    { name: t('destinations.all', 'All Locations'), slug: '', icon: 'bi-grid' },
-    { name: t('destinations.north-coast', 'North Coast'), slug: 'north-coast', icon: 'bi-umbrella' },
-    { name: t('destinations.el-gouna', 'El Gouna'), slug: 'el-gouna', icon: 'bi-compass' },
-    { name: t('destinations.ain-sokhna', 'Ain Sokhna'), slug: 'ain-sokhna', icon: 'bi-water' },
-    { name: t('destinations.new-cairo', 'New Cairo'), slug: 'new-cairo', icon: 'bi-building' },
-    { name: t('destinations.hurghada', 'Hurghada'), slug: 'hurghada', icon: 'bi-sun' },
+  const northCoastVillages = [
+    { name: isRtl ? 'كافة قرى الساحل' : 'All North Coast', id: '', slug: '', icon: 'bi-grid' },
+    { name: isRtl ? 'مراسي' : 'Marassi', id: 1, slug: 'marassi', icon: 'bi-water' },
+    { name: isRtl ? 'هاسيندا باي' : 'Hacienda Bay', id: 2, slug: 'hacienda-bay', icon: 'bi-compass' },
+    { name: isRtl ? 'تلال الساحل' : 'Telal', id: 3, slug: 'telal', icon: 'bi-umbrella' },
+    { name: isRtl ? 'أمواج' : 'Amwaj', id: 4, slug: 'amwaj', icon: 'bi-sun' },
+    { name: isRtl ? 'ماونتن فيو رأس الحكمة' : 'Mountain View Ras El Hekma', id: 5, slug: 'mountain-view-ras-el-hekma', icon: 'bi-houses' },
+    { name: isRtl ? 'سيلفرساندز' : 'Silversands', id: 6, slug: 'silversands', icon: 'bi-building' },
   ];
 
   useEffect(() => {
@@ -127,7 +150,20 @@ export default function Properties() {
       for (const c of r.data ?? []) m[c.slug] = c.name;
       setMaps((prev) => ({ ...prev, cities: m }));
     });
-  }, []);
+    locationService.getVillages().then((r) => {
+      const vMap = {};
+      const zMap = {};
+      for (const v of r.data ?? []) {
+        vMap[v.id] = isRtl ? (v.nameAr || v.name) : (v.name || v.nameAr);
+        vMap[v.slug] = vMap[v.id];
+        for (const z of v.zones ?? []) {
+          zMap[z.id] = isRtl ? (z.nameAr || z.name) : (z.name || z.nameAr);
+          zMap[z.slug] = zMap[z.id];
+        }
+      }
+      setMaps((prev) => ({ ...prev, villages: vMap, zones: zMap }));
+    });
+  }, [isRtl]);
 
   // Keep the search box in sync with back/forward navigation.
   useEffect(() => {
@@ -143,16 +179,7 @@ export default function Properties() {
         params.maxPrice = Number(applied.maxDownPayment) * 10;
       }
       const res = await propertyService.list(params);
-      let list = res.data?.data ?? [];
-
-      if (applied.maxDownPayment) {
-        const maxDp = Number(applied.maxDownPayment);
-        list = list.filter((p) => (Number(p.price) * 0.1) <= maxDp);
-      }
-      if (applied.developer) {
-        const devQuery = applied.developer.toLowerCase();
-        list = list.filter((p) => (p.developer || '').toLowerCase().includes(devQuery));
-      }
+      const list = res.data?.data ?? [];
 
       setItems(list);
       setTotal(res.data?.totalCount ?? list.length);
@@ -209,9 +236,11 @@ export default function Properties() {
       case 'location':
         return t(`destinations.${v}`, maps.cities[v] || v);
       case 'village':
-        return `${t('propertiesPage.village', 'Village')}: ${v}`;
+      case 'villageId':
+        return `${isRtl ? 'القرية' : t('propertiesPage.village', 'Village')}: ${maps.villages[v] || v}`;
       case 'zone':
-        return `${t('propertiesPage.zone', 'Zone')}: ${v}`;
+      case 'zoneId':
+        return `${isRtl ? 'المنطقة' : t('propertiesPage.zone', 'Zone')}: ${maps.zones[v] || v}`;
       case 'buildingNumber':
         return `${t('propertiesPage.buildingNumber', 'Building')}: ${v}`;
       case 'minPrice':
@@ -232,6 +261,14 @@ export default function Properties() {
         return `${v}+ ${t('detailsPage.specsBathrooms', 'Bathrooms')}`;
       case 'minArea':
         return `≥ ${v} ${t('common.sqm', 'm²')}`;
+      case 'maxArea':
+        return `≤ ${v} ${t('common.sqm', 'm²')}`;
+      case 'floor':
+        return `${isRtl ? 'الطابق' : 'Floor'}: ${v === '0' ? (isRtl ? 'أرضي' : 'Ground') : v}`;
+      case 'finishingStatus':
+        return `${isRtl ? 'التشطيب' : 'Finishing'}: ${v}`;
+      case 'furnishedStatus':
+        return `${isRtl ? 'الفرش' : 'Furnishing'}: ${v}`;
       case 'furnished':
         return t('propertiesPage.furnished', 'Furnished');
       case 'pool':
@@ -257,7 +294,8 @@ export default function Properties() {
       'q',
       'purpose',
       'type',
-      'location',
+      'villageId',
+      'zoneId',
       'village',
       'zone',
       'buildingNumber',
@@ -270,6 +308,10 @@ export default function Properties() {
       'bedrooms',
       'bathrooms',
       'minArea',
+      'maxArea',
+      'floor',
+      'finishingStatus',
+      'furnishedStatus',
       'furnished',
       'pool',
       'garden',
@@ -306,18 +348,18 @@ export default function Properties() {
     const bits = [];
     if (applied.type) bits.push(maps.types[applied.type] || applied.type);
     if (applied.purpose) bits.push(`for ${applied.purpose}`);
-    if (applied.village) bits.push(`in ${applied.village}`);
-    else if (applied.location) bits.push(`in ${applied.location.replace(/-/g, ' ')}`);
-    const head = bits.length ? bits.join(' ') : 'Luxury Properties';
+    if (applied.villageId && maps.villages[applied.villageId]) bits.push(`in ${maps.villages[applied.villageId]}`);
+    else if (applied.village) bits.push(`in ${applied.village}`);
+    const head = bits.length ? bits.join(' ') : 'North Coast Properties';
     return `${head[0].toUpperCase()}${head.slice(1)} | Darcom`;
-  }, [applied, maps.types]);
+  }, [applied, maps.types, maps.villages]);
 
   // CMS override applies to the unfiltered view only; filtered views keep dynamic titles.
   const cmsSeo = useCmsSeo('properties');
-  const isDefaultView = !applied.purpose && !applied.type && !applied.location && !applied.village && !applied.q;
+  const isDefaultView = !applied.purpose && !applied.type && !applied.villageId && !applied.village && !applied.q;
   useSeo({
     title: (isDefaultView && cmsSeo?.title) || seoTitle,
-    description: (isDefaultView && cmsSeo?.description) || `Browse ${total || ''} verified luxury properties on Darcom — transparent pricing, direct developer partnerships.`.trim(),
+    description: (isDefaultView && cmsSeo?.description) || `Browse ${total || ''} verified luxury properties across Egypt's North Coast on Darcom — transparent pricing, direct developer partnerships.`.trim(),
     image: (isDefaultView && cmsSeo?.image) || undefined,
   });
 
@@ -334,26 +376,34 @@ export default function Properties() {
             {t('propertiesPage.kicker', 'Premier Portfolio')}
           </span>
           <h1 className="properties-main-title">
-            {t('propertiesPage.title', 'Distinguished Residences & Coastal Havens')}
+            {isRtl ? 'عقارات وقرى الساحل الشمالي الفاخرة' : t('propertiesPage.title', 'Distinguished Residences & Coastal Havens')}
           </h1>
           <p className="properties-sub-title">
-            {t('propertiesPage.subtitle', "Explore verified luxury villas, sea-view chalets, and signature penthouses across Egypt's most coveted coastal and metropolitan destinations.")}
+            {isRtl ? 'استكشف شاليهات وفلل وبنتهاوس موثقة بالكامل في أرقى قرى الساحل الشمالي برأس الحكمة وسيدي عبد الرحمن.' : t('propertiesPage.subtitle', "Explore verified luxury villas, sea-view chalets, and signature penthouses across Egypt's premier North Coast.")}
           </p>
         </div>
 
-        {/* Quick Destinations Navigation Bar */}
+        {/* Quick North Coast Villages Bar */}
         <div className="properties-destinations-bar">
-          {popularDestinations.map((loc) => {
-            const isSelected = (applied.location || '') === loc.slug;
+          {northCoastVillages.map((vItem) => {
+            const isSelected = (!applied.villageId && !applied.village && !vItem.id) ||
+              (applied.villageId && String(applied.villageId) === String(vItem.id)) ||
+              (applied.village && applied.village === vItem.slug);
             return (
               <button
-                key={loc.slug}
+                key={vItem.slug || 'all'}
                 type="button"
                 className={`destination-quick-btn ${isSelected ? 'active' : ''}`}
-                onClick={() => push({ location: loc.slug })}
+                onClick={() => push({
+                  villageId: vItem.id || '',
+                  village: vItem.slug || '',
+                  zoneId: '',
+                  zone: '',
+                  location: '',
+                })}
               >
-                {loc.icon && <i className={`bi ${loc.icon} me-1`}></i>}
-                <span>{loc.name}</span>
+                {vItem.icon && <i className={`bi ${vItem.icon} me-1`}></i>}
+                <span>{vItem.name}</span>
               </button>
             );
           })}
@@ -444,6 +494,19 @@ export default function Properties() {
               <i className="bi bi-view-list"></i>
             </button>
           </div>
+
+          {isBroker && (
+            <button
+              type="button"
+              className="btn btn-sm btn-outline-warning d-none d-md-inline-flex align-items-center gap-1"
+              onClick={() => setLeadModalOpen(true)}
+              style={{ borderColor: '#d4af37', color: '#d4af37', borderRadius: '20px', padding: '0.35rem 0.85rem' }}
+              title={isRtl ? 'اطلب وحدة بمواصفات خاصة' : 'Request Custom Chalet'}
+            >
+              <i className="bi bi-search-heart"></i>
+              <span>{isRtl ? 'مش لاقي الوحدة؟ اطلب مواصفات خاصة' : 'Custom Specs'}</span>
+            </button>
+          )}
 
           {/* Mobile Filters Trigger Button */}
           <button

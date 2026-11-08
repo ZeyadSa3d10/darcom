@@ -24,19 +24,18 @@ export default function Sitemap() {
   const sitemapCategories = useMemo(() => [
     {
       id: 'destinations',
-      title: isRtl ? 'أبرز الوجهات الساحلية والمدن' : 'Prime Destinations & Coasts',
+      title: isRtl ? 'قرى ووجهات الساحل الشمالي' : 'North Coast Villages & Destinations',
       icon: 'bi-geo-alt-fill',
       description: isRtl
-        ? 'تصفح العقارات حسب الوجهات الأكثر طلباً على سواحل مصر وفي مدنها الكبرى'
-        : 'Explore prime residences across Egypt’s most sought-after waterfronts and urban hubs',
+        ? 'تصفح أرقى القرى والمنتجعات الساحلية على امتداد الساحل الشمالي المصري'
+        : 'Explore premier villages and coastal communities across Egypt’s North Coast',
       links: [
-        { label: isRtl ? 'الساحل الشمالي · رأس الحكمة وسيدي عبد الرحمن' : 'North Coast · Ras El Hekma & Sidi Abdel Rahman', to: '/properties?location=north-coast', meta: isRtl ? 'بحر متوسط' : 'Mediterranean' },
-        { label: isRtl ? 'العين السخنة · ساحل البحر الأحمر والجلالة' : 'Ain Sokhna · Red Sea Coast & Galala', to: '/properties?location=ain-sokhna', meta: isRtl ? 'بحر أحمر' : 'Red Sea' },
-        { label: isRtl ? 'الجونة وسهل حشيش · بحيرات شاطئية خاصة' : 'El Gouna & Sahl Hasheesh · Waterfront Lagoons', to: '/properties?location=el-gouna', meta: isRtl ? 'بحر أحمر' : 'Red Sea' },
-        { label: isRtl ? 'القاهرة الجديدة · التجمع الخامس وجولدن سكوير' : 'New Cairo · 5th Settlement & Golden Square', to: '/properties?location=new-cairo', meta: isRtl ? 'عاصمة' : 'Urban Hub' },
-        { label: isRtl ? 'الغردقة · إطلالات مباشرة على البحر' : 'Hurghada · Waterfront Properties', to: '/properties?location=hurghada', meta: isRtl ? 'بحر أحمر' : 'Red Sea' },
-        { label: isRtl ? 'مدينة الشيخ زايد و 6 أكتوبر' : 'Sheikh Zayed & 6th of October City', to: '/properties?location=sheikh-zayed', meta: isRtl ? 'غرب القاهرة' : 'West Cairo' },
-        { label: isRtl ? 'العاصمة الإدارية الجديدة' : 'New Administrative Capital', to: '/properties?location=new-capital', meta: isRtl ? 'طروحات جديدة' : 'New Launches' },
+        { label: isRtl ? 'مراسي · سيدي عبد الرحمن' : 'Marassi · Sidi Abdel Rahman', to: '/properties?villageId=1', meta: isRtl ? 'مارينا وشواطئ' : 'Marina & Shore' },
+        { label: isRtl ? 'هاسيندا باي · الساحل الشمالي' : 'Hacienda Bay · North Coast', to: '/properties?villageId=2', meta: isRtl ? 'جولف ولاجون' : 'Golf & Lagoon' },
+        { label: isRtl ? 'تلال الساحل · سيدي عبد الرحمن' : 'Telal · Sidi Abdel Rahman', to: '/properties?villageId=3', meta: isRtl ? 'إطلالة بحرية' : 'Sea View' },
+        { label: isRtl ? 'أمواج · سيدي عبد الرحمن' : 'Amwaj · Sidi Abdel Rahman', to: '/properties?villageId=4', meta: isRtl ? 'حياة شاطئية' : 'Beach Living' },
+        { label: isRtl ? 'ماونتن فيو رأس الحكمة' : 'Mountain View · Ras El Hekma', to: '/properties?villageId=5', meta: isRtl ? 'خليج رأس الحكمة' : 'Turquoise Bay' },
+        { label: isRtl ? 'سيلفرساندز · الساحل الشمالي' : 'Silversands · North Coast', to: '/properties?villageId=6', meta: isRtl ? 'فخامة شاطئية' : 'Ultra-luxury' },
       ],
     },
     {

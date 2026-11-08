@@ -18,6 +18,8 @@ import ErrorState from '../../components/ErrorState/ErrorState.jsx';
 import { useSeo, propertyJsonLd } from '../../hooks/useSeo.js';
 import { useRevealScope } from '../../hooks/useRevealScope.js';
 import { propertyService } from '../../services/propertyService.js';
+import { useAuth } from '../../context/AuthContext.jsx';
+import BrokerDirectRequestModal from './components/BrokerDirectRequestModal.jsx';
 import './PropertyDetails.css';
 
 function toWhatsAppUrl(phone, title, ref) {
@@ -32,8 +34,10 @@ function toWhatsAppUrl(phone, title, ref) {
 export default function PropertyDetails() {
   const { slug } = useParams();
   const { t, isRtl } = useSettings();
+  const { isBroker } = useAuth();
   const [property, setProperty] = useState(null);
   const [related, setRelated] = useState([]);
+  const [showBrokerModal, setShowBrokerModal] = useState(false);
   const scopeRef = useRevealScope(
     ':scope .details-main > *, :scope .details-aside > *, :scope .related-section',
     [property?.id]
@@ -188,6 +192,22 @@ export default function PropertyDetails() {
                 <button type="button" className="btn btn-secondary w-100" disabled>
                   {property.status}
                 </button>
+              ) : isBroker ? (
+                <button
+                  type="button"
+                  onClick={() => setShowBrokerModal(true)}
+                  className="btn-luxury-reserve"
+                  style={{ width: '100%', border: 'none', cursor: 'pointer' }}
+                >
+                  <span className="btn-reserve-shimmer"></span>
+                  <span>
+                    <i className="bi bi-briefcase-fill me-2"></i>
+                    {purpose === 'rent'
+                      ? (isRtl ? 'طلب إيجار الشاليه (وسيط)' : 'Request Rental (Broker)')
+                      : (isRtl ? 'طلب شراء الشاليه (وسيط)' : 'Request Purchase (Broker)')}
+                  </span>
+                  <i className={`bi ${isRtl ? 'bi-arrow-left' : 'bi-arrow-right'} ms-2`}></i>
+                </button>
               ) : (
                 <Link to={`/checkout/${property.slug}`} className="btn-luxury-reserve">
                   <span className="btn-reserve-shimmer"></span>
@@ -307,6 +327,16 @@ export default function PropertyDetails() {
 
           {locked ? (
             <span className="mobile-locked-badge">{property.status}</span>
+          ) : isBroker ? (
+            <button
+              type="button"
+              onClick={() => setShowBrokerModal(true)}
+              className="btn-mobile-reserve"
+              style={{ border: 'none' }}
+            >
+              <i className="bi bi-briefcase-fill me-1"></i>
+              <span>{purpose === 'rent' ? (isRtl ? 'طلب إيجار' : 'Request Rent') : (isRtl ? 'طلب شراء' : 'Request Buy')}</span>
+            </button>
           ) : (
             <Link to={`/checkout/${property.slug}`} className="btn-mobile-reserve">
               <span>{purpose === 'rent' ? t('purposes.rent', 'Rent') : t('detailsPage.buyNow', 'Buy Now')}</span>
@@ -315,6 +345,12 @@ export default function PropertyDetails() {
           )}
         </div>
       </div>
+
+      <BrokerDirectRequestModal
+        show={showBrokerModal}
+        onClose={() => setShowBrokerModal(false)}
+        property={property}
+      />
     </main>
   );
 }

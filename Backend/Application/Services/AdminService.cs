@@ -144,7 +144,9 @@ public sealed class AdminService : IAdminService
         var village = new Village
         {
             Name = name,
+            NameAr = request.NameAr?.Trim(),
             Slug = slug,
+            ImageUrl = request.ImageUrl?.Trim(),
             IsActive = request.IsActive
         };
 
@@ -166,7 +168,7 @@ public sealed class AdminService : IAdminService
                 return ServiceResult<VillageDto>.Fail($"Slug '{slug}' is already taken by another village.", 409);
         }
 
-        await _store.UpdateVillageAsync(id, request.Name, slug, request.IsActive, ct);
+        await _store.UpdateVillageAsync(id, request.Name, request.NameAr, slug, request.ImageUrl, request.IsActive, ct);
         var updated = await _store.GetVillageByIdAsync(id, ct);
         return ServiceResult<VillageDto>.Ok(updated!, "Village updated successfully.");
     }
@@ -219,6 +221,7 @@ public sealed class AdminService : IAdminService
         {
             VillageId = villageId,
             Name = name,
+            NameAr = request.NameAr?.Trim(),
             Slug = slug,
             IsActive = request.IsActive
         };
@@ -241,7 +244,7 @@ public sealed class AdminService : IAdminService
                 return ServiceResult<ZoneDto>.Fail($"Slug '{slug}' is already taken in this village.", 409);
         }
 
-        await _store.UpdateZoneAsync(villageId, zoneId, request.Name, slug, request.IsActive, ct);
+        await _store.UpdateZoneAsync(villageId, zoneId, request.Name, request.NameAr, slug, request.IsActive, ct);
         var updated = await _store.GetZoneByIdAsync(villageId, zoneId, ct);
         return ServiceResult<ZoneDto>.Ok(updated!, "Zone updated successfully.");
     }

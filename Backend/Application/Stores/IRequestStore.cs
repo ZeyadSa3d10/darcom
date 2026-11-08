@@ -34,6 +34,15 @@ public interface IRequestStore
     Task<int> GetBrokerClientRequestsCountAsync(int brokerId, CancellationToken ct = default);
     Task<PagedResult<BrokerPropertyRequestDto>> GetAllBrokerRequestsAsync(string? status, int page, int pageSize, CancellationToken ct = default);
 
+    // Broker Property Submissions (Workflow 1)
+    Task AddBrokerSubmissionAsync(BrokerPropertySubmission submission, CancellationToken ct = default);
+    Task<BrokerPropertySubmission?> GetBrokerSubmissionAsync(int id, CancellationToken ct = default);
+    Task<BrokerPropertySubmissionDto?> GetBrokerSubmissionDtoAsync(int id, CancellationToken ct = default);
+    Task<PagedResult<BrokerPropertySubmissionDto>> GetBrokerSubmissionsAsync(int brokerId, int page, int pageSize, CancellationToken ct = default);
+    Task<PagedResult<BrokerPropertySubmissionDto>> GetAllBrokerSubmissionsAsync(string? status, int page, int pageSize, CancellationToken ct = default);
+    Task<int> GetBrokerSubmissionsCountAsync(int brokerId, string? status = null, CancellationToken ct = default);
+    Task<int> GetBrokerRequirementsCountAsync(int brokerId, CancellationToken ct = default);
+
     // Broker Profiles (Requirement 7)
     Task<BrokerProfile?> GetBrokerProfileByUserIdAsync(int userId, CancellationToken ct = default);
     Task<BrokerProfile?> GetBrokerProfileAsync(int id, CancellationToken ct = default);
@@ -47,6 +56,16 @@ public interface IRequestStore
     Task<PropertyRequirementDto?> GetPropertyRequirementDtoAsync(int id, CancellationToken ct = default);
     Task<PagedResult<PropertyRequirementDto>> GetMyRequirementsAsync(int userId, int page, int pageSize, CancellationToken ct = default);
     Task<PagedResult<PropertyRequirementDto>> GetAllRequirementsAsync(string? status, int page, int pageSize, CancellationToken ct = default);
+
+    // User Property Listing Requests ("اعرض عقارك")
+    Task AddListingRequestAsync(PropertyListingRequest request, CancellationToken ct = default);
+    Task<PropertyListingRequest?> GetListingRequestAsync(int id, CancellationToken ct = default);
+    Task<PropertyListingRequestDto?> GetListingRequestDtoAsync(int id, CancellationToken ct = default);
+    Task<PagedResult<PropertyListingRequestDto>> GetMyListingRequestsAsync(int userId, int page, int pageSize, CancellationToken ct = default);
+    Task<PagedResult<PropertyListingRequestDto>> GetAllListingRequestsAsync(string? status, int page, int pageSize, CancellationToken ct = default);
+    Task<bool> HasActiveListingRequestAsync(int villageId, string buildingNumber, string unitNumber, CancellationToken ct = default);
+    Task<bool> VillageExistsAsync(int villageId, CancellationToken ct = default);
+    Task<bool> ZoneBelongsToVillageAsync(int zoneId, int villageId, CancellationToken ct = default);
 
     // Shared
     Task<Property?> GetPropertyAsync(int id, CancellationToken ct = default);

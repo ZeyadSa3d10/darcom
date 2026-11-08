@@ -107,12 +107,13 @@ const DEFAULT_ARCH_TYPES = [
   { name: 'Studio', slug: 'studio' },
 ];
 
-const CITIES = [
-  { name: 'Ain Sokhna', slug: 'ain-sokhna', blurb: 'Red Sea weekends, 1h from Cairo', img: '/images/hero-sokhna.svg' },
-  { name: 'New Cairo', slug: 'new-cairo', blurb: 'Family living, schools & clubs', img: '/images/hero-cairo.svg' },
-  { name: 'North Coast', slug: 'north-coast', blurb: 'Summer capital of the Med', img: '/images/hero-sahel.svg' },
-  { name: 'Hurghada', slug: 'hurghada', blurb: 'Year-round sun & diving', img: '/images/hero-sokhna.svg' },
-  { name: 'El Gouna', slug: 'el-gouna', blurb: 'Lagoon town, marina life', img: '/images/hero-gouna.svg' },
+const NORTH_COAST_VILLAGES = [
+  { id: 1, name: 'Marassi', nameAr: 'مراسي', slug: 'marassi', blurb: 'Sidi Abdel Rahman · Marina & Golf', img: 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=1200&q=80', propertiesCount: 5 },
+  { id: 2, name: 'Hacienda Bay', nameAr: 'هاسيندا باي', slug: 'hacienda-bay', blurb: 'Palm Hills · Golf & Lake', img: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1200&q=80', propertiesCount: 4 },
+  { id: 3, name: 'Telal', nameAr: 'تلال الساحل', slug: 'telal', blurb: 'Sidi Abdel Rahman · Pure Shoreline', img: 'https://images.unsplash.com/photo-1580587771525-78b9dba3b914?auto=format&fit=crop&w=1200&q=80', propertiesCount: 3 },
+  { id: 4, name: 'Amwaj', nameAr: 'أمواج', slug: 'amwaj', blurb: 'Sidi Abdel Rahman · Vibrant Community', img: 'https://images.unsplash.com/photo-1571003123894-1f0594d2b5d9?auto=format&fit=crop&w=1200&q=80', propertiesCount: 4 },
+  { id: 5, name: 'Mountain View Ras El Hekma', nameAr: 'ماونتن فيو رأس الحكمة', slug: 'mountain-view-ras-el-hekma', blurb: 'Ras El Hekma · Turquoise Bay', img: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80', propertiesCount: 3 },
+  { id: 6, name: 'Silversands', nameAr: 'سيلفرساندز', slug: 'silversands', blurb: 'Sidi Heneish · Ultra-luxury Waterfront', img: 'https://images.unsplash.com/photo-1613490493576-7fde63acd811?auto=format&fit=crop&w=1200&q=80', propertiesCount: 3 },
 ];
 
 function SectionHead({ kicker, title, linkTo, linkLabel, isRtl }) {
@@ -137,7 +138,7 @@ export default function Home() {
   const cmsSeo = useCmsSeo('home');
   useSeo({
     title: cmsSeo?.title || 'Darcom — Find a Place Worth Calling Home',
-    description: cmsSeo?.description || 'Chalets, villas and apartments across Ain Sokhna, New Cairo, North Coast, Hurghada and El Gouna. Verified listings, transparent prices.',
+    description: cmsSeo?.description || 'Chalets, villas and twin houses across the North Coast of Egypt. Sidi Abdel Rahman, Ras El Hekma, Marassi, Hacienda Bay and more. Verified listings, transparent prices.',
     image: cmsSeo?.image || HERO_POSTER,
   });
   const [featured, setFeatured] = useState([]);
@@ -149,7 +150,7 @@ export default function Home() {
 
   // CMS dynamic content states with default fallbacks
   const [heroSlides, setHeroSlides] = useState(null);
-  const [cities, setCities] = useState(CITIES);
+  const [villages, setVillages] = useState(NORTH_COAST_VILLAGES);
   const [typesMeta, setTypesMeta] = useState(TYPE_METADATA);
   const [premiumContent, setPremiumContent] = useState(null);
   const [whyUsItems, setWhyUsItems] = useState(null);
@@ -206,9 +207,6 @@ export default function Home() {
         if (map['hero.slides'] && Array.isArray(map['hero.slides']) && map['hero.slides'].length > 0) {
           setHeroSlides(map['hero.slides']);
         }
-        if (map['home.cities'] && Array.isArray(map['home.cities']) && map['home.cities'].length > 0) {
-          setCities(map['home.cities']);
-        }
         if (map['home.types'] && typeof map['home.types'] === 'object') {
           setTypesMeta((prev) => ({ ...prev, ...map['home.types'] }));
         }
@@ -219,19 +217,14 @@ export default function Home() {
         if (map['home.seller']) setSellerContent(map['home.seller']);
       }
     }).catch(() => {});
-  }, [loadFeatured, loadInvestment]);
 
-  // Per-city counts (pageSize=1 keeps payloads tiny); tiles render regardless.
-  useEffect(() => {
-    cities.forEach(async (c) => {
-      try {
-        const res = await propertyService.list({ location: c.slug, page: 1, pageSize: 1 });
-        setCounts((m) => ({ ...m, [c.slug]: res.data?.totalCount ?? null }));
-      } catch {
-        setCounts((m) => ({ ...m, [c.slug]: null }));
+    // Load active North Coast villages with property counts
+    locationService.getVillages().then((res) => {
+      if (res?.data && Array.isArray(res.data) && res.data.length > 0) {
+        setVillages(res.data);
       }
-    });
-  }, [cities]);
+    }).catch(() => {});
+  }, [loadFeatured, loadInvestment]);
 
   return (
     <main id="main-content" className="home" ref={scopeRef}>
@@ -359,33 +352,44 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 4 — LOCATIONS (image mosaic) */}
+      {/* 4 — NORTH COAST VILLAGES (image mosaic) */}
       <section className="container home-section">
         <SectionHead
-          kicker={t('nav.topDestinations', 'Where to')}
-          title={t('nav.popularDestinations', 'Popular locations')}
+          kicker={t('nav.topDestinations', isRtl ? 'وجهات الساحل الشمالي' : 'North Coast Destinations')}
+          title={t('home.popularVillages', isRtl ? 'أشهر قرى الساحل الشمالي' : 'Premier North Coast Villages')}
           linkTo="/properties"
-          linkLabel={t('home.browseAll', 'Explore all')}
+          linkLabel={t('home.browseAll', isRtl ? 'استكشف كافة الوحدات' : 'Explore all listings')}
           isRtl={isRtl}
         />
         <div className="location-mosaic">
-          {cities.map((c, i) => (
-            <Link
-              key={c.slug}
-              to={`/properties?location=${c.slug}`}
-              className={`location-tile ${i === 0 ? 'large' : ''}`}
-            >
-              <img src={c.img} alt={c.name} loading="lazy" />
-              <span className="location-shade" aria-hidden="true"></span>
-              <span className="location-meta">
-                <strong>{t(`destinations.${c.slug}`, c.name)}</strong>
-                <span>{c.blurb}</span>
-                {counts[c.slug] != null && (
-                  <em>{counts[c.slug]} {t('nav.properties', 'listings')}</em>
-                )}
-              </span>
-            </Link>
-          ))}
+          {villages.map((v, i) => {
+            const villageName = isRtl ? (v.nameAr || v.name) : (v.name || v.nameAr);
+            const secondaryName = isRtl
+              ? (v.name && v.name !== villageName ? v.name : '')
+              : (v.nameAr && v.nameAr !== villageName ? v.nameAr : '');
+            const fallbackImg = NORTH_COAST_VILLAGES[i % NORTH_COAST_VILLAGES.length]?.img || '/images/hero-sahel.svg';
+            const displayImg = v.imageUrl || fallbackImg;
+            const count = v.propertiesCount != null ? v.propertiesCount : counts[v.id];
+
+            return (
+              <Link
+                key={v.id || v.slug || i}
+                to={`/properties?villageId=${v.id}`}
+                className={`location-tile ${i === 0 ? 'large' : ''}`}
+              >
+                <img src={displayImg} alt={villageName} loading="lazy" />
+                <span className="location-shade" aria-hidden="true"></span>
+                <span className="location-meta">
+                  <strong>{villageName}</strong>
+                  {secondaryName && <span className="location-secondary-name">{secondaryName}</span>}
+                  {v.blurb && <span>{v.blurb}</span>}
+                  {count != null && (
+                    <em>{count} {t('nav.properties', isRtl ? 'وحدة معروضة' : 'listings')}</em>
+                  )}
+                </span>
+              </Link>
+            );
+          })}
         </div>
       </section>
 

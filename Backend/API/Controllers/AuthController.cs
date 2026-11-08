@@ -36,6 +36,51 @@ public sealed class AuthController : ApiBaseController
         CancellationToken ct)
         => ValidateAndExecute(validator, request, () => _auth.RegisterAsync(request, ct), ct);
 
+    /// <summary>Send OTP code to the provided phone number for broker registration.</summary>
+    [HttpPost("otp/send")]
+    [ProducesResponseType(typeof(ApiResponse<object>), 200)]
+    public async Task<ActionResult<ApiResponse<object>>> SendOtp(
+        [FromBody] SendOtpRequest request,
+        [FromServices] IOtpService otp,
+        CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(request.PhoneNumber))
+            return BadRequest(ApiResponse<object>.Fail("رقم الهاتف مطلوب."));
+
+        var code = await otp.SendOtpAsync(request.PhoneNumber, ct);
+        return Ok(ApiResponse<object>.Ok(new { Sent = true, DebugCode = _env.IsDevelopment() ? code : null }, "تم إرسال رمز التحقق بنجاح."));
+    }
+
+    /// <summary>Verify the OTP code sent to the phone number.</summary>
+    [HttpPost("otp/verify")]
+    [ProducesResponseType(typeof(ApiResponse<object>), 200)]
+    public async Task<ActionResult<ApiResponse<object>>> VerifyOtp(
+        [FromBody] VerifyOtpRequest request,
+        [FromServices] IOtpService otp,
+        CancellationToken ct)
+    {
+        var isValid = await otp.VerifyOtpAsync(request.PhoneNumber, request.Code, ct);
+        if (!isValid)
+            return UnprocessableEntity(ApiResponse<object>.Fail("رمز التحقق غير صحيح أو انتهت صلاحيته."));
+
+        return Ok(ApiResponse<object>.Ok(new { Verified = true }, "تم التحقق من رقم الهاتف بنجاح."));
+    }
+
+    /// <summary>Broker self-registration with verified OTP and National ID card images.</summary>
+    [HttpPost("register-broker")]
+    [ProducesResponseType(typeof(ApiResponse<AuthResponse>), 201)]
+    [ProducesResponseType(typeof(ApiResponse<AuthResponse>), 409)]
+    [ProducesResponseType(typeof(ApiResponse<AuthResponse>), 422)]
+    public async Task<ActionResult<ApiResponse<AuthResponse>>> RegisterBroker(
+        [FromBody] RegisterBrokerDto request,
+        CancellationToken ct)
+    {
+        var result = await _auth.RegisterBrokerAsync(request, ct);
+        return StatusCode(result.StatusCode, result.Succeeded
+            ? ApiResponse<AuthResponse>.Ok(result.Data!, result.Message)
+            : ApiResponse<AuthResponse>.Fail(result.Message, result.Errors));
+    }
+
     /// <response code="200">Returns tokens + user.</response>
     /// <response code="401">Invalid credentials.</response>
     /// <response code="422">Validation failed.</response>

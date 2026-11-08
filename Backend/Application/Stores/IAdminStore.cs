@@ -22,14 +22,14 @@ public interface IAdminStore
     Task<VillageDto?> GetVillageByIdAsync(int id, CancellationToken ct = default);
     Task<bool> VillageSlugExistsAsync(string slug, int? excludeId = null, CancellationToken ct = default);
     Task<VillageDto> AddVillageAsync(Village village, CancellationToken ct = default);
-    Task<bool> UpdateVillageAsync(int id, string? name, string? slug, bool? isActive, CancellationToken ct = default);
+    Task<bool> UpdateVillageAsync(int id, string? name, string? nameAr, string? slug, string? imageUrl, bool? isActive, CancellationToken ct = default);
     Task<(bool Success, string? Error)> DeleteVillageAsync(int id, CancellationToken ct = default);
 
     Task<List<ZoneDto>> GetZonesByVillageIdAsync(int villageId, bool includeInactive, CancellationToken ct = default);
     Task<ZoneDto?> GetZoneByIdAsync(int villageId, int zoneId, CancellationToken ct = default);
     Task<bool> ZoneSlugExistsAsync(int villageId, string slug, int? excludeId = null, CancellationToken ct = default);
     Task<ZoneDto> AddZoneAsync(Zone zone, CancellationToken ct = default);
-    Task<bool> UpdateZoneAsync(int villageId, int zoneId, string? name, string? slug, bool? isActive, CancellationToken ct = default);
+    Task<bool> UpdateZoneAsync(int villageId, int zoneId, string? name, string? nameAr, string? slug, bool? isActive, CancellationToken ct = default);
     Task<(bool Success, string? Error)> DeleteZoneAsync(int villageId, int zoneId, CancellationToken ct = default);
 
     // Property Types Management

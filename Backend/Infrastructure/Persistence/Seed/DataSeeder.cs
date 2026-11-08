@@ -104,40 +104,80 @@ public static class DataSeeder
 
         if (!await db.Villages.AnyAsync())
         {
-            var marassi = new Village { Name = "Marassi", Slug = "marassi", IsActive = true };
-            marassi.Zones.Add(new Zone { Name = "Marina", Slug = "marina", IsActive = true });
-            marassi.Zones.Add(new Zone { Name = "Blanca", Slug = "blanca", IsActive = true });
-            marassi.Zones.Add(new Zone { Name = "Greek Village", Slug = "greek-village", IsActive = true });
-            marassi.Zones.Add(new Zone { Name = "Arezzo", Slug = "arezzo", IsActive = true });
+            var marassi = new Village { Name = "Marassi", NameAr = "مراسي", Slug = "marassi", ImageUrl = "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80", IsActive = true };
+            marassi.Zones.Add(new Zone { Name = "Marina", NameAr = "مارينا", Slug = "marina", IsActive = true });
+            marassi.Zones.Add(new Zone { Name = "Blanca", NameAr = "بلانكا", Slug = "blanca", IsActive = true });
+            marassi.Zones.Add(new Zone { Name = "Greek Village", NameAr = "القرية اليونانية", Slug = "greek-village", IsActive = true });
+            marassi.Zones.Add(new Zone { Name = "Arezzo", NameAr = "أريزو", Slug = "arezzo", IsActive = true });
 
-            var hacienda = new Village { Name = "Hacienda Bay", Slug = "hacienda-bay", IsActive = true };
-            hacienda.Zones.Add(new Zone { Name = "Water Villas", Slug = "water-villas", IsActive = true });
-            hacienda.Zones.Add(new Zone { Name = "Golf Residences", Slug = "golf-residences", IsActive = true });
-            hacienda.Zones.Add(new Zone { Name = "Bay", Slug = "bay", IsActive = true });
-            hacienda.Zones.Add(new Zone { Name = "Lagoon", Slug = "lagoon", IsActive = true });
+            var hacienda = new Village { Name = "Hacienda Bay", NameAr = "هاسيندا باي", Slug = "hacienda-bay", ImageUrl = "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1200&q=80", IsActive = true };
+            hacienda.Zones.Add(new Zone { Name = "Water Villas", NameAr = "ووتر فيلاز", Slug = "water-villas", IsActive = true });
+            hacienda.Zones.Add(new Zone { Name = "Golf Residences", NameAr = "جولف ريزيدنس", Slug = "golf-residences", IsActive = true });
+            hacienda.Zones.Add(new Zone { Name = "Bay", NameAr = "باي", Slug = "bay", IsActive = true });
+            hacienda.Zones.Add(new Zone { Name = "Lagoon", NameAr = "لاجون", Slug = "lagoon", IsActive = true });
 
-            var telal = new Village { Name = "Telal", Slug = "telal", IsActive = true };
-            telal.Zones.Add(new Zone { Name = "First Row", Slug = "first-row", IsActive = true });
-            telal.Zones.Add(new Zone { Name = "Aqua", Slug = "aqua", IsActive = true });
-            telal.Zones.Add(new Zone { Name = "Walk", Slug = "walk", IsActive = true });
+            var telal = new Village { Name = "Telal", NameAr = "تلال", Slug = "telal", ImageUrl = "https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=1200&q=80", IsActive = true };
+            telal.Zones.Add(new Zone { Name = "First Row", NameAr = "الصف الأول", Slug = "first-row", IsActive = true });
+            telal.Zones.Add(new Zone { Name = "Aqua", NameAr = "أكوا", Slug = "aqua", IsActive = true });
+            telal.Zones.Add(new Zone { Name = "Walk", NameAr = "ووك", Slug = "walk", IsActive = true });
 
-            var amwaj = new Village { Name = "Amwaj", Slug = "amwaj", IsActive = true };
-            amwaj.Zones.Add(new Zone { Name = "Beachfront", Slug = "beachfront", IsActive = true });
-            amwaj.Zones.Add(new Zone { Name = "Central", Slug = "central", IsActive = true });
-            amwaj.Zones.Add(new Zone { Name = "Lake View", Slug = "lake-view", IsActive = true });
+            var amwaj = new Village { Name = "Amwaj", NameAr = "أمواج", Slug = "amwaj", ImageUrl = "https://images.unsplash.com/photo-1571896349842-33c89424de2d?auto=format&fit=crop&w=1200&q=80", IsActive = true };
+            amwaj.Zones.Add(new Zone { Name = "Beachfront", NameAr = "الواجهة الشاطئية", Slug = "beachfront", IsActive = true });
+            amwaj.Zones.Add(new Zone { Name = "Central", NameAr = "المنطقة المركزية", Slug = "central", IsActive = true });
+            amwaj.Zones.Add(new Zone { Name = "Lake View", NameAr = "ليك فيو", Slug = "lake-view", IsActive = true });
 
-            var mountainView = new Village { Name = "Mountain View Ras El Hekma", Slug = "mountain-view-ras-el-hekma", IsActive = true };
-            mountainView.Zones.Add(new Zone { Name = "Paros", Slug = "paros", IsActive = true });
-            mountainView.Zones.Add(new Zone { Name = "Rhodes", Slug = "rhodes", IsActive = true });
-            mountainView.Zones.Add(new Zone { Name = "Santorini", Slug = "santorini", IsActive = true });
+            var mountainView = new Village { Name = "Mountain View Ras El Hekma", NameAr = "ماونتن فيو رأس الحكمة", Slug = "mountain-view-ras-el-hekma", ImageUrl = "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=80", IsActive = true };
+            mountainView.Zones.Add(new Zone { Name = "Paros", NameAr = "باروس", Slug = "paros", IsActive = true });
+            mountainView.Zones.Add(new Zone { Name = "Rhodes", NameAr = "رودس", Slug = "rhodes", IsActive = true });
+            mountainView.Zones.Add(new Zone { Name = "Santorini", NameAr = "سانتوريني", Slug = "santorini", IsActive = true });
 
-            var silversands = new Village { Name = "Silversands", Slug = "silversands", IsActive = true };
-            silversands.Zones.Add(new Zone { Name = "Beachfront", Slug = "beachfront", IsActive = true });
-            silversands.Zones.Add(new Zone { Name = "Island", Slug = "island", IsActive = true });
+            var silversands = new Village { Name = "Silversands", NameAr = "سيلفر ساندس", Slug = "silversands", ImageUrl = "https://images.unsplash.com/photo-1582719508461-905c673771fd?auto=format&fit=crop&w=1200&q=80", IsActive = true };
+            silversands.Zones.Add(new Zone { Name = "Beachfront", NameAr = "شاطئ أول", Slug = "beachfront", IsActive = true });
+            silversands.Zones.Add(new Zone { Name = "Island", NameAr = "الجزيرة", Slug = "island", IsActive = true });
 
             db.Villages.AddRange(marassi, hacienda, telal, amwaj, mountainView, silversands);
             await db.SaveChangesAsync();
             logger.LogInformation("Seeded North Coast Villages and Zones.");
+        }
+        else
+        {
+            var existingVillages = await db.Villages.ToListAsync();
+            var needsSave = false;
+            foreach (var v in existingVillages)
+            {
+                if (string.IsNullOrEmpty(v.NameAr) || string.IsNullOrEmpty(v.ImageUrl))
+                {
+                    needsSave = true;
+                    switch (v.Slug.ToLowerInvariant())
+                    {
+                        case "marassi":
+                            v.NameAr ??= "مراسي";
+                            v.ImageUrl ??= "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80";
+                            break;
+                        case "hacienda-bay":
+                            v.NameAr ??= "هاسيندا باي";
+                            v.ImageUrl ??= "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1200&q=80";
+                            break;
+                        case "telal":
+                            v.NameAr ??= "تلال";
+                            v.ImageUrl ??= "https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=1200&q=80";
+                            break;
+                        case "amwaj":
+                            v.NameAr ??= "أمواج";
+                            v.ImageUrl ??= "https://images.unsplash.com/photo-1571896349842-33c89424de2d?auto=format&fit=crop&w=1200&q=80";
+                            break;
+                        case "mountain-view-ras-el-hekma":
+                            v.NameAr ??= "ماونتن فيو رأس الحكمة";
+                            v.ImageUrl ??= "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=80";
+                            break;
+                        case "silversands":
+                            v.NameAr ??= "سيلفر ساندس";
+                            v.ImageUrl ??= "https://images.unsplash.com/photo-1582719508461-905c673771fd?auto=format&fit=crop&w=1200&q=80";
+                            break;
+                    }
+                }
+            }
+            if (needsSave) await db.SaveChangesAsync();
         }
 
         if (!await db.SiteContents.AnyAsync())
@@ -149,24 +189,25 @@ public static class DataSeeder
                     Description = "Hero carousel slides and background images",
                     ContentValue = """
                     [
-                      {"id":1,"key":"sokhna","image":"https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=1920&q=80","fallback":"https://picsum.photos/seed/darcom-sokhna/1920/1080","defaultKicker":"Ain Sokhna · Red Sea","defaultBadge":"Porto Sokhna & Galala","defaultTagline":"Waterfront chalets with private beach access & year-round sun","tint":"20, 110, 120"},
-                      {"id":2,"key":"sahel","image":"https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1920&q=80","fallback":"https://picsum.photos/seed/darcom-sahel/1920/1080","defaultKicker":"North Coast · Mediterranean","defaultBadge":"Ras El Hekma & Marassi","defaultTagline":"Signature villas with private infinity pools & turquoise waters","tint":"18, 90, 145"},
-                      {"id":3,"key":"gouna","image":"https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=1920&q=80","fallback":"https://picsum.photos/seed/darcom-gouna/1920/1080","defaultKicker":"El Gouna · Red Sea Riviera","defaultBadge":"Abu Tig Marina & Fanadir","defaultTagline":"Lagoon-side residences with private yacht berths & resort lifestyle","tint":"15, 120, 110"},
-                      {"id":4,"key":"cairo","image":"https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1920&q=80","fallback":"https://picsum.photos/seed/darcom-cairo/1920/1080","defaultKicker":"New Cairo · Prime Compounds","defaultBadge":"Golden Square & Palm Hills","defaultTagline":"Ultra-luxury sky penthouses with panoramic private rooftop terraces","tint":"120, 95, 40"}
+                      {"id":1,"key":"marassi","image":"https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1920&q=80","fallback":"/images/property-fallback.svg","defaultKicker":"North Coast · Sidi Abdel Rahman","defaultBadge":"Marassi & Marina","defaultTagline":"Signature waterfront chalets with private beach access & turquoise waters","tint":"18, 90, 145"},
+                      {"id":2,"key":"hacienda","image":"https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1920&q=80","fallback":"/images/property-fallback.svg","defaultKicker":"North Coast · Golf & Lagoons","defaultBadge":"Hacienda Bay","defaultTagline":"Luxury villas with private infinity pools overlooking championship greens","tint":"20, 110, 120"},
+                      {"id":3,"key":"raselhekma","image":"https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1920&q=80","fallback":"/images/property-fallback.svg","defaultKicker":"North Coast · Ras El Hekma","defaultBadge":"Mountain View & Crystal Lagoons","defaultTagline":"Greek-island architecture on Egypt’s most coveted pristine bay","tint":"15, 100, 140"},
+                      {"id":4,"key":"telal","image":"https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=1920&q=80","fallback":"/images/property-fallback.svg","defaultKicker":"North Coast · Mediterranean Tranquility","defaultBadge":"Telal & Silversands","defaultTagline":"Panoramic sea-view residences on untouched Mediterranean shorelines","tint":"18, 75, 130"}
                     ]
                     """
                 },
                 new SiteContent
                 {
                     ContentKey = "home.cities",
-                    Description = "Homepage featured cities and destination mosaic",
+                    Description = "Homepage featured North Coast villages",
                     ContentValue = """
                     [
-                      {"name":"Ain Sokhna","slug":"ain-sokhna","blurb":"Red Sea weekends, 1h from Cairo","img":"https://picsum.photos/seed/darcom-sokhna/900/700"},
-                      {"name":"New Cairo","slug":"new-cairo","blurb":"Family living, schools & clubs","img":"https://picsum.photos/seed/darcom-cairo/800/600"},
-                      {"name":"North Coast","slug":"north-coast","blurb":"Summer capital of the Med","img":"https://picsum.photos/seed/darcom-sahel/800/600"},
-                      {"name":"Hurghada","slug":"hurghada","blurb":"Year-round sun & diving","img":"https://picsum.photos/seed/darcom-hurghada/800/600"},
-                      {"name":"El Gouna","slug":"el-gouna","blurb":"Lagoon town, marina life","img":"https://picsum.photos/seed/darcom-gouna/800/600"}
+                      {"name":"Marassi","slug":"marassi","blurb":"Signature Mediterranean luxury & marina lifestyle","img":"https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80"},
+                      {"name":"Hacienda Bay","slug":"hacienda-bay","blurb":"18-hole championship golf course & turquoise lagoons","img":"https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1200&q=80"},
+                      {"name":"Telal","slug":"telal","blurb":"Pristine beachfront & coastal tranquility","img":"https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=1200&q=80"},
+                      {"name":"Mountain View","slug":"mountain-view-ras-el-hekma","blurb":"Greek-inspired architecture in Ras El Hekma","img":"https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=80"},
+                      {"name":"Silversands","slug":"silversands","blurb":"Exclusive coastal living & white sandy shores","img":"https://images.unsplash.com/photo-1582719508461-905c673771fd?auto=format&fit=crop&w=1200&q=80"},
+                      {"name":"Amwaj","slug":"amwaj","blurb":"Vibrant beachfront community & crystal waters","img":"https://images.unsplash.com/photo-1571896349842-33c89424de2d?auto=format&fit=crop&w=1200&q=80"}
                     ]
                     """
                 },
@@ -265,8 +306,8 @@ public static class DataSeeder
                     Description = "Footer branding, about blurbs and badges",
                     ContentValue = """
                     {
-                      "aboutAr":"المنصة العقارية الرقمية الرائدة في مصر للمصايف والفلل المستقلة والبنتهاوس الفاخر على سواحل البحر الأحمر والمتوسط وكمبوندات القاهرة الجديدة.",
-                      "aboutEn":"Egypt's premier real estate platform for luxury second homes, beachfront chalets, private villas and sky penthouses.",
+                      "aboutAr":"المنصة العقارية الرقمية الرائدة في مصر للشاليهات والفلل الشاطئية الفاخرة في قرى الساحل الشمالي ورأس الحكمة.",
+                      "aboutEn":"Egypt's premier real estate platform for luxury coastal chalets, beachfront villas and private estates in the North Coast.",
                       "verifiedBadgeAr":"وساطة واستشارات عقارية مرخصة رسمياً",
                       "verifiedBadgeEn":"Officially Licensed Advisory & Brokerage",
                       "copyright":"© 2026 Darcom Real Estate. All rights reserved."

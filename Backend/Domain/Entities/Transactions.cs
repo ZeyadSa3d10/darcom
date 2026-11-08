@@ -71,14 +71,14 @@ public sealed class RentalPeriod : EntityBase
 }
 
 /// <summary>
-/// Broker request submitted on behalf of a client.
+/// Broker request submitted for rental or purchase on a property.
 /// </summary>
 public sealed class BrokerPropertyRequest : EntityBase
 {
     public int BrokerId { get; set; }
     public int PropertyId { get; set; }
-    public string ClientName { get; set; } = string.Empty;
-    public string ClientPhone { get; set; } = string.Empty;
+    public string? ClientName { get; set; }
+    public string? ClientPhone { get; set; }
     public PropertyPurpose Purpose { get; set; } = PropertyPurpose.Sale;
     public DateTime? StartDate { get; set; }
     public DateTime? EndDate { get; set; }
@@ -90,7 +90,7 @@ public sealed class BrokerPropertyRequest : EntityBase
 }
 
 /// <summary>
-/// Customer property requirement (lead when no matching property is available).
+/// Customer or Broker property requirement (lead when no matching property is available).
 /// </summary>
 public sealed class PropertyRequirement : EntityBase
 {
@@ -106,6 +106,7 @@ public sealed class PropertyRequirement : EntityBase
 
     public decimal? MinPrice { get; set; }
     public decimal? MaxPrice { get; set; }
+    public decimal? Area { get; set; }
     public int? Bedrooms { get; set; }
     public DateTime? StartDate { get; set; }
     public DateTime? EndDate { get; set; }

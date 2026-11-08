@@ -28,7 +28,10 @@ function parseParams(params) {
   return {
     q: pick('q'),
     type: pick('type'),
+    propertyTypeId: pick('propertyTypeId') ? parseInt(pick('propertyTypeId'), 10) : '',
     location: pick('location'),
+    villageId: pick('villageId') ? parseInt(pick('villageId'), 10) : '',
+    zoneId: pick('zoneId') ? parseInt(pick('zoneId'), 10) : '',
     village: pick('village'),
     zone: pick('zone'),
     buildingNumber: pick('buildingNumber'),
@@ -37,6 +40,13 @@ function parseParams(params) {
     bedrooms: pick('bedrooms'),
     bathrooms: pick('bathrooms'),
     minArea: pick('minArea'),
+    maxArea: pick('maxArea'),
+    floor: pick('floor'),
+    finishingStatus: pick('finishingStatus'),
+    furnishedStatus: pick('furnishedStatus'),
+    amenityIds: params.getAll('amenityIds').length > 0
+      ? params.getAll('amenityIds').map(Number)
+      : (params.get('amenityIds') ? params.get('amenityIds').split(',').map(Number).filter(Boolean) : []),
     furnished: bool('furnished'),
     pool: bool('pool'),
     garden: bool('garden'),
@@ -52,7 +62,10 @@ function toQuery(applied) {
   const q = {};
   if (applied.q) q.q = applied.q;
   if (applied.type) q.type = applied.type;
+  if (applied.propertyTypeId) q.propertyTypeId = String(applied.propertyTypeId);
   if (applied.location) q.location = applied.location;
+  if (applied.villageId) q.villageId = String(applied.villageId);
+  if (applied.zoneId) q.zoneId = String(applied.zoneId);
   if (applied.village) q.village = applied.village;
   if (applied.zone) q.zone = applied.zone;
   if (applied.buildingNumber) q.buildingNumber = applied.buildingNumber;
@@ -61,6 +74,13 @@ function toQuery(applied) {
   if (applied.bedrooms !== '') q.bedrooms = applied.bedrooms;
   if (applied.bathrooms !== '') q.bathrooms = applied.bathrooms;
   if (applied.minArea !== '') q.minArea = applied.minArea;
+  if (applied.maxArea !== '') q.maxArea = applied.maxArea;
+  if (applied.floor !== '') q.floor = applied.floor;
+  if (applied.finishingStatus !== '') q.finishingStatus = applied.finishingStatus;
+  if (applied.furnishedStatus !== '') q.furnishedStatus = applied.furnishedStatus;
+  if (Array.isArray(applied.amenityIds) && applied.amenityIds.length > 0) {
+    q.amenityIds = applied.amenityIds.join(',');
+  }
   for (const k of ['furnished', 'pool', 'garden', 'seaView', 'beachAccess', 'parking']) {
     if (applied[k]) q[k] = 'true';
   }
@@ -82,7 +102,7 @@ export default function Rent() {
   const [view, setView] = useState('grid');
   const [sheetOpen, setSheetOpen] = useState(false);
   const [leadModalOpen, setLeadModalOpen] = useState(false);
-  const [maps, setMaps] = useState({ types: {}, cities: {} });
+  const [maps, setMaps] = useState({ types: {}, cities: {}, villages: {}, zones: {} });
   const [input, setInput] = useState(applied.q);
   const debounce = useRef(null);
   const resultsRef = useRef(null);
@@ -94,13 +114,14 @@ export default function Rent() {
     { v: 'area_desc', l: isRtl ? 'الأكبر مساحة' : 'Largest Area' },
   ];
 
-  const popularDestinations = [
-    { name: isRtl ? 'كل المناطق' : 'All Destinations', slug: '', icon: 'bi-grid' },
-    { name: isRtl ? 'الساحل الشمالي' : 'North Coast', slug: 'north-coast', icon: 'bi-umbrella' },
-    { name: isRtl ? 'الجونة' : 'El Gouna', slug: 'el-gouna', icon: 'bi-compass' },
-    { name: isRtl ? 'العين السخنة' : 'Ain Sokhna', slug: 'ain-sokhna', icon: 'bi-water' },
-    { name: isRtl ? 'القاهرة الجديدة' : 'New Cairo', slug: 'new-cairo', icon: 'bi-building' },
-    { name: isRtl ? 'الغردقة' : 'Hurghada', slug: 'hurghada', icon: 'bi-sun' },
+  const northCoastVillages = [
+    { name: isRtl ? 'كافة قرى الساحل' : 'All North Coast', id: '', slug: '', icon: 'bi-grid' },
+    { name: isRtl ? 'مراسي' : 'Marassi', id: 1, slug: 'marassi', icon: 'bi-water' },
+    { name: isRtl ? 'هاسيندا باي' : 'Hacienda Bay', id: 2, slug: 'hacienda-bay', icon: 'bi-compass' },
+    { name: isRtl ? 'تلال الساحل' : 'Telal', id: 3, slug: 'telal', icon: 'bi-umbrella' },
+    { name: isRtl ? 'أمواج' : 'Amwaj', id: 4, slug: 'amwaj', icon: 'bi-sun' },
+    { name: isRtl ? 'ماونتن فيو رأس الحكمة' : 'Mountain View Ras El Hekma', id: 5, slug: 'mountain-view-ras-el-hekma', icon: 'bi-houses' },
+    { name: isRtl ? 'سيلفرساندز' : 'Silversands', id: 6, slug: 'silversands', icon: 'bi-building' },
   ];
 
   useEffect(() => {
@@ -114,7 +135,20 @@ export default function Rent() {
       for (const c of r.data ?? []) m[c.slug] = c.name;
       setMaps((prev) => ({ ...prev, cities: m }));
     });
-  }, []);
+    locationService.getVillages().then((r) => {
+      const vMap = {};
+      const zMap = {};
+      for (const v of r.data ?? []) {
+        vMap[v.id] = isRtl ? (v.nameAr || v.name) : (v.name || v.nameAr);
+        vMap[v.slug] = vMap[v.id];
+        for (const z of v.zones ?? []) {
+          zMap[z.id] = isRtl ? (z.nameAr || z.name) : (z.name || z.nameAr);
+          zMap[z.slug] = zMap[z.id];
+        }
+      }
+      setMaps((prev) => ({ ...prev, villages: vMap, zones: zMap }));
+    });
+  }, [isRtl]);
 
   useEffect(() => {
     setInput(applied.q);
@@ -184,9 +218,11 @@ export default function Rent() {
         case 'location':
           return maps.cities[v] || v;
         case 'village':
-          return `القرية: ${v}`;
+        case 'villageId':
+          return `القرية: ${maps.villages[v] || v}`;
         case 'zone':
-          return `المنطقة: ${v}`;
+        case 'zoneId':
+          return `المنطقة: ${maps.zones[v] || v}`;
         case 'buildingNumber':
           return `مبنى: ${v}`;
         case 'minPrice':
@@ -199,6 +235,14 @@ export default function Rent() {
           return `${v}+ حمامات`;
         case 'minArea':
           return `≥ ${v} م²`;
+        case 'maxArea':
+          return `≤ ${v} م²`;
+        case 'floor':
+          return `الطابق: ${v === '0' ? 'أرضي' : v}`;
+        case 'finishingStatus':
+          return `التشطيب: ${v}`;
+        case 'furnishedStatus':
+          return `الفرش: ${v}`;
         case 'furnished':
           return 'مفروش';
         case 'pool':
@@ -223,7 +267,8 @@ export default function Rent() {
     const filterKeys = [
       'q',
       'type',
-      'location',
+      'villageId',
+      'zoneId',
       'village',
       'zone',
       'buildingNumber',
@@ -232,6 +277,10 @@ export default function Rent() {
       'bedrooms',
       'bathrooms',
       'minArea',
+      'maxArea',
+      'floor',
+      'finishingStatus',
+      'furnishedStatus',
       'furnished',
       'pool',
       'garden',
@@ -265,7 +314,7 @@ export default function Rent() {
 
   useSeo({
     title: 'وحدات للايجار في الساحل الشمالي | Darcom Luxury Rentals',
-    description: `تصفح ${total || ''} وحدة سياحية وعقارية للايجار في الساحل الشمالي ومصر.`,
+    description: `تصفح ${total || ''} وحدة سياحية وعقارية للايجار في الساحل الشمالي.`,
   });
 
   return (
@@ -286,17 +335,28 @@ export default function Rent() {
             : 'Verified chalets, apartments, and villas across premier North Coast villages.'}
         </p>
         <div className="properties-destinations-bar">
-          {popularDestinations.map((loc) => (
-            <button
-              key={loc.slug}
-              type="button"
-              className={'destination-quick-btn' + ((applied.location || '') === loc.slug ? ' active' : '')}
-              onClick={() => push({ location: loc.slug })}
-            >
-              {loc.icon && <i className={'bi ' + loc.icon + ' me-1'} />}
-              <span>{loc.name}</span>
-            </button>
-          ))}
+          {northCoastVillages.map((vItem) => {
+            const isSelected = (!applied.villageId && !applied.village && !vItem.id) ||
+              (applied.villageId && String(applied.villageId) === String(vItem.id)) ||
+              (applied.village && applied.village === vItem.slug);
+            return (
+              <button
+                key={vItem.slug || 'all'}
+                type="button"
+                className={'destination-quick-btn' + (isSelected ? ' active' : '')}
+                onClick={() => push({
+                  villageId: vItem.id || '',
+                  village: vItem.slug || '',
+                  zoneId: '',
+                  zone: '',
+                  location: '',
+                })}
+              >
+                {vItem.icon && <i className={'bi ' + vItem.icon + ' me-1'} />}
+                <span>{vItem.name}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
 

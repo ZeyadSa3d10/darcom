@@ -24,6 +24,7 @@ const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5153/api',
   timeout: 15000,
   headers: { 'Content-Type': 'application/json' },
+  paramsSerializer: { indexes: null },
 });
 
 // Attach JWT to every request.

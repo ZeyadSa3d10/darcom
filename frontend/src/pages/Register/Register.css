@@ -284,3 +284,108 @@
     border-radius: 16px;
   }
 }
+
+/* ==========================================================================
+   Broker Registration Additions
+   ========================================================================== */
+
+.account-type-tabs {
+  display: flex;
+  background: rgba(20, 66, 79, 0.05);
+  padding: 4px;
+  border-radius: 14px;
+  border: 1px solid rgba(20, 66, 79, 0.08);
+}
+
+.account-type-tab {
+  flex: 1;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: none;
+  background: transparent;
+  color: var(--neutral-600, #5c5c56);
+  font-size: 0.92rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.account-type-tab.active {
+  background: #ffffff;
+  color: var(--brand-900, #0e2a33);
+  box-shadow: 0 4px 12px rgba(14, 42, 51, 0.08);
+}
+
+.account-type-tab:hover:not(.active) {
+  color: var(--brand-900, #0e2a33);
+}
+
+.id-card-upload-box {
+  background: #fafaf8;
+  border: 1.5px dashed rgba(20, 66, 79, 0.2);
+  border-radius: 12px;
+  padding: 12px;
+  text-align: center;
+  min-height: 140px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  transition: all 0.2s ease;
+}
+
+.id-card-upload-box:hover {
+  border-color: var(--brand-900, #0e2a33);
+  background: #f4f6f6;
+}
+
+.id-box-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--neutral-600, #5c5c56);
+  margin-bottom: 6px;
+}
+
+.id-upload-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  width: 100%;
+  height: 100%;
+}
+
+.id-preview-wrapper {
+  position: relative;
+  width: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.id-img-preview {
+  width: 100%;
+  height: 100px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.remove-id-btn {
+  position: absolute;
+  top: 4px;
+  inset-inline-end: 4px;
+  padding: 2px 6px;
+  font-size: 0.8rem;
+  border-radius: 50%;
+  line-height: 1;
+}
+
+.broker-success-icon {
+  font-size: 3.5rem;
+  color: #198754;
+  margin-block-start: 1rem;
+}

@@ -5,7 +5,6 @@ import { useSettings } from '../../context/SettingsContext.jsx';
 import { useToast } from '../../components/Toast/Toast.jsx';
 import { useSeo } from '../../hooks/useSeo.js';
 import { brokerService } from '../../services/brokerService.js';
-import BrokerClientRequestModal from './components/BrokerClientRequestModal.jsx';
 import './BrokerDashboard.css';
 
 export default function BrokerDashboard() {
@@ -15,13 +14,12 @@ export default function BrokerDashboard() {
 
   const [loading, setLoading] = useState(true);
   const [dashboard, setDashboard] = useState(null);
-  const [showClientModal, setShowClientModal] = useState(false);
 
   useSeo({
     title: `${isRtl ? 'لوحة تحكم البروكر' : 'Broker Dashboard'} | ${t('common.darcom', 'Darcom')}`,
     description: isRtl
-      ? 'لوحة إدارة الوسيط العقاري: شاليهاتي، تقديم طلبات النشر، طلبات العملاء'
-      : 'Broker portal for luxury North Coast property listings and client requests.',
+      ? 'لوحة إدارة الوسيط العقاري في الساحل الشمالي: عرض الشاليهات، طلبات الإيجار والشراء، ومتابعة الطلبات'
+      : 'Broker portal for North Coast property listings and requests.',
   });
 
   const loadData = async () => {
@@ -30,7 +28,7 @@ export default function BrokerDashboard() {
       const res = await brokerService.getDashboard();
       setDashboard(res.data);
     } catch (err) {
-      toast.error(err.message || (isRtl ? 'تعذر تحميل بيانات البروكر' : 'Failed to load broker data'));
+      toast.error(err.message || (isRtl ? 'تعذر تحميل بيانات لوحة تحكم البروكر' : 'Failed to load broker data'));
     } finally {
       setLoading(false);
     }
@@ -56,278 +54,237 @@ export default function BrokerDashboard() {
   const isPending = profile?.status?.toLowerCase() === 'pending';
   const isRejected = profile?.status?.toLowerCase() === 'rejected';
 
-  // 1. Unapproved or Pending Approval State
-  if (!isApproved) {
-    return (
-      <main className="container broker-dashboard-page" id="main-content">
-        <div className="broker-pending-box">
-          <div className="broker-pending-icon">
-            <i className={`bi ${isRejected ? 'bi-x-circle-fill text-danger' : 'bi-hourglass-split'}`}></i>
-          </div>
-
-          <h1 className="broker-pending-title">
-            {isRejected
-              ? (isRtl ? 'تم رفض طلب اعتماد حساب البروكر' : 'Broker Application Rejected')
-              : (isRtl ? 'طلب حساب البروكر قيد المراجعة والاعتماد' : 'Broker Application Under Review')}
-          </h1>
-
-          <p className="broker-pending-desc">
-            {isRejected
-              ? (isRtl
-                ? 'للأسف لم تتم الموافقة على طلب اعتماد حسابك كوسيط عقاري من قبل إدارة داركوم. يمكنك مراجعة ملاحظات الإدارة أدناه أو التواصل معنا.'
-                : 'Your broker application was not approved by Darcom administration. Please review the admin notes below or contact support.')
-              : (isRtl
-                ? 'تم استلام بياناتك بنجاح وجاري تدقيقها ومراجعتها من قبل مسؤولي داركوم في الساحل الشمالي. ستصبح كافة ميزات لوحة تحكم البروكر متاحة بالكامل فور اعتماد الحساب.'
-                : 'Your broker application is currently being verified by Darcom administration. All broker features will become accessible immediately upon approval.')}
-          </p>
-
-          {profile && (
-            <table className="broker-details-table">
-              <tbody>
-                <tr>
-                  <td>{isRtl ? 'اسم الوكالة / المكتب' : 'Agency Name'}</td>
-                  <td>{profile.agencyName}</td>
-                </tr>
-                <tr>
-                  <td>{isRtl ? 'رقم السجل / الرخصة' : 'License / Registration'}</td>
-                  <td>{profile.licenseNumber}</td>
-                </tr>
-                {profile.nationalId && (
-                  <tr>
-                    <td>{isRtl ? 'الرقم القومي' : 'National ID'}</td>
-                    <td>{profile.nationalId}</td>
-                  </tr>
-                )}
-                <tr>
-                  <td>{isRtl ? 'حالة الطلب' : 'Current Status'}</td>
-                  <td>
-                    <span className={`broker-status-pill ${profile.status?.toLowerCase()}`}>
-                      {profile.status}
-                    </span>
-                  </td>
-                </tr>
-                {profile.adminNotes && (
-                  <tr>
-                    <td>{isRtl ? 'ملاحظات الإدارة' : 'Admin Notes'}</td>
-                    <td className="text-warning">{profile.adminNotes}</td>
-                  </tr>
-                )}
-                <tr>
-                  <td>{isRtl ? 'تاريخ التقديم' : 'Submitted Date'}</td>
-                  <td>{new Date(profile.createdAt).toLocaleDateString()}</td>
-                </tr>
-              </tbody>
-            </table>
-          )}
-
-          <div className="d-flex justify-content-center gap-3">
-            <button type="button" className="btn btn-outline-secondary" onClick={loadData}>
-              <i className="bi bi-arrow-clockwise me-1"></i>
-              {isRtl ? 'تحديث الحالة' : 'Refresh Status'}
-            </button>
-            <Link to="/contact" className="btn btn-brand">
-              <i className="bi bi-chat-dots me-1"></i>
-              {isRtl ? 'تواصل مع الدعم' : 'Contact Support'}
-            </Link>
-          </div>
-        </div>
-      </main>
-    );
-  }
-
-  // 2. Approved Broker Dashboard
   return (
     <main className="container broker-dashboard-page" id="main-content">
+      {/* Pending / Rejected Notice Banner */}
+      {!isApproved && (
+        <div className={`alert ${isRejected ? 'alert-danger' : 'alert-warning'} border p-3 mb-4 rounded-3 d-flex align-items-center justify-content-between flex-wrap gap-2`}>
+          <div className="d-flex align-items-center gap-3">
+            <i className={`bi ${isRejected ? 'bi-x-circle-fill fs-3' : 'bi-clock-history fs-3'}`}></i>
+            <div>
+              <strong className="d-block">
+                {isRejected
+                  ? (isRtl ? 'تم رفض طلب اعتماد الحساب' : 'Broker Application Rejected')
+                  : (isRtl ? 'طلب حساب البروكر قيد المراجعة والاعتماد' : 'Broker Account Under Review')}
+              </strong>
+              <span className="text-sm">
+                {isRejected
+                  ? (profile?.adminNotes || (isRtl ? 'يرجى التواصل مع إدارة داركم للاستفسار.' : 'Please contact support.'))
+                  : (isRtl
+                    ? 'بياناتك وصور الهوية قيد التدقيق الأمني من إدارة داركم في الساحل الشمالي. يمكنك البدء في تسجيل شاليهاتك ومتابعتها.'
+                    : 'Your account is under administrative review. You can already submit listings and track your requests.')}
+              </span>
+            </div>
+          </div>
+          <button type="button" className="btn btn-sm btn-outline-dark" onClick={loadData}>
+            <i className="bi bi-arrow-clockwise me-1"></i>
+            {isRtl ? 'تحديث الحالة' : 'Refresh'}
+          </button>
+        </div>
+      )}
+
       {/* Header Banner */}
-      <div className="broker-header-card">
+      <div className="broker-header-card mb-4">
         <div className="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
           <div>
             <div className="d-flex align-items-center gap-2 mb-2">
-              <span className="broker-status-pill approved">
-                <i className="bi bi-patch-check-fill"></i>
-                {isRtl ? 'بروكر معتمد من داركوم' : 'Darcom Certified Broker'}
+              <span className={`broker-status-pill ${profile?.status?.toLowerCase() || 'pending'}`}>
+                <i className="bi bi-patch-check-fill me-1"></i>
+                {isApproved
+                  ? (isRtl ? 'بروكر معتمد في الساحل الشمالي' : 'Certified North Coast Broker')
+                  : isPending
+                  ? (isRtl ? 'حساب قيد المراجعة' : 'Pending Review')
+                  : (isRtl ? 'حساب غير معتمد' : 'Unapproved')}
               </span>
-              <span className="text-muted" style={{ fontSize: '0.85rem' }}>
-                Ref: {profile?.licenseNumber}
-              </span>
+              {profile?.agencyName && (
+                <span className="text-muted text-sm">
+                  <i className="bi bi-building me-1"></i>
+                  {profile.agencyName}
+                </span>
+              )}
             </div>
             <h1 className="broker-header-title">
-              {profile?.agencyName || user?.fullName}
+              {user?.fullName || profile?.fullName || (isRtl ? 'لوحة تحكم الوسيط العقاري' : 'Broker Dashboard')}
             </h1>
-            <p className="broker-header-subtitle">
+            <p className="broker-header-subtitle mb-0">
               {isRtl
-                ? 'مرحباً بك في لوحة تحكم الوسطاء العقاريين المعتمدين في الساحل الشمالي'
-                : 'Welcome to your North Coast certified broker operations dashboard'}
+                ? 'إدارة متكاملة لأعمالك العقارية في الساحل الشمالي مع داركم'
+                : 'Manage your North Coast chalet listings and requests with Darcom'}
             </p>
           </div>
 
           <div className="d-flex flex-wrap gap-2">
-            <button
-              type="button"
-              className="btn btn-outline-secondary"
-              onClick={() => setShowClientModal(true)}
-            >
-              <i className="bi bi-person-plus me-1"></i>
-              {isRtl ? 'تقديم طلب لعميل' : 'Submit Client Request'}
-            </button>
             <Link
               to="/broker/submit-property"
-              className="btn btn-brand"
+              className="btn btn-brand px-3 py-2"
               style={{
                 background: 'linear-gradient(135deg, #d4af37, #aa8214)',
                 border: 'none',
                 color: '#121212',
-                fontWeight: 600,
+                fontWeight: 700,
               }}
             >
-              <i className="bi bi-plus-circle-fill me-1"></i>
-              {isRtl ? 'طلب إضافة شاليه' : 'Submit a Chalet'}
+              <i className="bi bi-house-add-fill me-2"></i>
+              {isRtl ? 'شاليه عندي وعايز أعرضه' : 'Submit Chalet'}
+            </Link>
+            <Link to="/properties" className="btn btn-outline-light px-3 py-2">
+              <i className="bi bi-search me-2"></i>
+              {isRtl ? 'بدور على شاليه' : 'Browse Chalets'}
             </Link>
           </div>
         </div>
       </div>
 
-      {/* KPI Stats Grid (Real backend data) */}
-      <div className="broker-kpi-grid">
+      {/* 3 Prominent Main Action Cards */}
+      <div className="row g-3 mb-4">
+        {/* Action 1: شاليه عندي وعايز أعرضه */}
+        <div className="col-12 col-md-4">
+          <div className="broker-main-feature-card h-100 p-4 rounded-4 border position-relative overflow-hidden">
+            <div className="feature-card-glow"></div>
+            <div className="feature-icon-badge gold mb-3">
+              <i className="bi bi-house-add-fill"></i>
+            </div>
+            <h2 className="h5 fw-bold text-white mb-2">
+              {isRtl ? 'شاليه عندي وعايز أعرضه' : 'List a Chalet'}
+            </h2>
+            <p className="text-muted text-sm mb-4">
+              {isRtl
+                ? 'قدم بيانات الشاليه (4 حقول فقط: المساحة، القرية، المرحلة، رقم الوحدة). سنقوم بالمعاينة والتصوير ونشر الوحدة باسمك.'
+                : 'Submit unit details with only 4 fields. We inspect, photograph, and list the property under your account.'}
+            </p>
+            <Link to="/broker/submit-property" className="btn btn-gold-outline w-100 mt-auto">
+              <span>{isRtl ? 'أضف شاليهك الآن' : 'Start Submission'}</span>
+              <i className={`bi ${isRtl ? 'bi-arrow-left' : 'bi-arrow-right'} ms-2`}></i>
+            </Link>
+          </div>
+        </div>
+
+        {/* Action 2: بدور على شاليه */}
+        <div className="col-12 col-md-4">
+          <div className="broker-main-feature-card h-100 p-4 rounded-4 border position-relative overflow-hidden">
+            <div className="feature-card-glow"></div>
+            <div className="feature-icon-badge cyan mb-3">
+              <i className="bi bi-search-heart-fill"></i>
+            </div>
+            <h2 className="h5 fw-bold text-white mb-2">
+              {isRtl ? 'بدور على شاليه' : 'Find a Chalet'}
+            </h2>
+            <p className="text-muted text-sm mb-4">
+              {isRtl
+                ? 'تصفح كافة معروضات داركم في قرى الساحل الشمالي، واطلب حجز إيجار أو شراء أي شاليه مباشرة بنقرة واحدة.'
+                : 'Browse all active Darcom North Coast listings and submit a Rent or Buy request with a single click.'}
+            </p>
+            <Link to="/properties" className="btn btn-cyan-outline w-100 mt-auto">
+              <span>{isRtl ? 'تصفح شاليهات الساحل' : 'Browse Listings'}</span>
+              <i className={`bi ${isRtl ? 'bi-arrow-left' : 'bi-arrow-right'} ms-2`}></i>
+            </Link>
+          </div>
+        </div>
+
+        {/* Action 3: طلباتي */}
+        <div className="col-12 col-md-4">
+          <div className="broker-main-feature-card h-100 p-4 rounded-4 border position-relative overflow-hidden">
+            <div className="feature-card-glow"></div>
+            <div className="feature-icon-badge purple mb-3">
+              <i className="bi bi-card-checklist"></i>
+            </div>
+            <h2 className="h5 fw-bold text-white mb-2">
+              {isRtl ? 'طلباتي' : 'My Requests'}
+            </h2>
+            <p className="text-muted text-sm mb-4">
+              {isRtl
+                ? 'مركز تتبع موحد: طلبات إضافة الشاليهات للمعاينة، طلبات الإيجار والشراء، وطلبات الشاليهات بمواصفات خاصة.'
+                : 'Unified tracker for your property submissions, rent/buy requests, and custom requirements.'}
+            </p>
+            <Link to="/broker/requests" className="btn btn-purple-outline w-100 mt-auto">
+              <span>{isRtl ? 'عرض ومتابعة الطلبات' : 'View All Requests'}</span>
+              <i className={`bi ${isRtl ? 'bi-arrow-left' : 'bi-arrow-right'} ms-2`}></i>
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      {/* KPI Stats Grid (Real Backend Data) */}
+      <h2 className="h5 fw-bold text-white mb-3 d-flex align-items-center gap-2">
+        <i className="bi bi-speedometer2 text-gold"></i>
+        <span>{isRtl ? 'ملخص النشاط والإحصائيات الحية' : 'Live Activity Summary'}</span>
+      </h2>
+
+      <div className="broker-kpi-grid mb-4">
+        {/* 1. Listed Properties */}
         <Link to="/broker/properties" className="text-decoration-none">
           <div className="broker-kpi-card">
             <div className="broker-kpi-icon gold">
-              <i className="bi bi-house-door-fill"></i>
+              <i className="bi bi-building-check"></i>
             </div>
             <div>
-              <div className="broker-kpi-num">{dashboard.totalProperties}</div>
-              <p className="broker-kpi-label">{isRtl ? 'إجمالي شاليهاتي' : 'My Properties'}</p>
+              <div className="broker-kpi-num">{dashboard?.totalProperties ?? 0}</div>
+              <p className="broker-kpi-label">{isRtl ? 'شاليهاتي المعروضة' : 'My Listed Chalets'}</p>
             </div>
           </div>
         </Link>
 
-        <Link to="/broker/properties?status=PendingReview" className="text-decoration-none">
+        {/* 2. Pending Submissions */}
+        <Link to="/broker/requests" className="text-decoration-none">
           <div className="broker-kpi-card">
             <div className="broker-kpi-icon warning">
               <i className="bi bi-clock-history"></i>
             </div>
             <div>
-              <div className="broker-kpi-num">{dashboard.pendingProperties}</div>
-              <p className="broker-kpi-label">{isRtl ? 'قيد مراجعة الإدارة' : 'Pending Review'}</p>
+              <div className="broker-kpi-num">{dashboard?.pendingSubmissions ?? 0}</div>
+              <p className="broker-kpi-label">{isRtl ? 'شاليهات قيد المعاينة' : 'Pending Inspections'}</p>
             </div>
           </div>
         </Link>
 
-        <Link to="/broker/properties?status=Published" className="text-decoration-none">
-          <div className="broker-kpi-card">
-            <div className="broker-kpi-icon success">
-              <i className="bi bi-check-circle-fill"></i>
-            </div>
-            <div>
-              <div className="broker-kpi-num">{dashboard.approvedProperties}</div>
-              <p className="broker-kpi-label">{isRtl ? 'شاليهات معتمدة ومنشورة' : 'Active / Published'}</p>
-            </div>
-          </div>
-        </Link>
-
+        {/* 3. Rent & Sale Requests */}
         <Link to="/broker/requests" className="text-decoration-none">
           <div className="broker-kpi-card">
             <div className="broker-kpi-icon info">
-              <i className="bi bi-people-fill"></i>
+              <i className="bi bi-arrow-left-right"></i>
             </div>
             <div>
-              <div className="broker-kpi-num">{dashboard.clientRequestsCount}</div>
-              <p className="broker-kpi-label">{isRtl ? 'طلبات العملاء المسجلة' : 'Client Requests'}</p>
+              <div className="broker-kpi-num">{dashboard?.clientRequestsCount ?? 0}</div>
+              <p className="broker-kpi-label">{isRtl ? 'طلبات الإيجار والشراء' : 'Rent & Buy Requests'}</p>
+            </div>
+          </div>
+        </Link>
+
+        {/* 4. Custom Requirements */}
+        <Link to="/broker/requests" className="text-decoration-none">
+          <div className="broker-kpi-card">
+            <div className="broker-kpi-icon success">
+              <i className="bi bi-sliders"></i>
+            </div>
+            <div>
+              <div className="broker-kpi-num">{dashboard?.propertyRequirementsCount ?? 0}</div>
+              <p className="broker-kpi-label">{isRtl ? 'شاليهات بمواصفات خاصة' : 'Custom Specs Requests'}</p>
             </div>
           </div>
         </Link>
       </div>
 
-      {/* Main Feature Cards Grid */}
-      <h2 className="mb-3" style={{ fontSize: '1.35rem', fontWeight: 700, color: '#fff' }}>
-        <i className="bi bi-grid-fill me-2 text-gold"></i>
-        {isRtl ? 'أقسام وإدارة أعمال البروكر' : 'Broker Management Sections'}
-      </h2>
-
-      <div className="broker-nav-grid">
-        <Link to="/broker/properties" className="broker-action-card">
-          <div className="broker-action-icon">
-            <i className="bi bi-building"></i>
+      {/* Quick Navigation to "شاليهاتي" */}
+      <div className="broker-properties-section-banner p-4 rounded-4 border bg-dark text-white d-flex flex-column flex-md-row justify-content-between align-items-center gap-3">
+        <div className="d-flex align-items-center gap-3">
+          <div className="p-3 rounded-circle bg-secondary bg-opacity-25 text-gold fs-2">
+            <i className="bi bi-houses-fill" style={{ color: '#d4af37' }}></i>
           </div>
-          <h3 className="broker-action-title">{isRtl ? 'شاليهاتي' : 'My Chalets'}</h3>
-          <p className="broker-action-desc">
-            {isRtl
-              ? 'استعراض كافة الشاليهات والوحدات المربوطة بحسابك، والاطلاع على فترات الحجز المؤكدة وحالات الاعتماد.'
-              : 'Browse and manage all properties associated with your account, check approval status and rental periods.'}
-          </p>
-          <span className="broker-action-link-text">
-            <span>{isRtl ? 'عرض الشاليهات' : 'View Properties'}</span>
-            <i className={`bi ${isRtl ? 'bi-arrow-left' : 'bi-arrow-right'}`}></i>
-          </span>
-        </Link>
-
-        <Link to="/broker/submit-property" className="broker-action-card">
-          <div className="broker-action-icon">
-            <i className="bi bi-file-earmark-plus"></i>
+          <div>
+            <h3 className="h5 fw-bold mb-1">{isRtl ? 'شاليهاتي المعتمدة على داركم' : 'My Published Properties'}</h3>
+            <p className="text-muted text-sm mb-0">
+              {isRtl
+                ? 'استعراض وإدارة جميع الوحدات المنشورة باسمك رسمياً ومتابعة فترات الإيجار المحجوزة.'
+                : 'View and manage all properties officially published and linked to your broker profile.'}
+            </p>
           </div>
-          <h3 className="broker-action-title">{isRtl ? 'طلب إضافة شاليه' : 'Submit a Chalet'}</h3>
-          <p className="broker-action-desc">
-            {isRtl
-              ? 'تقديم تفاصيل شاليه للبيع أو الإيجار في قرى الساحل الشمالي لإرساله لمراجعة الشركة واعتماده قبل نشره.'
-              : 'Submit a new chalet for sale or rent in North Coast villages for company review and approval.'}
-          </p>
-          <span className="broker-action-link-text">
-            <span>{isRtl ? 'بدء تقديم الشاليه' : 'Start Submission'}</span>
-            <i className={`bi ${isRtl ? 'bi-arrow-left' : 'bi-arrow-right'}`}></i>
-          </span>
-        </Link>
-
-        <Link to="/broker/requests" className="broker-action-card">
-          <div className="broker-action-icon">
-            <i className="bi bi-card-checklist"></i>
-          </div>
-          <h3 className="broker-action-title">{isRtl ? 'طلباتي ومتابعة الاعتماد' : 'Submissions & Requests'}</h3>
-          <p className="broker-action-desc">
-            {isRtl
-              ? 'متابعة حالة مراجعة الشاليهات المرفوعة، وطلبات العملاء المقدمة من طرفك وملاحظات الإدارة.'
-              : 'Track submitted chalet review statuses, client booking requests, and admin feedback.'}
-          </p>
-          <span className="broker-action-link-text">
-            <span>{isRtl ? 'متابعة الطلبات' : 'Track Requests'}</span>
-            <i className={`bi ${isRtl ? 'bi-arrow-left' : 'bi-arrow-right'}`}></i>
-          </span>
-        </Link>
-
-        <div
-          role="button"
-          tabIndex={0}
-          className="broker-action-card cursor-pointer"
-          onClick={() => setShowClientModal(true)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              setShowClientModal(true);
-            }
-          }}
-        >
-          <div className="broker-action-icon">
-            <i className="bi bi-person-lines-fill"></i>
-          </div>
-          <h3 className="broker-action-title">{isRtl ? 'تقديم طلب لعميل' : 'Submit Client Request'}</h3>
-          <p className="broker-action-desc">
-            {isRtl
-              ? 'اختر شاليه من عروض داركوم وسجل طلب حجز أو شراء باسم عميلك مباشرة لتوثيق عمولتك.'
-              : 'Pick an active company chalet and submit a booking or purchase inquiry on behalf of your client.'}
-          </p>
-          <span className="broker-action-link-text">
-            <span>{isRtl ? 'تسجيل طلب عميل' : 'Register Client'}</span>
-            <i className={`bi ${isRtl ? 'bi-arrow-left' : 'bi-arrow-right'}`}></i>
-          </span>
         </div>
-      </div>
 
-      {/* Modal for Client Request */}
-      <BrokerClientRequestModal
-        show={showClientModal}
-        onClose={() => setShowClientModal(false)}
-        onSuccess={loadData}
-      />
+        <Link to="/broker/properties" className="btn btn-outline-light px-4 text-nowrap">
+          <span>{isRtl ? 'عرض شاليهاتي' : 'View My Properties'}</span>
+          <i className={`bi ${isRtl ? 'bi-arrow-left' : 'bi-arrow-right'} ms-2`}></i>
+        </Link>
+      </div>
     </main>
   );
 }
-

@@ -154,6 +154,63 @@ public sealed class RequestStore : IRequestStore
         return await PageAsync(query, page, pageSize, ToBrokerRequestDto, ct);
     }
 
+    // Broker Property Submissions (Workflow 1)
+    public async Task AddBrokerSubmissionAsync(BrokerPropertySubmission submission, CancellationToken ct = default)
+        => await _db.BrokerPropertySubmissions.AddAsync(submission, ct);
+
+    public Task<BrokerPropertySubmission?> GetBrokerSubmissionAsync(int id, CancellationToken ct = default)
+        => _db.BrokerPropertySubmissions
+            .Include(s => s.Broker)
+            .Include(s => s.Village)
+            .Include(s => s.Zone)
+            .Include(s => s.CreatedProperty)
+            .FirstOrDefaultAsync(s => s.Id == id, ct);
+
+    public async Task<BrokerPropertySubmissionDto?> GetBrokerSubmissionDtoAsync(int id, CancellationToken ct = default)
+    {
+        var s = await GetBrokerSubmissionAsync(id, ct);
+        return s is null ? null : ToBrokerSubmissionDto(s);
+    }
+
+    public async Task<PagedResult<BrokerPropertySubmissionDto>> GetBrokerSubmissionsAsync(int brokerId, int page, int pageSize, CancellationToken ct = default)
+    {
+        var query = _db.BrokerPropertySubmissions.AsNoTracking()
+            .Include(s => s.Broker)
+            .Include(s => s.Village)
+            .Include(s => s.Zone)
+            .Include(s => s.CreatedProperty)
+            .Where(s => s.BrokerId == brokerId)
+            .OrderByDescending(s => s.CreatedAt);
+        return await PageAsync(query, page, pageSize, ToBrokerSubmissionDto, ct);
+    }
+
+    public async Task<PagedResult<BrokerPropertySubmissionDto>> GetAllBrokerSubmissionsAsync(string? status, int page, int pageSize, CancellationToken ct = default)
+    {
+        var query = _db.BrokerPropertySubmissions.AsNoTracking()
+            .Include(s => s.Broker)
+            .Include(s => s.Village)
+            .Include(s => s.Zone)
+            .Include(s => s.CreatedProperty)
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<RequestStatus>(status.Replace(" ", ""), true, out var s))
+            query = query.Where(r => r.Status == s);
+
+        query = query.OrderByDescending(r => r.CreatedAt);
+        return await PageAsync(query, page, pageSize, ToBrokerSubmissionDto, ct);
+    }
+
+    public Task<int> GetBrokerSubmissionsCountAsync(int brokerId, string? status = null, CancellationToken ct = default)
+    {
+        var query = _db.BrokerPropertySubmissions.AsNoTracking().Where(s => s.BrokerId == brokerId);
+        if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<RequestStatus>(status.Replace(" ", ""), true, out var s))
+            query = query.Where(r => r.Status == s);
+        return query.CountAsync(ct);
+    }
+
+    public Task<int> GetBrokerRequirementsCountAsync(int brokerId, CancellationToken ct = default)
+        => _db.PropertyRequirements.AsNoTracking().CountAsync(r => r.UserId == brokerId, ct);
+
     // Broker Profiles (Requirement 7)
     public Task<BrokerProfile?> GetBrokerProfileByUserIdAsync(int userId, CancellationToken ct = default)
         => _db.BrokerProfiles
@@ -241,6 +298,76 @@ public sealed class RequestStore : IRequestStore
     public Task<List<int>> GetAdminUserIdsAsync(CancellationToken ct = default)
         => _db.Users.Where(u => u.Role.Name == "Admin" && u.IsActive).Select(u => u.Id).ToListAsync(ct);
 
+    // User Property Listing Requests ("اعرض عقارك")
+    public async Task AddListingRequestAsync(PropertyListingRequest request, CancellationToken ct = default)
+        => await _db.PropertyListingRequests.AddAsync(request, ct);
+
+    public async Task<PropertyListingRequest?> GetListingRequestAsync(int id, CancellationToken ct = default)
+        => await _db.PropertyListingRequests
+            .Include(r => r.User)
+            .Include(r => r.Village)
+            .Include(r => r.Zone)
+            .Include(r => r.AssignedAdmin)
+            .Include(r => r.CreatedProperty)
+            .FirstOrDefaultAsync(r => r.Id == id, ct);
+
+    public async Task<PropertyListingRequestDto?> GetListingRequestDtoAsync(int id, CancellationToken ct = default)
+    {
+        var entity = await GetListingRequestAsync(id, ct);
+        return entity == null ? null : ToListingRequestDto(entity);
+    }
+
+    public async Task<PagedResult<PropertyListingRequestDto>> GetMyListingRequestsAsync(int userId, int page, int pageSize, CancellationToken ct = default)
+    {
+        var query = _db.PropertyListingRequests.AsNoTracking()
+            .Include(r => r.User)
+            .Include(r => r.Village)
+            .Include(r => r.Zone)
+            .Include(r => r.AssignedAdmin)
+            .Include(r => r.CreatedProperty)
+            .Where(r => r.UserId == userId)
+            .OrderByDescending(r => r.CreatedAt);
+
+        return await PageAsync(query, page, pageSize, ToListingRequestDto, ct);
+    }
+
+    public async Task<PagedResult<PropertyListingRequestDto>> GetAllListingRequestsAsync(string? status, int page, int pageSize, CancellationToken ct = default)
+    {
+        var query = _db.PropertyListingRequests.AsNoTracking()
+            .Include(r => r.User)
+            .Include(r => r.Village)
+            .Include(r => r.Zone)
+            .Include(r => r.AssignedAdmin)
+            .Include(r => r.CreatedProperty)
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<ListingRequestStatus>(status, true, out var parsed))
+        {
+            query = query.Where(r => r.Status == parsed);
+        }
+
+        query = query.OrderByDescending(r => r.CreatedAt);
+        return await PageAsync(query, page, pageSize, ToListingRequestDto, ct);
+    }
+
+    public async Task<bool> HasActiveListingRequestAsync(int villageId, string buildingNumber, string unitNumber, CancellationToken ct = default)
+    {
+        var b = buildingNumber.Trim().ToLower();
+        var u = unitNumber.Trim().ToLower();
+        return await _db.PropertyListingRequests
+            .AnyAsync(r => r.VillageId == villageId
+                        && r.BuildingNumber.ToLower() == b
+                        && r.UnitNumber.ToLower() == u
+                        && r.Status != ListingRequestStatus.Completed
+                        && r.Status != ListingRequestStatus.Rejected, ct);
+    }
+
+    public async Task<bool> VillageExistsAsync(int villageId, CancellationToken ct = default)
+        => await _db.Villages.AnyAsync(v => v.Id == villageId, ct);
+
+    public async Task<bool> ZoneBelongsToVillageAsync(int zoneId, int villageId, CancellationToken ct = default)
+        => await _db.Zones.AnyAsync(z => z.Id == zoneId && z.VillageId == villageId, ct);
+
     public Task SaveChangesAsync(CancellationToken ct = default)
         => _db.SaveChangesAsync(ct);
 
@@ -294,7 +421,15 @@ public sealed class RequestStore : IRequestStore
         => new(bp.Id, bp.UserId, bp.User?.FullName ?? string.Empty,
             bp.User?.Email ?? string.Empty, bp.User?.PhoneNumber,
             bp.AgencyName, bp.LicenseNumber, bp.NationalId, bp.DocumentUrl,
+            bp.IdCardFrontPath, bp.IdCardBackPath, bp.IsPhoneVerified,
             bp.Status.ToString(), bp.AdminNotes, bp.ApprovedAt, bp.CreatedAt);
+
+    internal static BrokerPropertySubmissionDto ToBrokerSubmissionDto(BrokerPropertySubmission s)
+        => new(s.Id, s.BrokerId, s.Broker?.FullName ?? $"Broker #{s.BrokerId}",
+            s.Broker?.PhoneNumber,
+            s.VillageId, s.Village?.Name ?? $"Village #{s.VillageId}",
+            s.ZoneId, s.Zone?.Name,
+            s.Area, s.UnitNumber, s.Status.ToString(), s.AdminNotes, s.CreatedProperty?.Id, s.CreatedAt);
 
     internal static PropertyRequirementDto ToRequirementDto(PropertyRequirement pr)
         => new(pr.Id, pr.UserId, pr.CustomerName, pr.CustomerEmail, pr.CustomerPhone,
@@ -303,4 +438,30 @@ public sealed class RequestStore : IRequestStore
             pr.MinPrice, pr.MaxPrice, pr.Bedrooms, pr.StartDate, pr.EndDate,
             pr.DesiredAmenities, pr.Notes, pr.Status.ToString(),
             pr.AssignedStaffId, pr.AssignedStaff?.FullName, pr.CreatedAt);
+
+    internal static PropertyListingRequestDto ToListingRequestDto(PropertyListingRequest r)
+        => new(
+            r.Id,
+            r.RequestNumber,
+            r.UserId,
+            r.User?.FullName ?? $"User #{r.UserId}",
+            r.PhoneNumber,
+            r.VillageId,
+            r.Village?.Name ?? $"Village #{r.VillageId}",
+            r.Village?.NameAr,
+            r.ZoneId,
+            r.Zone?.Name ?? $"Zone #{r.ZoneId}",
+            r.Zone?.NameAr,
+            r.BuildingNumber,
+            r.UnitNumber,
+            r.Status.ToString(),
+            r.AdminNotes,
+            r.InspectionDate,
+            r.AssignedAdminId,
+            r.AssignedAdmin?.FullName,
+            r.PropertyId,
+            r.CreatedProperty?.Title,
+            r.CreatedProperty?.ReferenceNumber,
+            r.CreatedAt,
+            r.UpdatedAt);
 }

@@ -132,6 +132,14 @@ public sealed class PropertyService : IPropertyService
             return ServiceResult<PropertyDetailsDto>.Fail("Location not found.", 422,
                 new() { new("Location not found.", "locationId") });
 
+        PropertyListingRequest? listingRequest = null;
+        if (request.PropertyListingRequestId.HasValue)
+        {
+            listingRequest = await _store.GetListingRequestAsync(request.PropertyListingRequestId.Value, ct);
+            if (listingRequest == null)
+                return ServiceResult<PropertyDetailsDto>.Fail("Associated property listing request not found.", 404);
+        }
+
         var baseSlug = SlugHelper.GenerateSlug(request.Title);
         var slug = SlugHelper.UniqueSlug(baseSlug,
             s => _store.SlugExistsAsync(s).GetAwaiter().GetResult());
@@ -170,12 +178,21 @@ public sealed class PropertyService : IPropertyService
             LocationId = request.LocationId,
             Address = request.Address,
             Developer = request.Developer,
-            OwnerId = request.OwnerId ?? (role == "Seller" ? userId : null),
-            CreatedByUserId = userId
+            OwnerId = listingRequest != null ? listingRequest.UserId : (request.OwnerId ?? (role == "Seller" ? userId : null)),
+            CreatedByUserId = userId,
+            PropertyListingRequestId = listingRequest?.Id
         };
 
         await _store.AddAsync(property, ct);
         await _store.SaveChangesAsync(ct);
+
+        if (listingRequest != null)
+        {
+            listingRequest.PropertyId = property.Id;
+            listingRequest.Status = ListingRequestStatus.Completed;
+            listingRequest.UpdatedAt = DateTime.UtcNow;
+            await _store.SaveChangesAsync(ct);
+        }
 
         var details = await _store.GetDetailsAsync(property.Id, true, ct);
         return ServiceResult<PropertyDetailsDto>.Created(details!,

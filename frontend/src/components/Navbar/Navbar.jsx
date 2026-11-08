@@ -7,11 +7,12 @@ import NavbarSearch from '../NavbarSearch/NavbarSearch.jsx';
 import './Navbar.css';
 
 const FEATURED_LOCATIONS = [
-  { name: 'Ain Sokhna', slug: 'ain-sokhna', desc: 'Red Sea beaches, 1h from Cairo', icon: 'bi-water' },
-  { name: 'North Coast', slug: 'north-coast', desc: 'Mediterranean summer luxury', icon: 'bi-umbrella' },
-  { name: 'El Gouna', slug: 'el-gouna', desc: 'Lagoon town & marina life', icon: 'bi-compass' },
-  { name: 'New Cairo', slug: 'new-cairo', desc: 'Family living & modern compounds', icon: 'bi-building' },
-  { name: 'Hurghada', slug: 'hurghada', desc: 'Year-round sun & dive waters', icon: 'bi-sun' },
+  { id: 1, name: 'Marassi', nameAr: 'مراسي', slug: 'marassi', desc: 'Sidi Abdel Rahman · Marina & Golf', icon: 'bi-water' },
+  { id: 2, name: 'Hacienda Bay', nameAr: 'هاسيندا باي', slug: 'hacienda-bay', desc: 'Palm Hills · Golf & Lake', icon: 'bi-compass' },
+  { id: 3, name: 'Telal', nameAr: 'تلال الساحل', slug: 'telal', desc: 'Sidi Abdel Rahman · Pure Shoreline', icon: 'bi-umbrella' },
+  { id: 4, name: 'Amwaj', nameAr: 'أمواج', slug: 'amwaj', desc: 'Sidi Abdel Rahman · Vibrant Community', icon: 'bi-sun' },
+  { id: 5, name: 'Mountain View Ras El Hekma', nameAr: 'ماونتن فيو رأس الحكمة', slug: 'mountain-view-ras-el-hekma', desc: 'Ras El Hekma · Turquoise Bay', icon: 'bi-houses' },
+  { id: 6, name: 'Silversands', nameAr: 'سيلفرساندز', slug: 'silversands', desc: 'Sidi Heneish · Ultra-luxury Shore', icon: 'bi-building' },
 ];
 
 const POPULAR_TYPES = [
@@ -185,7 +186,7 @@ export default function Navbar({ transparent = false }) {
                       {FEATURED_LOCATIONS.map((loc) => (
                         <Link
                           key={loc.slug}
-                          to={`/properties?location=${loc.slug}`}
+                          to={`/properties?villageId=${loc.id}`}
                           className="mega-location-card"
                           onClick={() => setExploreOpen(false)}
                         >
@@ -193,7 +194,7 @@ export default function Navbar({ transparent = false }) {
                             <i className={`bi ${loc.icon}`}></i>
                           </div>
                           <div>
-                            <strong>{t(`destinations.${loc.slug}`, loc.name)}</strong>
+                            <strong>{isRtl ? (loc.nameAr || loc.name) : (loc.name || loc.nameAr)}</strong>
                             <small>{loc.desc}</small>
                           </div>
                         </Link>
@@ -514,12 +515,12 @@ export default function Navbar({ transparent = false }) {
                 {FEATURED_LOCATIONS.map((loc) => (
                   <Link
                     key={loc.slug}
-                    to={`/properties?location=${loc.slug}`}
+                    to={`/properties?villageId=${loc.id}`}
                     className="destination-pill"
                     onClick={() => setOpen(false)}
                   >
                     <i className={`bi ${loc.icon} me-1`}></i>
-                    <span>{t(`destinations.${loc.slug}`, loc.name)}</span>
+                    <span>{isRtl ? (loc.nameAr || loc.name) : (loc.name || loc.nameAr)}</span>
                   </Link>
                 ))}
               </div>

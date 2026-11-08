@@ -29,9 +29,12 @@ public sealed class LookupsController : ControllerBase
                 {
                     v.Id,
                     v.Name,
+                    v.NameAr,
                     v.Slug,
+                    v.ImageUrl,
+                    PropertiesCount = v.Properties.Count(p => p.Status == Domain.Enums.PropertyStatus.Published || p.Status == Domain.Enums.PropertyStatus.Featured || p.Status == Domain.Enums.PropertyStatus.Reserved),
                     Zones = v.Zones.Where(z => z.IsActive).OrderBy(z => z.Name)
-                        .Select(z => new { z.Id, z.Name, z.Slug })
+                        .Select(z => new { z.Id, z.VillageId, z.Name, z.NameAr, z.Slug })
                 })
                 .ToListAsync(ct)
         });
@@ -46,7 +49,7 @@ public sealed class LookupsController : ControllerBase
         var data = await _db.Zones.AsNoTracking()
             .Where(z => z.VillageId == villageId && z.IsActive)
             .OrderBy(z => z.Name)
-            .Select(z => new { z.Id, z.VillageId, z.Name, z.Slug })
+            .Select(z => new { z.Id, z.VillageId, z.Name, z.NameAr, z.Slug })
             .ToListAsync(ct);
 
         return Ok(new { success = true, message = "OK", data });
@@ -64,6 +67,7 @@ public sealed class LookupsController : ControllerBase
                 .ToListAsync(ct)
         });
 
+    /// <summary>Restricted exclusively to North Coast destinations per business requirements.</summary>
     [HttpGet("cities")]
     public async Task<IActionResult> Cities(CancellationToken ct)
         => Ok(new
@@ -71,6 +75,7 @@ public sealed class LookupsController : ControllerBase
             success = true,
             message = "OK",
             data = await _db.Cities.AsNoTracking()
+                .Where(c => c.Slug == "north-coast" || c.Name.ToLower().Contains("north coast"))
                 .OrderBy(c => c.Id)
                 .Select(c => new
                 {

@@ -12,6 +12,7 @@ import UsersManager from './components/UsersManager.jsx';
 import VillagesManager from './components/VillagesManager.jsx';
 import BrokersManager from './components/BrokersManager.jsx';
 import RequirementsManager from './components/RequirementsManager.jsx';
+import ListingRequestsManager from './components/ListingRequestsManager.jsx';
 import { InquiriesManager, ReviewsManager, CatalogManager, AuditViewer } from './components/MiscManagers.jsx';
 import CmsManager from './components/CmsManager.jsx';
 import { useSeo } from '../../hooks/useSeo.js';
@@ -26,6 +27,7 @@ export default function AdminDashboard() {
       { id: 'overview', label: t('admin.tabs.overview', isRtl ? 'نظرة عامة' : 'Overview'), icon: 'bi-speedometer2' },
       { id: 'approvals', label: t('admin.tabs.approvals', isRtl ? 'الموافقات' : 'Approvals'), icon: 'bi-check2-square' },
       { id: 'properties', label: t('admin.tabs.properties', isRtl ? 'إدارة العقارات' : 'Properties'), icon: 'bi-buildings' },
+      { id: 'listing-requests', label: t('admin.tabs.listingRequests', isRtl ? 'طلبات عرض العقارات' : 'Listing Requests'), icon: 'bi-houses' },
       { id: 'villages', label: t('admin.tabs.villages', isRtl ? 'قرى ومناطق الساحل' : 'Villages & Zones'), icon: 'bi-geo-alt' },
       { id: 'purchases', label: t('admin.tabs.purchases', isRtl ? 'طلبات الشراء' : 'Purchases'), icon: 'bi-bag' },
       { id: 'rentals', label: t('admin.tabs.rentals', isRtl ? 'طلبات الإيجار' : 'Rentals'), icon: 'bi-key' },
@@ -139,6 +141,7 @@ export default function AdminDashboard() {
 
         {tab === 'approvals' && <ApprovalQueue onChanged={loadStats} />}
         {tab === 'properties' && <PropertiesManager onChanged={loadStats} />}
+        {tab === 'listing-requests' && <ListingRequestsManager />}
         {tab === 'villages' && <VillagesManager />}
         {tab === 'purchases' && <RequestsManager kind="purchase" onChanged={loadStats} />}
         {tab === 'rentals' && <RequestsManager kind="booking" onChanged={loadStats} />}

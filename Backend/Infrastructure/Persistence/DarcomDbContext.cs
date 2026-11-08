@@ -44,7 +44,9 @@ public sealed class DarcomDbContext : DbContext
     public DbSet<BookingRequest> BookingRequests => Set<BookingRequest>();
     public DbSet<RentalPeriod> RentalPeriods => Set<RentalPeriod>();
     public DbSet<BrokerPropertyRequest> BrokerPropertyRequests => Set<BrokerPropertyRequest>();
+    public DbSet<BrokerPropertySubmission> BrokerPropertySubmissions => Set<BrokerPropertySubmission>();
     public DbSet<PropertyRequirement> PropertyRequirements => Set<PropertyRequirement>();
+    public DbSet<PropertyListingRequest> PropertyListingRequests => Set<PropertyListingRequest>();
 
     public DbSet<Payment> Payments => Set<Payment>();
     public DbSet<Document> Documents => Set<Document>();

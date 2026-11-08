@@ -9,7 +9,9 @@ public sealed class VillageConfiguration : IEntityTypeConfiguration<Village>
     public void Configure(EntityTypeBuilder<Village> b)
     {
         b.Property(v => v.Name).HasMaxLength(150).IsRequired();
+        b.Property(v => v.NameAr).HasMaxLength(150);
         b.Property(v => v.Slug).HasMaxLength(150).IsRequired();
+        b.Property(v => v.ImageUrl).HasMaxLength(1000);
         b.Property(v => v.IsActive).HasDefaultValue(true);
 
         b.HasIndex(v => v.Slug).IsUnique();
@@ -22,6 +24,7 @@ public sealed class ZoneConfiguration : IEntityTypeConfiguration<Zone>
     public void Configure(EntityTypeBuilder<Zone> b)
     {
         b.Property(z => z.Name).HasMaxLength(150).IsRequired();
+        b.Property(z => z.NameAr).HasMaxLength(150);
         b.Property(z => z.Slug).HasMaxLength(150).IsRequired();
         b.Property(z => z.IsActive).HasDefaultValue(true);
 
@@ -32,4 +35,3 @@ public sealed class ZoneConfiguration : IEntityTypeConfiguration<Zone>
             .HasForeignKey(z => z.VillageId).OnDelete(DeleteBehavior.Restrict);
     }
 }
-

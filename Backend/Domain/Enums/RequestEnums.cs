@@ -20,3 +20,14 @@ public enum PaymentStatus
     Failed = 2,
     Refunded = 3
 }
+
+/// <summary>Lifecycle of a user property listing request (request & inspection workflow).</summary>
+public enum ListingRequestStatus
+{
+    Pending = 0,
+    Contacted = 1,
+    InspectionScheduled = 2,
+    Inspected = 3,
+    Completed = 4,
+    Rejected = 5
+}

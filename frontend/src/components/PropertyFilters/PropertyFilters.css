@@ -59,7 +59,8 @@
 
 /* Form Inputs & Selects */
 .filters-group select,
-.filters-group input[type="number"] {
+.filters-group input[type="number"],
+.filters-group input[type="text"] {
   border: 1px solid var(--neutral-300);
   border-radius: 10px;
   padding: 0.55rem 0.75rem;
@@ -72,9 +73,46 @@
 }
 
 .filters-group select:focus,
-.filters-group input[type="number"]:focus {
+.filters-group input[type="number"]:focus,
+.filters-group input[type="text"]:focus {
   border-color: var(--brand-primary);
   box-shadow: 0 0 0 3px rgba(20, 66, 79, 0.1);
+}
+
+.amenities-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  max-block-size: 160px;
+  overflow-y: auto;
+  padding: 2px;
+}
+
+.amenity-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.65rem;
+  border-radius: 20px;
+  border: 1px solid var(--neutral-300);
+  background: #ffffff;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--neutral-700);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.amenity-chip:hover {
+  border-color: var(--brand-primary);
+  color: var(--brand-primary);
+}
+
+.amenity-chip.active {
+  background: rgba(20, 66, 79, 0.08);
+  border-color: var(--brand-primary);
+  color: var(--brand-primary);
+  font-weight: 600;
 }
 
 .filters-row {

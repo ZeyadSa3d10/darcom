@@ -25,11 +25,17 @@ public interface IRequestService
     Task<ServiceResult<BrokerDashboardDto>> GetBrokerDashboardAsync(int brokerUserId, CancellationToken ct = default);
     Task<ServiceResult<PagedResult<PropertyListDto>>> GetBrokerPropertiesAsync(int brokerUserId, string? status, int page, int pageSize, CancellationToken ct = default);
     Task<ServiceResult<PropertyDetailsDto>> SubmitBrokerPropertyAsync(int brokerUserId, BrokerPropertySubmissionRequest request, CancellationToken ct = default);
+    Task<ServiceResult<BrokerPropertySubmissionDto>> SubmitBrokerUnitAsync(int brokerUserId, BrokerPropertySubmissionCreateDto request, CancellationToken ct = default);
+    Task<ServiceResult<PagedResult<BrokerPropertySubmissionDto>>> MyBrokerSubmissionsAsync(int brokerUserId, int page, int pageSize, CancellationToken ct = default);
+    Task<ServiceResult<PagedResult<BrokerPropertySubmissionDto>>> AllBrokerSubmissionsAsync(string? status, int page, int pageSize, CancellationToken ct = default);
+    Task<ServiceResult<BrokerPropertySubmissionDto>> SetBrokerSubmissionStatusAsync(int adminId, int id, UpdateBrokerSubmissionStatusRequest request, CancellationToken ct = default);
     Task<ServiceResult<BrokerProfileDto>> RegisterBrokerAsync(int userId, RegisterBrokerRequest request, CancellationToken ct = default);
     Task<ServiceResult<BrokerProfileDto>> GetMyBrokerProfileAsync(int userId, CancellationToken ct = default);
     Task<ServiceResult<PagedResult<BrokerProfileDto>>> AllBrokersAsync(string? status, int page, int pageSize, CancellationToken ct = default);
     Task<ServiceResult<BrokerProfileDto>> SetBrokerStatusAsync(int adminId, int brokerProfileId, SetBrokerStatusRequest request, CancellationToken ct = default);
     Task<ServiceResult<BrokerPropertyRequestDto>> CreateBrokerRequestAsync(int brokerUserId, CreateBrokerPropertyRequest request, CancellationToken ct = default);
+    Task<ServiceResult<BrokerPropertyRequestDto>> CreateBrokerPropertyRequestAsync(int brokerUserId, BrokerPropertyRequestCreateDto request, CancellationToken ct = default);
+    Task<ServiceResult<PropertyRequirementDto>> CreateBrokerRequirementAsync(int brokerUserId, BrokerRequirementCreateDto request, CancellationToken ct = default);
     Task<ServiceResult<PagedResult<BrokerPropertyRequestDto>>> MyBrokerRequestsAsync(int brokerUserId, int page, int pageSize, CancellationToken ct = default);
     Task<ServiceResult<PagedResult<BrokerPropertyRequestDto>>> AllBrokerRequestsAsync(string? status, int page, int pageSize, CancellationToken ct = default);
     Task<ServiceResult<BrokerPropertyRequestDto>> SetBrokerRequestStatusAsync(int adminId, int id, UpdateRequestStatusRequest request, CancellationToken ct = default);
@@ -39,6 +45,13 @@ public interface IRequestService
     Task<ServiceResult<PagedResult<PropertyRequirementDto>>> MyRequirementsAsync(int userId, int page, int pageSize, CancellationToken ct = default);
     Task<ServiceResult<PagedResult<PropertyRequirementDto>>> AllRequirementsAsync(string? status, int page, int pageSize, CancellationToken ct = default);
     Task<ServiceResult<PropertyRequirementDto>> SetRequirementStatusAsync(int adminId, int id, UpdateRequirementStatusRequest request, CancellationToken ct = default);
+
+    // User Property Listing Requests ("اعرض عقارك")
+    Task<ServiceResult<PropertyListingRequestDto>> CreateListingRequestAsync(int userId, CreatePropertyListingRequest request, CancellationToken ct = default);
+    Task<ServiceResult<PagedResult<PropertyListingRequestDto>>> MyListingRequestsAsync(int userId, int page, int pageSize, CancellationToken ct = default);
+    Task<ServiceResult<PagedResult<PropertyListingRequestDto>>> AllListingRequestsAsync(string? status, int page, int pageSize, CancellationToken ct = default);
+    Task<ServiceResult<PropertyListingRequestDto>> GetListingRequestByIdAsync(int id, int? currentUserId, bool isAdmin, CancellationToken ct = default);
+    Task<ServiceResult<PropertyListingRequestDto>> SetListingRequestStatusAsync(int adminId, int id, UpdateListingRequestStatusRequest request, CancellationToken ct = default);
 }
 
 public sealed class RequestService : IRequestService
@@ -288,9 +301,11 @@ public sealed class RequestService : IRequestService
         var profileDto = profile is null ? null : await _store.GetBrokerProfileDtoAsync(profile.Id, ct);
         var (total, pending, approved, rejected) = await _properties.GetBrokerPropertyCountsAsync(brokerUserId, ct);
         var clientRequests = await _store.GetBrokerClientRequestsCountAsync(brokerUserId, ct);
+        var pendingSubmissions = await _store.GetBrokerSubmissionsCountAsync(brokerUserId, "Pending", ct);
+        var requirementsCount = await _store.GetBrokerRequirementsCountAsync(brokerUserId, ct);
 
         return ServiceResult<BrokerDashboardDto>.Ok(new BrokerDashboardDto(
-            profileDto, total, pending, approved, rejected, clientRequests));
+            profileDto, total, pending, approved, rejected, clientRequests, pendingSubmissions, requirementsCount));
     }
 
     public async Task<ServiceResult<PagedResult<PropertyListDto>>> GetBrokerPropertiesAsync(int brokerUserId, string? status, int page, int pageSize, CancellationToken ct = default)
@@ -543,6 +558,147 @@ public sealed class RequestService : IRequestService
         return ServiceResult<BrokerPropertyRequestDto>.Ok(dto!, $"Broker request status updated to {next}.");
     }
 
+    public async Task<ServiceResult<BrokerPropertySubmissionDto>> SubmitBrokerUnitAsync(int brokerUserId, BrokerPropertySubmissionCreateDto request, CancellationToken ct = default)
+    {
+        var profile = await _store.GetBrokerProfileByUserIdAsync(brokerUserId, ct);
+        if (profile is null || profile.Status != BrokerStatus.Approved)
+            return ServiceResult<BrokerPropertySubmissionDto>.Fail("فقط الوسطاء المعتمدون يمكنهم تقديم وحدات للمعاينة والنشر.", 403);
+
+        if (request.Area <= 0)
+            return ServiceResult<BrokerPropertySubmissionDto>.Fail("المساحة يجب أن تكون أكبر من صفر.", 422,
+                new() { new("Area must be greater than zero.", "area") });
+
+        if (string.IsNullOrWhiteSpace(request.UnitNumber))
+            return ServiceResult<BrokerPropertySubmissionDto>.Fail("رقم الشاليه أو الوحدة مطلوب.", 422,
+                new() { new("Unit number is required.", "unitNumber") });
+
+        if (request.VillageId <= 0)
+            return ServiceResult<BrokerPropertySubmissionDto>.Fail("القرية مطلوبة.", 422,
+                new() { new("Village is required.", "villageId") });
+
+        var submission = new BrokerPropertySubmission
+        {
+            BrokerId = brokerUserId,
+            VillageId = request.VillageId,
+            ZoneId = request.ZoneId > 0 ? request.ZoneId : null,
+            Area = request.Area,
+            UnitNumber = request.UnitNumber.Trim(),
+            Status = RequestStatus.Pending,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        await _store.AddBrokerSubmissionAsync(submission, ct);
+        await _store.SaveChangesAsync(ct);
+
+        var dto = await _store.GetBrokerSubmissionDtoAsync(submission.Id, ct);
+        return ServiceResult<BrokerPropertySubmissionDto>.Created(dto!, "تم تسجيل بيانات الوحدة بنجاح. سيقوم فريق دركم بالتواصل معك لمعاينتها وتصويرها.");
+    }
+
+    public async Task<ServiceResult<PagedResult<BrokerPropertySubmissionDto>>> MyBrokerSubmissionsAsync(int brokerUserId, int page, int pageSize, CancellationToken ct = default)
+        => ServiceResult<PagedResult<BrokerPropertySubmissionDto>>.Ok(
+            await _store.GetBrokerSubmissionsAsync(brokerUserId, Math.Max(1, page), Math.Clamp(pageSize, 1, 50), ct));
+
+    public async Task<ServiceResult<PagedResult<BrokerPropertySubmissionDto>>> AllBrokerSubmissionsAsync(string? status, int page, int pageSize, CancellationToken ct = default)
+        => ServiceResult<PagedResult<BrokerPropertySubmissionDto>>.Ok(
+            await _store.GetAllBrokerSubmissionsAsync(status, Math.Max(1, page), Math.Clamp(pageSize, 1, 50), ct));
+
+    public async Task<ServiceResult<BrokerPropertySubmissionDto>> SetBrokerSubmissionStatusAsync(int adminId, int id, UpdateBrokerSubmissionStatusRequest request, CancellationToken ct = default)
+    {
+        var submission = await _store.GetBrokerSubmissionAsync(id, ct);
+        if (submission is null)
+            return ServiceResult<BrokerPropertySubmissionDto>.NotFound("Submission not found.");
+
+        if (Enum.TryParse<RequestStatus>(request.Status.Replace(" ", ""), true, out var nextStatus))
+        {
+            submission.Status = nextStatus;
+        }
+        if (!string.IsNullOrWhiteSpace(request.AdminNotes))
+        {
+            submission.AdminNotes = request.AdminNotes.Trim();
+        }
+        submission.UpdatedAt = DateTime.UtcNow;
+        await _store.SaveChangesAsync(ct);
+
+        var dto = await _store.GetBrokerSubmissionDtoAsync(submission.Id, ct);
+        return ServiceResult<BrokerPropertySubmissionDto>.Ok(dto!, $"Submission status updated to {submission.Status}.");
+    }
+
+    public async Task<ServiceResult<BrokerPropertyRequestDto>> CreateBrokerPropertyRequestAsync(int brokerUserId, BrokerPropertyRequestCreateDto request, CancellationToken ct = default)
+    {
+        var profile = await _store.GetBrokerProfileByUserIdAsync(brokerUserId, ct);
+        if (profile is null || profile.Status != BrokerStatus.Approved)
+            return ServiceResult<BrokerPropertyRequestDto>.Fail("فقط الوسطاء المعتمدون يمكنهم تقديم طلبات على الوحدات.", 403);
+
+        var property = await _store.GetPropertyAsync(request.PropertyId, ct);
+        if (property is null)
+            return ServiceResult<BrokerPropertyRequestDto>.NotFound("Property not found.");
+
+        var purpose = Enum.Parse<PropertyPurpose>(request.Purpose, true);
+
+        if (purpose == PropertyPurpose.Rent && request.StartDate.HasValue && request.EndDate.HasValue)
+        {
+            if (request.EndDate.Value <= request.StartDate.Value)
+                return ServiceResult<BrokerPropertyRequestDto>.Fail("تاريخ النهاية يجب أن يكون بعد تاريخ البداية.", 422);
+
+            if (await _store.HasOverlappingRentalPeriodAsync(request.PropertyId, request.StartDate.Value, request.EndDate.Value, null, ct))
+                return ServiceResult<BrokerPropertyRequestDto>.Fail("الوحدة محجوزة بالفعل في هذه التواريخ.", 409);
+        }
+
+        var brokerRequest = new BrokerPropertyRequest
+        {
+            BrokerId = brokerUserId,
+            PropertyId = request.PropertyId,
+            ClientName = profile.User?.FullName ?? $"Broker #{brokerUserId}",
+            ClientPhone = profile.User?.PhoneNumber ?? string.Empty,
+            Purpose = purpose,
+            StartDate = request.StartDate,
+            EndDate = request.EndDate,
+            Status = RequestStatus.Pending,
+            Notes = request.Notes?.Trim()
+        };
+
+        await _store.AddBrokerRequestAsync(brokerRequest, ct);
+        await _store.SaveChangesAsync(ct);
+
+        var dto = await _store.GetBrokerRequestDtoAsync(brokerRequest.Id, ct);
+        return ServiceResult<BrokerPropertyRequestDto>.Created(dto!, "تم تقديم طلبك بنجاح. سيتواصل معك أحد مسؤولي دركم قريباً.");
+    }
+
+    public async Task<ServiceResult<PropertyRequirementDto>> CreateBrokerRequirementAsync(int brokerUserId, BrokerRequirementCreateDto request, CancellationToken ct = default)
+    {
+        var profile = await _store.GetBrokerProfileByUserIdAsync(brokerUserId, ct);
+        if (profile is null || profile.Status != BrokerStatus.Approved)
+            return ServiceResult<PropertyRequirementDto>.Fail("فقط الوسطاء المعتمدون يمكنهم تقديم طلبات بمواصفات خاصة.", 403);
+
+        var purpose = Enum.Parse<PropertyPurpose>(request.Purpose, true);
+
+        var requirement = new PropertyRequirement
+        {
+            UserId = brokerUserId,
+            CustomerName = profile.User?.FullName ?? $"Broker #{brokerUserId}",
+            CustomerEmail = profile.User?.Email ?? string.Empty,
+            CustomerPhone = profile.User?.PhoneNumber ?? string.Empty,
+            Purpose = purpose,
+            PropertyTypeId = request.PropertyTypeId > 0 ? request.PropertyTypeId : null,
+            VillageId = request.VillageId > 0 ? request.VillageId : null,
+            ZoneId = request.ZoneId > 0 ? request.ZoneId : null,
+            MinPrice = request.MinPrice,
+            MaxPrice = request.MaxPrice,
+            Area = request.Area,
+            Bedrooms = request.Bedrooms,
+            StartDate = request.StartDate,
+            EndDate = request.EndDate,
+            Notes = request.Notes?.Trim(),
+            Status = RequestStatus.Pending
+        };
+
+        await _store.AddPropertyRequirementAsync(requirement, ct);
+        await _store.SaveChangesAsync(ct);
+
+        var dto = await _store.GetPropertyRequirementDtoAsync(requirement.Id, ct);
+        return ServiceResult<PropertyRequirementDto>.Created(dto!, "تم تسجيل طلبك بمواصفات خاصة بنجاح. سيتواصل معك فريق دركم فور توفر وحدة مطابقة.");
+    }
+
     // -------------------------------------------------------------
     // Customer Property Requirements (Requirement 10)
     // -------------------------------------------------------------
@@ -616,6 +772,129 @@ public sealed class RequestService : IRequestService
 
         var dto = await _store.GetPropertyRequirementDtoAsync(req.Id, ct);
         return ServiceResult<PropertyRequirementDto>.Ok(dto!, $"Requirement status updated to {nextStatus}.");
+    }
+
+    // User Property Listing Requests ("اعرض عقارك")
+    public async Task<ServiceResult<PropertyListingRequestDto>> CreateListingRequestAsync(int userId, CreatePropertyListingRequest request, CancellationToken ct = default)
+    {
+        if (!await _store.VillageExistsAsync(request.VillageId, ct))
+            return ServiceResult<PropertyListingRequestDto>.Fail("Village not found.", 422,
+                new() { new("Village not found.", "villageId") });
+
+        if (!await _store.ZoneBelongsToVillageAsync(request.ZoneId, request.VillageId, ct))
+            return ServiceResult<PropertyListingRequestDto>.Fail("Selected zone does not belong to the selected village.", 422,
+                new() { new("Selected zone does not belong to the selected village.", "zoneId") });
+
+        if (await _store.HasActiveListingRequestAsync(request.VillageId, request.BuildingNumber, request.UnitNumber, ct))
+            return ServiceResult<PropertyListingRequestDto>.Fail("يوجد طلب نشط بالفعل لهذه الوحدة قيد المراجعة / An active listing request already exists for this unit.", 409);
+
+        var entity = new PropertyListingRequest
+        {
+            RequestNumber = "PENDING",
+            UserId = userId,
+            VillageId = request.VillageId,
+            ZoneId = request.ZoneId,
+            BuildingNumber = request.BuildingNumber.Trim(),
+            UnitNumber = request.UnitNumber.Trim(),
+            PhoneNumber = request.PhoneNumber.Trim(),
+            Status = ListingRequestStatus.Pending,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        await _store.ExecuteInTransactionAsync(async () =>
+        {
+            await _store.AddListingRequestAsync(entity, ct);
+            await _store.SaveChangesAsync(ct);
+
+            entity.RequestNumber = $"PLR-{DateTime.UtcNow:yyyy}-{entity.Id:D6}";
+            await _store.SaveChangesAsync(ct);
+        }, ct);
+
+        // Notify admins
+        var adminIds = await _store.GetAdminUserIdsAsync(ct);
+        foreach (var adminId in adminIds)
+        {
+            await _engagement.AddNotificationAsync(adminId, "طلب عرض عقار جديد",
+                $"طلب عرض عقار جديد برقم {entity.RequestNumber}. يرجى مراجعة التفاصيل وتحديد موعد المعاينة.",
+                "listing-request", ct);
+        }
+        await _engagement.SaveChangesAsync(ct);
+
+        await _audit.LogAsync(userId, "listing-request.created", "PropertyListingRequest",
+            entity.Id.ToString(), null, entity.RequestNumber, null, ct);
+
+        var dto = await _store.GetListingRequestDtoAsync(entity.Id, ct);
+        return ServiceResult<PropertyListingRequestDto>.Created(dto!, "تم استلام طلبك بنجاح. فريق Darcom هيتواصل معاك قريبًا لتحديد موعد معاينة الوحدة.");
+    }
+
+    public async Task<ServiceResult<PagedResult<PropertyListingRequestDto>>> MyListingRequestsAsync(int userId, int page, int pageSize, CancellationToken ct = default)
+    {
+        page = Math.Max(1, page);
+        pageSize = Math.Clamp(pageSize, 1, 50);
+        var result = await _store.GetMyListingRequestsAsync(userId, page, pageSize, ct);
+        // Owner must not see internal admin notes
+        var sanitizedItems = result.Data.Select(item => item with { AdminNotes = null }).ToList();
+        var sanitizedResult = new PagedResult<PropertyListingRequestDto>(sanitizedItems, result.Page, result.PageSize, result.TotalCount, result.TotalPages);
+        return ServiceResult<PagedResult<PropertyListingRequestDto>>.Ok(sanitizedResult);
+    }
+
+    public async Task<ServiceResult<PagedResult<PropertyListingRequestDto>>> AllListingRequestsAsync(string? status, int page, int pageSize, CancellationToken ct = default)
+    {
+        page = Math.Max(1, page);
+        pageSize = Math.Clamp(pageSize, 1, 50);
+        var result = await _store.GetAllListingRequestsAsync(status, page, pageSize, ct);
+        return ServiceResult<PagedResult<PropertyListingRequestDto>>.Ok(result);
+    }
+
+    public async Task<ServiceResult<PropertyListingRequestDto>> GetListingRequestByIdAsync(int id, int? currentUserId, bool isAdmin, CancellationToken ct = default)
+    {
+        var dto = await _store.GetListingRequestDtoAsync(id, ct);
+        if (dto is null)
+            return ServiceResult<PropertyListingRequestDto>.NotFound("Listing request not found.");
+
+        if (!isAdmin && dto.UserId != currentUserId)
+            return ServiceResult<PropertyListingRequestDto>.Fail("You are not authorized to view this request.", 403);
+
+        if (!isAdmin)
+            dto = dto with { AdminNotes = null };
+
+        return ServiceResult<PropertyListingRequestDto>.Ok(dto);
+    }
+
+    public async Task<ServiceResult<PropertyListingRequestDto>> SetListingRequestStatusAsync(int adminId, int id, UpdateListingRequestStatusRequest request, CancellationToken ct = default)
+    {
+        var entity = await _store.GetListingRequestAsync(id, ct);
+        if (entity is null)
+            return ServiceResult<PropertyListingRequestDto>.NotFound("Listing request not found.");
+
+        if (!Enum.TryParse<ListingRequestStatus>(request.Status.Replace(" ", ""), true, out var nextStatus))
+            return ServiceResult<PropertyListingRequestDto>.Fail("Invalid listing request status.", 422);
+
+        entity.Status = nextStatus;
+        if (request.AdminNotes != null)
+            entity.AdminNotes = request.AdminNotes.Trim();
+        if (request.InspectionDate.HasValue)
+            entity.InspectionDate = request.InspectionDate.Value;
+        if (request.AssignedAdminId.HasValue)
+            entity.AssignedAdminId = request.AssignedAdminId.Value;
+        else if (entity.AssignedAdminId == null)
+            entity.AssignedAdminId = adminId;
+
+        entity.UpdatedAt = DateTime.UtcNow;
+        await _store.SaveChangesAsync(ct);
+
+        // Notify user about status change
+        await _engagement.AddNotificationAsync(entity.UserId,
+            $"طلب عرض عقارك {entity.RequestNumber}",
+            $"تم تحديث حالة طلبك إلى: {nextStatus}",
+            "listing-request-status", ct);
+        await _engagement.SaveChangesAsync(ct);
+
+        await _audit.LogAsync(adminId, "listing-request.status", "PropertyListingRequest",
+            entity.Id.ToString(), null, entity.Status.ToString(), null, ct);
+
+        var dto = await _store.GetListingRequestDtoAsync(entity.Id, ct);
+        return ServiceResult<PropertyListingRequestDto>.Ok(dto!, $"Listing request status updated to {nextStatus}.");
     }
 }
 

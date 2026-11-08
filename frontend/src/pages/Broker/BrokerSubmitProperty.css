@@ -132,3 +132,21 @@
   cursor: pointer;
 }
 
+
+.broker-submit-card {
+  background: rgba(24, 24, 22, 0.95);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  border-radius: 20px;
+  padding: clamp(1.5rem, 3vw, 2.5rem);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
+}
+
+.bg-gold-subtle {
+  background: rgba(212, 175, 55, 0.12);
+}
+
+.broker-submission-success-card {
+  background: rgba(24, 24, 22, 0.95) !important;
+  border-color: rgba(212, 175, 55, 0.4) !important;
+}

@@ -34,8 +34,13 @@ public sealed class PropertyConfiguration : IEntityTypeConfiguration<Property>
         b.HasIndex(p => p.VillageId);
         b.HasIndex(p => p.ZoneId);
         b.HasIndex(p => new { p.Status, p.Purpose, p.VillageId });
+        b.HasIndex(p => new { p.VillageId, p.ZoneId });
+        b.HasIndex(p => new { p.Status, p.VillageId, p.Price });
 
         b.HasIndex(p => p.LocationId);
+        b.HasIndex(p => p.BrokerId);
+        b.HasIndex(p => p.BrokerSubmissionId);
+        b.HasIndex(p => p.PropertyListingRequestId);
 
         b.HasOne(p => p.PropertyType).WithMany(t => t.Properties)
             .HasForeignKey(p => p.PropertyTypeId).OnDelete(DeleteBehavior.Restrict);
@@ -51,6 +56,12 @@ public sealed class PropertyConfiguration : IEntityTypeConfiguration<Property>
             .HasForeignKey(p => p.CreatedByUserId).OnDelete(DeleteBehavior.SetNull);
         b.HasOne(p => p.Agent).WithMany(a => a!.Properties)
             .HasForeignKey(p => p.AgentId).OnDelete(DeleteBehavior.SetNull);
+        b.HasOne(p => p.Broker).WithMany(u => u.BrokerProperties)
+            .HasForeignKey(p => p.BrokerId).OnDelete(DeleteBehavior.Restrict);
+        b.HasOne(p => p.BrokerSubmission).WithOne(s => s.CreatedProperty)
+            .HasForeignKey<Property>(p => p.BrokerSubmissionId).OnDelete(DeleteBehavior.SetNull);
+        b.HasOne(p => p.PropertyListingRequest).WithMany()
+            .HasForeignKey(p => p.PropertyListingRequestId).OnDelete(DeleteBehavior.SetNull);
     }
 }
 

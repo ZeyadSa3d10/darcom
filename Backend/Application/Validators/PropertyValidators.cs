@@ -22,8 +22,15 @@ public sealed class PropertyQueryValidator : AbstractValidator<PropertyQuery>
         RuleFor(x => x)
             .Must(q => q.MinPrice is null || q.MaxPrice is null || q.MinPrice <= q.MaxPrice)
             .WithMessage("MinPrice must not exceed MaxPrice.");
+        RuleFor(x => x)
+            .Must(q => q.MinArea is null || q.MaxArea is null || q.MinArea <= q.MaxArea)
+            .WithMessage("MinArea must not exceed MaxArea.");
         RuleFor(x => x.Bedrooms).GreaterThanOrEqualTo(0).When(x => x.Bedrooms.HasValue);
         RuleFor(x => x.Bathrooms).GreaterThanOrEqualTo(0).When(x => x.Bathrooms.HasValue);
+        RuleFor(x => x.Floor).GreaterThanOrEqualTo(0).When(x => x.Floor.HasValue);
+        RuleFor(x => x.VillageId).GreaterThan(0).When(x => x.VillageId.HasValue);
+        RuleFor(x => x.ZoneId).GreaterThan(0).When(x => x.ZoneId.HasValue);
+        RuleFor(x => x.PropertyTypeId).GreaterThan(0).When(x => x.PropertyTypeId.HasValue);
         RuleFor(x => x.BuildingNumber).MaximumLength(64).When(x => x.BuildingNumber is not null);
         RuleFor(x => x.Village).MaximumLength(150).When(x => x.Village is not null);
         RuleFor(x => x.Zone).MaximumLength(150).When(x => x.Zone is not null);
@@ -81,7 +88,9 @@ public sealed class CreateVillageValidator : AbstractValidator<CreateVillageRequ
     public CreateVillageValidator()
     {
         RuleFor(x => x.Name).NotEmpty().MaximumLength(150);
+        RuleFor(x => x.NameAr).MaximumLength(150).When(x => x.NameAr is not null);
         RuleFor(x => x.Slug).MaximumLength(150).When(x => x.Slug is not null);
+        RuleFor(x => x.ImageUrl).MaximumLength(1000).When(x => x.ImageUrl is not null);
     }
 }
 
@@ -90,7 +99,9 @@ public sealed class UpdateVillageValidator : AbstractValidator<UpdateVillageRequ
     public UpdateVillageValidator()
     {
         RuleFor(x => x.Name).NotEmpty().MaximumLength(150).When(x => x.Name is not null);
+        RuleFor(x => x.NameAr).MaximumLength(150).When(x => x.NameAr is not null);
         RuleFor(x => x.Slug).MaximumLength(150).When(x => x.Slug is not null);
+        RuleFor(x => x.ImageUrl).MaximumLength(1000).When(x => x.ImageUrl is not null);
     }
 }
 
@@ -99,6 +110,7 @@ public sealed class CreateZoneValidator : AbstractValidator<CreateZoneRequest>
     public CreateZoneValidator()
     {
         RuleFor(x => x.Name).NotEmpty().MaximumLength(150);
+        RuleFor(x => x.NameAr).MaximumLength(150).When(x => x.NameAr is not null);
         RuleFor(x => x.Slug).MaximumLength(150).When(x => x.Slug is not null);
     }
 }
@@ -108,6 +120,7 @@ public sealed class UpdateZoneValidator : AbstractValidator<UpdateZoneRequest>
     public UpdateZoneValidator()
     {
         RuleFor(x => x.Name).NotEmpty().MaximumLength(150).When(x => x.Name is not null);
+        RuleFor(x => x.NameAr).MaximumLength(150).When(x => x.NameAr is not null);
         RuleFor(x => x.Slug).MaximumLength(150).When(x => x.Slug is not null);
     }
 }

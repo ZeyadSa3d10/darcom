@@ -1,6 +1,7 @@
 using Application.Common;
 using Application.DTOs;
 using Application.Services;
+using Application.Storage;
 using Application.Stores;
 using Application.Validators;
 using Microsoft.AspNetCore.Authorization;
@@ -277,6 +278,38 @@ public sealed class AdminController : ApiBaseController
         CancellationToken ct)
         => ValidateAndExecute(validator, request, () => _admin.UpdateVillageAsync(id, request, ct), ct);
 
+    [HttpPost("villages/{id:int}/image")]
+    [RequestSizeLimit(20_000_000)]
+    [ProducesResponseType(typeof(ApiResponse<VillageDto>), 200)]
+    [ProducesResponseType(typeof(ApiResponse<VillageDto>), 404)]
+    [ProducesResponseType(typeof(ApiResponse<VillageDto>), 422)]
+    public async Task<ActionResult<ApiResponse<VillageDto>>> UploadVillageImage(
+        int id,
+        IFormFile file,
+        [FromServices] IStorageProvider storage,
+        CancellationToken ct)
+    {
+        if (file is null || file.Length == 0)
+            return StatusCode(422, ApiResponse<VillageDto>.Fail("Image file is required.", new() { new("Image file is required.", "file") }));
+
+        var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp" };
+        var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
+        if (!allowedExtensions.Contains(ext))
+            return StatusCode(422, ApiResponse<VillageDto>.Fail("Only JPG, JPEG, PNG, or WEBP images are supported.", new() { new("Unsupported image format.", "file") }));
+
+        var village = await _admin.GetVillageByIdAsync(id, ct);
+        if (village.Data is null)
+            return NotFound(ApiResponse<VillageDto>.Fail("Village not found."));
+
+        await using var stream = file.OpenReadStream();
+        var url = await storage.SaveAsync(stream, file.FileName, file.ContentType, "villages", ct);
+
+        var updateResult = await _admin.UpdateVillageAsync(id, new UpdateVillageRequest(null, null, null, url, null), ct);
+        return StatusCode(updateResult.StatusCode, updateResult.Succeeded
+            ? ApiResponse<VillageDto>.Ok(updateResult.Data!, "Village image uploaded successfully.")
+            : ApiResponse<VillageDto>.Fail(updateResult.Message, updateResult.Errors));
+    }
+
     [HttpDelete("villages/{id:int}")]
     [ProducesResponseType(typeof(ApiResponse<object?>), 200)]
     [ProducesResponseType(typeof(ApiResponse<object?>), 409)]
@@ -446,6 +479,61 @@ public sealed class AdminController : ApiBaseController
         CancellationToken ct)
         => ValidateAndExecute(validator, request, () => _requests.SetBrokerRequestStatusAsync(CurrentUserId(), id, request, ct), ct);
 
+    /// <summary>Stream sensitive broker ID card images securely to Admin only.</summary>
+    [HttpGet("brokers/{id:int}/id-document")]
+    public async Task<IActionResult> GetBrokerIdDocument(
+        int id,
+        [FromQuery] string side,
+        [FromServices] IPrivateDocumentStorage privateStorage,
+        [FromServices] IRequestStore store,
+        CancellationToken ct)
+    {
+        var profile = await store.GetBrokerProfileAsync(id, ct)
+            ?? await store.GetBrokerProfileByUserIdAsync(id, ct);
+        if (profile is null) return NotFound("Broker profile not found.");
+
+        var relativePath = side?.ToLowerInvariant() == "back"
+            ? profile.IdCardBackPath
+            : profile.IdCardFrontPath;
+
+        if (string.IsNullOrWhiteSpace(relativePath))
+            return NotFound("ID card document not found for this broker.");
+
+        var doc = await privateStorage.GetPrivateDocumentAsync(relativePath, ct);
+        if (doc is null)
+            return NotFound("File not found in storage.");
+
+        return File(doc.Value.Stream, doc.Value.ContentType);
+    }
+
+    /// <summary>Workflow 1 submissions: List all 4-field property listing requests submitted by brokers.</summary>
+    [HttpGet("broker-submissions")]
+    [ProducesResponseType(typeof(ApiResponse<PagedResult<BrokerPropertySubmissionDto>>), 200)]
+    public async Task<ActionResult<ApiResponse<PagedResult<BrokerPropertySubmissionDto>>>> GetBrokerSubmissions(
+        [FromQuery] string? status,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        CancellationToken ct = default)
+    {
+        var result = await _requests.AllBrokerSubmissionsAsync(status, page, pageSize, ct);
+        return Ok(ApiResponse<PagedResult<BrokerPropertySubmissionDto>>.Ok(result.Data!));
+    }
+
+    /// <summary>Update status and inspection notes for a broker property submission.</summary>
+    [HttpPut("broker-submissions/{id:int}/status")]
+    [ProducesResponseType(typeof(ApiResponse<BrokerPropertySubmissionDto>), 200)]
+    [ProducesResponseType(typeof(ApiResponse<BrokerPropertySubmissionDto>), 422)]
+    public async Task<ActionResult<ApiResponse<BrokerPropertySubmissionDto>>> SetBrokerSubmissionStatus(
+        int id,
+        [FromBody] UpdateBrokerSubmissionStatusRequest request,
+        CancellationToken ct)
+    {
+        var result = await _requests.SetBrokerSubmissionStatusAsync(CurrentUserId(), id, request, ct);
+        return StatusCode(result.StatusCode, result.Succeeded
+            ? ApiResponse<BrokerPropertySubmissionDto>.Ok(result.Data!, result.Message)
+            : ApiResponse<BrokerPropertySubmissionDto>.Fail(result.Message, result.Errors));
+    }
+
     // ==========================================
     // Property Requirement Leads (Requirement 10)
     // ==========================================
@@ -471,6 +559,57 @@ public sealed class AdminController : ApiBaseController
         [FromServices] UpdateRequirementStatusValidator validator,
         CancellationToken ct)
         => ValidateAndExecute(validator, request, () => _requests.SetRequirementStatusAsync(CurrentUserId(), id, request, ct), ct);
+
+    // ==========================================
+    // Property Listing Requests ("اعرض عقارك")
+    // ==========================================
+
+    [HttpGet("property-listing-requests")]
+    [ProducesResponseType(typeof(ApiResponse<PagedResult<PropertyListingRequestDto>>), 200)]
+    public async Task<ActionResult<ApiResponse<PagedResult<PropertyListingRequestDto>>>> GetListingRequests(
+        [FromQuery] string? status,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        CancellationToken ct = default)
+    {
+        var result = await _requests.AllListingRequestsAsync(status, page, pageSize, ct);
+        return Ok(ApiResponse<PagedResult<PropertyListingRequestDto>>.Ok(result.Data!));
+    }
+
+    [HttpGet("property-listing-requests/{id:int}")]
+    [ProducesResponseType(typeof(ApiResponse<PropertyListingRequestDto>), 200)]
+    [ProducesResponseType(typeof(ApiResponse<PropertyListingRequestDto>), 404)]
+    public async Task<ActionResult<ApiResponse<PropertyListingRequestDto>>> GetListingRequestById(
+        int id, CancellationToken ct = default)
+    {
+        var result = await _requests.GetListingRequestByIdAsync(id, CurrentUserId(), true, ct);
+        return StatusCode(result.StatusCode, result.Succeeded
+            ? ApiResponse<PropertyListingRequestDto>.Ok(result.Data!)
+            : ApiResponse<PropertyListingRequestDto>.Fail(result.Message, result.Errors));
+    }
+
+    [HttpPut("property-listing-requests/{id:int}/status")]
+    [ProducesResponseType(typeof(ApiResponse<PropertyListingRequestDto>), 200)]
+    [ProducesResponseType(typeof(ApiResponse<PropertyListingRequestDto>), 422)]
+    public Task<ActionResult<ApiResponse<PropertyListingRequestDto>>> SetListingRequestStatus(
+        int id,
+        [FromBody] UpdateListingRequestStatusRequest request,
+        [FromServices] UpdateListingRequestStatusValidator validator,
+        CancellationToken ct)
+        => ValidateAndExecute(validator, request, () => _requests.SetListingRequestStatusAsync(CurrentUserId(), id, request, ct), ct);
+
+    [HttpPost("property-listing-requests/{id:int}/create-property")]
+    [ProducesResponseType(typeof(ApiResponse<PropertyDetailsDto>), 201)]
+    [ProducesResponseType(typeof(ApiResponse<PropertyDetailsDto>), 422)]
+    public async Task<ActionResult<ApiResponse<PropertyDetailsDto>>> CreatePropertyFromListingRequest(
+        int id,
+        [FromBody] CreatePropertyRequest request,
+        [FromServices] CreatePropertyValidator validator,
+        CancellationToken ct)
+    {
+        request.PropertyListingRequestId = id;
+        return await ValidateAndExecute(validator, request, () => _properties.CreateAsync(CurrentUserId(), "Admin", request, ct), ct);
+    }
 
     private string? ClientIp()
         => HttpContext.Connection.RemoteIpAddress?.ToString();

@@ -27,7 +27,16 @@ public sealed class PropertyStore : IPropertyStore
 
     public async Task<PagedResult<PropertyListDto>> SearchAsync(PropertyQuery q, bool includeAllStatuses, CancellationToken ct = default)
     {
+        q.PageSize = Math.Clamp(q.PageSize, 1, 50);
+        q.Page = Math.Max(1, q.Page);
+
         var query = _db.Properties.AsNoTracking().AsQueryable();
+
+        // North Coast exclusive restriction for public browsing
+        if (!includeAllStatuses)
+        {
+            query = query.Where(p => p.VillageId > 0 && p.Village.IsActive);
+        }
 
         if (includeAllStatuses && !string.IsNullOrWhiteSpace(q.Status)
             && Enum.TryParse<PropertyStatus>(q.Status.Replace(" ", ""), true, out var adminStatus))
@@ -98,7 +107,7 @@ public sealed class PropertyStore : IPropertyStore
     public async Task<List<PropertyListDto>> GetFeaturedAsync(int count, CancellationToken ct = default)
     {
         var entities = await _db.Properties.AsNoTracking()
-            .Where(p => p.IsFeatured && PublicListStatuses.Contains(p.Status))
+            .Where(p => p.IsFeatured && PublicListStatuses.Contains(p.Status) && p.VillageId > 0 && p.Village.IsActive)
             .OrderByDescending(p => p.CreatedAt)
             .Take(count)
             .Include(p => p.PropertyType)
@@ -112,16 +121,19 @@ public sealed class PropertyStore : IPropertyStore
 
     public async Task<PagedResult<PropertyListDto>> QuickSearchAsync(string term, int page, int pageSize, CancellationToken ct = default)
     {
+        pageSize = Math.Clamp(pageSize, 1, 50);
+        page = Math.Max(1, page);
         var lowered = term.ToLowerInvariant();
         var query = _db.Properties.AsNoTracking()
-            .Where(p => PublicListStatuses.Contains(p.Status))
+            .Where(p => PublicListStatuses.Contains(p.Status) && p.VillageId > 0 && p.Village.IsActive)
             .Where(p => p.Title.ToLower().Contains(lowered)
                 || (p.Description != null && p.Description.ToLower().Contains(lowered))
                 || p.Village.Name.ToLower().Contains(lowered)
+                || (p.Village.NameAr != null && p.Village.NameAr.Contains(lowered))
                 || (p.Zone != null && p.Zone.Name.ToLower().Contains(lowered))
+                || (p.Zone != null && p.Zone.NameAr != null && p.Zone.NameAr.Contains(lowered))
                 || (p.BuildingNumber != null && p.BuildingNumber.ToLower().Contains(lowered))
-                || (p.Location != null && p.Location.Name.ToLower().Contains(lowered))
-                || (p.Location != null && p.Location.City.Name.ToLower().Contains(lowered))
+                || p.ReferenceNumber.ToLower().Contains(lowered)
                 || p.PropertyType.Name.ToLower().Contains(lowered))
             .OrderByDescending(p => p.CreatedAt);
 
@@ -326,7 +338,7 @@ public sealed class PropertyStore : IPropertyStore
     public async Task<PagedResult<PropertyListDto>> GetBrokerPropertiesAsync(int brokerUserId, string? status, int page, int pageSize, CancellationToken ct = default)
     {
         var query = _db.Properties.AsNoTracking()
-            .Where(p => p.CreatedByUserId == brokerUserId || p.OwnerId == brokerUserId);
+            .Where(p => p.BrokerId == brokerUserId || p.CreatedByUserId == brokerUserId || p.OwnerId == brokerUserId);
 
         if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<PropertyStatus>(status.Replace(" ", ""), true, out var parsedStatus))
         {
@@ -353,7 +365,7 @@ public sealed class PropertyStore : IPropertyStore
     public async Task<(int Total, int Pending, int Approved, int Rejected)> GetBrokerPropertyCountsAsync(int brokerUserId, CancellationToken ct = default)
     {
         var query = _db.Properties.AsNoTracking()
-            .Where(p => p.CreatedByUserId == brokerUserId || p.OwnerId == brokerUserId);
+            .Where(p => p.BrokerId == brokerUserId || p.CreatedByUserId == brokerUserId || p.OwnerId == brokerUserId);
 
         var total = await query.CountAsync(ct);
         var pending = await query.CountAsync(p => p.Status == PropertyStatus.PendingReview, ct);
@@ -426,17 +438,27 @@ public sealed class PropertyStore : IPropertyStore
 
     private static IQueryable<Property> ApplyFilters(IQueryable<Property> query, PropertyQuery q)
     {
-        if (!string.IsNullOrWhiteSpace(q.Purpose) && Enum.TryParse<PropertyPurpose>(q.Purpose, true, out var purpose))
+        // 1. Purpose (Sale / Rent / Investment)
+        if (!string.IsNullOrWhiteSpace(q.Purpose) && Enum.TryParse<PropertyPurpose>(q.Purpose.Replace(" ", ""), true, out var purpose))
             query = query.Where(p => p.Purpose == purpose);
 
-        if (!string.IsNullOrWhiteSpace(q.Type))
+        // 2. Property Type
+        if (q.PropertyTypeId.HasValue && q.PropertyTypeId.Value > 0)
+        {
+            query = query.Where(p => p.PropertyTypeId == q.PropertyTypeId.Value);
+        }
+        else if (!string.IsNullOrWhiteSpace(q.Type))
         {
             var type = q.Type.Trim().ToLowerInvariant();
-            query = query.Where(p => p.PropertyType.Slug == type);
+            query = query.Where(p => p.PropertyType.Slug == type || p.PropertyType.Name.ToLower() == type);
         }
 
-        // North Coast Village filter (by id or slug)
-        if (!string.IsNullOrWhiteSpace(q.Village))
+        // 3. Village Filter (Priority to numeric VillageId, fallback to slug/name)
+        if (q.VillageId.HasValue && q.VillageId.Value > 0)
+        {
+            query = query.Where(p => p.VillageId == q.VillageId.Value);
+        }
+        else if (!string.IsNullOrWhiteSpace(q.Village))
         {
             var v = q.Village.Trim().ToLowerInvariant();
             if (int.TryParse(v, out var vId))
@@ -445,8 +467,12 @@ public sealed class PropertyStore : IPropertyStore
                 query = query.Where(p => p.Village.Slug == v || p.Village.Name.ToLower() == v);
         }
 
-        // North Coast Zone filter (by id or slug)
-        if (!string.IsNullOrWhiteSpace(q.Zone))
+        // 4. Zone Filter (Priority to numeric ZoneId, fallback to slug/name)
+        if (q.ZoneId.HasValue && q.ZoneId.Value > 0)
+        {
+            query = query.Where(p => p.ZoneId == q.ZoneId.Value);
+        }
+        else if (!string.IsNullOrWhiteSpace(q.Zone))
         {
             var z = q.Zone.Trim().ToLowerInvariant();
             if (int.TryParse(z, out var zId))
@@ -455,45 +481,86 @@ public sealed class PropertyStore : IPropertyStore
                 query = query.Where(p => p.Zone != null && (p.Zone.Slug == z || p.Zone.Name.ToLower() == z));
         }
 
-        // BuildingNumber filter
+        // 5. Building Number
         if (!string.IsNullOrWhiteSpace(q.BuildingNumber))
         {
             var b = q.BuildingNumber.Trim().ToLowerInvariant();
             query = query.Where(p => p.BuildingNumber != null && p.BuildingNumber.ToLower().Contains(b));
         }
 
-        // Legacy location filter
-        if (!string.IsNullOrWhiteSpace(q.Location))
+        // 6 & 7. Price Range
+        if (q.MinPrice.HasValue && q.MinPrice.Value > 0) query = query.Where(p => p.Price >= q.MinPrice.Value);
+        if (q.MaxPrice.HasValue && q.MaxPrice.Value > 0) query = query.Where(p => p.Price <= q.MaxPrice.Value);
+
+        // 8 & 9. Area Range
+        if (q.MinArea.HasValue && q.MinArea.Value > 0) query = query.Where(p => p.Area >= q.MinArea.Value);
+        if (q.MaxArea.HasValue && q.MaxArea.Value > 0) query = query.Where(p => p.Area <= q.MaxArea.Value);
+
+        // 10 & 11. Bedrooms & Bathrooms
+        if (q.Bedrooms.HasValue && q.Bedrooms.Value > 0) query = query.Where(p => p.Bedrooms >= q.Bedrooms.Value);
+        if (q.Bathrooms.HasValue && q.Bathrooms.Value > 0) query = query.Where(p => p.Bathrooms >= q.Bathrooms.Value);
+
+        // 12. Floor
+        if (q.Floor.HasValue && q.Floor.Value >= 0) query = query.Where(p => p.Floor == q.Floor.Value);
+
+        // 13. Furnished Status
+        if (!string.IsNullOrWhiteSpace(q.FurnishedStatus))
         {
-            var loc = q.Location.Trim().ToLowerInvariant();
-            query = query.Where(p => (p.Location != null && p.Location.City.Slug == loc)
-                || (p.Location != null && p.Location.Area != null && p.Location.Area.Slug == loc)
-                || p.Village.Slug == loc);
+            var fs = q.FurnishedStatus.Trim().ToLowerInvariant();
+            query = query.Where(p => p.FurnishedStatus != null && p.FurnishedStatus.ToLower() == fs);
+        }
+        else if (q.Furnished == true)
+        {
+            query = query.Where(p => p.FurnishedStatus != null && p.FurnishedStatus.ToLower() != "unfurnished");
         }
 
-        if (q.MinPrice.HasValue) query = query.Where(p => p.Price >= q.MinPrice.Value);
-        if (q.MaxPrice.HasValue) query = query.Where(p => p.Price <= q.MaxPrice.Value);
-        if (q.Bedrooms.HasValue) query = query.Where(p => p.Bedrooms >= q.Bedrooms.Value);
-        if (q.Bathrooms.HasValue) query = query.Where(p => p.Bathrooms >= q.Bathrooms.Value);
-        if (q.MinArea.HasValue) query = query.Where(p => p.Area >= q.MinArea.Value);
+        // 14. Finishing Status
+        if (!string.IsNullOrWhiteSpace(q.FinishingStatus))
+        {
+            var fin = q.FinishingStatus.Trim().ToLowerInvariant();
+            query = query.Where(p => p.FinishingStatus != null && p.FinishingStatus.ToLower() == fin);
+        }
 
-        if (q.Furnished == true)
-            query = query.Where(p => p.FurnishedStatus != null && p.FurnishedStatus != "Unfurnished");
-        if (q.Pool == true) query = query.Where(p => p.Pool);
-        if (q.Garden == true) query = query.Where(p => p.Garden);
+        // 15 & 16. Amenities & Feature Booleans
         if (q.SeaView == true) query = query.Where(p => p.SeaView);
+        if (q.Garden == true) query = query.Where(p => p.Garden);
+        if (q.Pool == true) query = query.Where(p => p.Pool);
         if (q.BeachAccess == true) query = query.Where(p => p.BeachAccess);
         if (q.Parking == true) query = query.Where(p => p.Parking);
         if (q.Featured == true) query = query.Where(p => p.IsFeatured);
 
+        // 17. Multi-select Amenities (AND logic: property must have all selected amenities)
+        if (q.AmenityIds != null && q.AmenityIds.Count > 0)
+        {
+            foreach (var aId in q.AmenityIds)
+            {
+                var targetId = aId;
+                query = query.Where(p => p.PropertyAmenities.Any(pa => pa.AmenityId == targetId));
+            }
+        }
+
+        // Legacy location fallback: only allow matching North Coast villages
+        if (!string.IsNullOrWhiteSpace(q.Location))
+        {
+            var loc = q.Location.Trim().ToLowerInvariant();
+            if (loc != "north-coast" && loc != "sahel")
+            {
+                query = query.Where(p => p.Village.Slug == loc || p.Village.Name.ToLower() == loc);
+            }
+        }
+
+        // Keyword search Q
         if (!string.IsNullOrWhiteSpace(q.Q))
         {
             var term = q.Q.Trim().ToLowerInvariant();
             query = query.Where(p => p.Title.ToLower().Contains(term)
                 || (p.Description != null && p.Description.ToLower().Contains(term))
                 || p.Village.Name.ToLower().Contains(term)
+                || (p.Village.NameAr != null && p.Village.NameAr.Contains(term))
                 || (p.Zone != null && p.Zone.Name.ToLower().Contains(term))
-                || (p.BuildingNumber != null && p.BuildingNumber.ToLower().Contains(term)));
+                || (p.Zone != null && p.Zone.NameAr != null && p.Zone.NameAr.Contains(term))
+                || (p.BuildingNumber != null && p.BuildingNumber.ToLower().Contains(term))
+                || p.ReferenceNumber.ToLower().Contains(term));
         }
 
         return query;
@@ -555,5 +622,10 @@ public sealed class PropertyStore : IPropertyStore
             p.Zone?.Slug,
             p.BuildingNumber,
             p.CreatedByUserId,
-            p.RejectionReason);
+            p.RejectionReason,
+            p.PropertyListingRequestId,
+            p.OwnerId);
+
+    public async Task<PropertyListingRequest?> GetListingRequestAsync(int id, CancellationToken ct = default)
+        => await _db.PropertyListingRequests.FirstOrDefaultAsync(r => r.Id == id, ct);
 }

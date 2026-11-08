@@ -33,6 +33,10 @@ public sealed class User : EntityBase
     public ICollection<Notification> Notifications { get; set; } = new List<Notification>();
     public ICollection<Property> OwnedProperties { get; set; } = new List<Property>();
     public ICollection<Property> ManagedProperties { get; set; } = new List<Property>();
+    public ICollection<Property> BrokerProperties { get; set; } = new List<Property>();
+    public ICollection<BrokerPropertySubmission> BrokerSubmissions { get; set; } = new List<BrokerPropertySubmission>();
+    public ICollection<BrokerPropertyRequest> BrokerRequests { get; set; } = new List<BrokerPropertyRequest>();
+    public ICollection<PropertyListingRequest> PropertyListingRequests { get; set; } = new List<PropertyListingRequest>();
 }
 
 public enum BrokerStatus
@@ -49,16 +53,20 @@ public enum BrokerStatus
 public sealed class BrokerProfile : EntityBase
 {
     public int UserId { get; set; }
-    public string AgencyName { get; set; } = string.Empty;
-    public string LicenseNumber { get; set; } = string.Empty;
+    public string? AgencyName { get; set; }
+    public string? LicenseNumber { get; set; }
     public string? NationalId { get; set; }
     public string? DocumentUrl { get; set; }
+    public string? IdCardFrontPath { get; set; }
+    public string? IdCardBackPath { get; set; }
+    public bool IsPhoneVerified { get; set; }
     public BrokerStatus Status { get; set; } = BrokerStatus.Pending;
     public string? AdminNotes { get; set; }
     public DateTime? ApprovedAt { get; set; }
 
     public User User { get; set; } = null!;
     public ICollection<BrokerPropertyRequest> Requests { get; set; } = new List<BrokerPropertyRequest>();
+    public ICollection<BrokerPropertySubmission> Submissions { get; set; } = new List<BrokerPropertySubmission>();
 }
 
 public sealed class Agent : EntityBase

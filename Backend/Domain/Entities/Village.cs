@@ -9,7 +9,9 @@ namespace Domain.Entities;
 public sealed class Village : EntityBase
 {
     public string Name { get; set; } = string.Empty;
+    public string? NameAr { get; set; }
     public string Slug { get; set; } = string.Empty;
+    public string? ImageUrl { get; set; }
     public bool IsActive { get; set; } = true;
 
     public ICollection<Zone> Zones { get; set; } = new List<Zone>();
@@ -24,10 +26,10 @@ public sealed class Zone : EntityBase
 {
     public int VillageId { get; set; }
     public string Name { get; set; } = string.Empty;
+    public string? NameAr { get; set; }
     public string Slug { get; set; } = string.Empty;
     public bool IsActive { get; set; } = true;
 
     public Village Village { get; set; } = null!;
     public ICollection<Property> Properties { get; set; } = new List<Property>();
 }
-

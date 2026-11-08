@@ -475,7 +475,6 @@ namespace Infrastructure.Persistence.Migrations
                         .HasColumnType("nvarchar(2000)");
 
                     b.Property<string>("AgencyName")
-                        .IsRequired()
                         .HasMaxLength(160)
                         .HasColumnType("nvarchar(160)");
 
@@ -489,8 +488,18 @@ namespace Infrastructure.Persistence.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
 
+                    b.Property<string>("IdCardBackPath")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("IdCardFrontPath")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<bool>("IsPhoneVerified")
+                        .HasColumnType("bit");
+
                     b.Property<string>("LicenseNumber")
-                        .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
@@ -532,12 +541,10 @@ namespace Infrastructure.Persistence.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("ClientName")
-                        .IsRequired()
                         .HasMaxLength(160)
                         .HasColumnType("nvarchar(160)");
 
                     b.Property<string>("ClientPhone")
-                        .IsRequired()
                         .HasMaxLength(32)
                         .HasColumnType("nvarchar(32)");
 
@@ -577,6 +584,63 @@ namespace Infrastructure.Persistence.Migrations
                     b.HasIndex("Status");
 
                     b.ToTable("BrokerPropertyRequests");
+                });
+
+            modelBuilder.Entity("Domain.Entities.BrokerPropertySubmission", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AdminNotes")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<decimal>("Area")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<int>("BrokerId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("BrokerProfileId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<string>("UnitNumber")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("VillageId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ZoneId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BrokerId");
+
+                    b.HasIndex("BrokerProfileId");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("VillageId");
+
+                    b.HasIndex("ZoneId");
+
+                    b.ToTable("BrokerPropertySubmissions");
                 });
 
             modelBuilder.Entity("Domain.Entities.City", b =>
@@ -1031,6 +1095,12 @@ namespace Infrastructure.Persistence.Migrations
                     b.Property<int?>("Bedrooms")
                         .HasColumnType("int");
 
+                    b.Property<int?>("BrokerId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("BrokerSubmissionId")
+                        .HasColumnType("int");
+
                     b.Property<string>("BuildingNumber")
                         .HasMaxLength(64)
                         .HasColumnType("nvarchar(64)");
@@ -1101,6 +1171,9 @@ namespace Infrastructure.Persistence.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<int?>("PropertyListingRequestId")
+                        .HasColumnType("int");
+
                     b.Property<int>("PropertyTypeId")
                         .HasColumnType("int");
 
@@ -1151,6 +1224,12 @@ namespace Infrastructure.Persistence.Migrations
 
                     b.HasIndex("AgentId");
 
+                    b.HasIndex("BrokerId");
+
+                    b.HasIndex("BrokerSubmissionId")
+                        .IsUnique()
+                        .HasFilter("[BrokerSubmissionId] IS NOT NULL");
+
                     b.HasIndex("CreatedByUserId");
 
                     b.HasIndex("LocationId");
@@ -1158,6 +1237,10 @@ namespace Infrastructure.Persistence.Migrations
                     b.HasIndex("OwnerId");
 
                     b.HasIndex("Price");
+
+                    b.HasIndex("PropertyListingRequestId")
+                        .IsUnique()
+                        .HasFilter("[PropertyListingRequestId] IS NOT NULL");
 
                     b.HasIndex("PropertyTypeId");
 
@@ -1175,7 +1258,11 @@ namespace Infrastructure.Persistence.Migrations
 
                     b.HasIndex("ZoneId");
 
+                    b.HasIndex("VillageId", "ZoneId");
+
                     b.HasIndex("Status", "Purpose", "VillageId");
+
+                    b.HasIndex("Status", "VillageId", "Price");
 
                     b.ToTable("Properties");
                 });
@@ -1357,6 +1444,86 @@ namespace Infrastructure.Persistence.Migrations
                     b.ToTable("PropertyInquiries");
                 });
 
+            modelBuilder.Entity("Domain.Entities.PropertyListingRequest", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AdminNotes")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("AssignedAdminId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("BuildingNumber")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("InspectionDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("PhoneNumber")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<int?>("PropertyId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("RequestNumber")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<string>("UnitNumber")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("VillageId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ZoneId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AssignedAdminId");
+
+                    b.HasIndex("PropertyId");
+
+                    b.HasIndex("RequestNumber")
+                        .IsUnique();
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("VillageId");
+
+                    b.HasIndex("ZoneId");
+
+                    b.HasIndex("VillageId", "BuildingNumber", "UnitNumber");
+
+                    b.ToTable("PropertyListingRequests", (string)null);
+                });
+
             modelBuilder.Entity("Domain.Entities.PropertyRequirement", b =>
                 {
                     b.Property<int>("Id")
@@ -1364,6 +1531,10 @@ namespace Infrastructure.Persistence.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal?>("Area")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("decimal(10,2)");
 
                     b.Property<int?>("AssignedStaffId")
                         .HasColumnType("int");
@@ -2040,6 +2211,10 @@ namespace Infrastructure.Persistence.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("ImageUrl")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bit")
@@ -2047,6 +2222,10 @@ namespace Infrastructure.Persistence.Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("NameAr")
                         .HasMaxLength(150)
                         .HasColumnType("nvarchar(150)");
 
@@ -2086,6 +2265,10 @@ namespace Infrastructure.Persistence.Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("NameAr")
                         .HasMaxLength(150)
                         .HasColumnType("nvarchar(150)");
 
@@ -2174,7 +2357,7 @@ namespace Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Domain.Entities.BrokerPropertyRequest", b =>
                 {
                     b.HasOne("Domain.Entities.User", "Broker")
-                        .WithMany()
+                        .WithMany("BrokerRequests")
                         .HasForeignKey("BrokerId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
@@ -2192,6 +2375,36 @@ namespace Infrastructure.Persistence.Migrations
                     b.Navigation("Broker");
 
                     b.Navigation("Property");
+                });
+
+            modelBuilder.Entity("Domain.Entities.BrokerPropertySubmission", b =>
+                {
+                    b.HasOne("Domain.Entities.User", "Broker")
+                        .WithMany("BrokerSubmissions")
+                        .HasForeignKey("BrokerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.BrokerProfile", null)
+                        .WithMany("Submissions")
+                        .HasForeignKey("BrokerProfileId");
+
+                    b.HasOne("Domain.Entities.Village", "Village")
+                        .WithMany()
+                        .HasForeignKey("VillageId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.Zone", "Zone")
+                        .WithMany()
+                        .HasForeignKey("ZoneId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Broker");
+
+                    b.Navigation("Village");
+
+                    b.Navigation("Zone");
                 });
 
             modelBuilder.Entity("Domain.Entities.Document", b =>
@@ -2283,6 +2496,16 @@ namespace Infrastructure.Persistence.Migrations
                         .HasForeignKey("AgentId")
                         .OnDelete(DeleteBehavior.SetNull);
 
+                    b.HasOne("Domain.Entities.User", "Broker")
+                        .WithMany("BrokerProperties")
+                        .HasForeignKey("BrokerId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Domain.Entities.BrokerPropertySubmission", "BrokerSubmission")
+                        .WithOne("CreatedProperty")
+                        .HasForeignKey("Domain.Entities.Property", "BrokerSubmissionId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("Domain.Entities.User", "CreatedByUser")
                         .WithMany("ManagedProperties")
                         .HasForeignKey("CreatedByUserId")
@@ -2297,6 +2520,11 @@ namespace Infrastructure.Persistence.Migrations
                         .WithMany("OwnedProperties")
                         .HasForeignKey("OwnerId")
                         .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Domain.Entities.PropertyListingRequest", "PropertyListingRequest")
+                        .WithMany()
+                        .HasForeignKey("PropertyListingRequestId")
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.HasOne("Domain.Entities.PropertyType", "PropertyType")
                         .WithMany("Properties")
@@ -2317,11 +2545,17 @@ namespace Infrastructure.Persistence.Migrations
 
                     b.Navigation("Agent");
 
+                    b.Navigation("Broker");
+
+                    b.Navigation("BrokerSubmission");
+
                     b.Navigation("CreatedByUser");
 
                     b.Navigation("Location");
 
                     b.Navigation("Owner");
+
+                    b.Navigation("PropertyListingRequest");
 
                     b.Navigation("PropertyType");
 
@@ -2398,6 +2632,47 @@ namespace Infrastructure.Persistence.Migrations
                     b.Navigation("Property");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Domain.Entities.PropertyListingRequest", b =>
+                {
+                    b.HasOne("Domain.Entities.User", "AssignedAdmin")
+                        .WithMany()
+                        .HasForeignKey("AssignedAdminId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Domain.Entities.Property", "CreatedProperty")
+                        .WithMany()
+                        .HasForeignKey("PropertyId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Domain.Entities.User", "User")
+                        .WithMany("PropertyListingRequests")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.Village", "Village")
+                        .WithMany()
+                        .HasForeignKey("VillageId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.Zone", "Zone")
+                        .WithMany()
+                        .HasForeignKey("ZoneId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("AssignedAdmin");
+
+                    b.Navigation("CreatedProperty");
+
+                    b.Navigation("User");
+
+                    b.Navigation("Village");
+
+                    b.Navigation("Zone");
                 });
 
             modelBuilder.Entity("Domain.Entities.PropertyRequirement", b =>
@@ -2566,6 +2841,13 @@ namespace Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Domain.Entities.BrokerProfile", b =>
                 {
                     b.Navigation("Requests");
+
+                    b.Navigation("Submissions");
+                });
+
+            modelBuilder.Entity("Domain.Entities.BrokerPropertySubmission", b =>
+                {
+                    b.Navigation("CreatedProperty");
                 });
 
             modelBuilder.Entity("Domain.Entities.City", b =>
@@ -2620,6 +2902,12 @@ namespace Infrastructure.Persistence.Migrations
                 {
                     b.Navigation("BrokerProfile");
 
+                    b.Navigation("BrokerProperties");
+
+                    b.Navigation("BrokerRequests");
+
+                    b.Navigation("BrokerSubmissions");
+
                     b.Navigation("Favorites");
 
                     b.Navigation("ManagedProperties");
@@ -2627,6 +2915,8 @@ namespace Infrastructure.Persistence.Migrations
                     b.Navigation("Notifications");
 
                     b.Navigation("OwnedProperties");
+
+                    b.Navigation("PropertyListingRequests");
                 });
 
             modelBuilder.Entity("Domain.Entities.Village", b =>

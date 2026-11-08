@@ -44,6 +44,12 @@ export function AuthProvider({ children }) {
     return res;
   }, []);
 
+  const registerBroker = useCallback(async (payload) => {
+    const res = await authService.registerBroker(payload);
+    setUser(res.data?.user ?? null);
+    return res;
+  }, []);
+
   const logout = useCallback(async () => {
     await authService.logout();
     clearTokens();
@@ -59,10 +65,11 @@ export function AuthProvider({ children }) {
       isBroker: user?.role === 'Broker',
       login,
       register,
+      registerBroker,
       logout,
-      refreshUser: loadMe,
+      reloadUser: loadMe,
     }),
-    [user, loading, login, register, logout, loadMe]
+    [user, loading, login, register, registerBroker, logout, loadMe],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -70,6 +77,6 @@ export function AuthProvider({ children }) {
 
 export function useAuth() {
   const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error('useAuth must be used inside AuthProvider');
+  if (!ctx) throw new Error('useAuth must be used inside AuthProvider.');
   return ctx;
 }

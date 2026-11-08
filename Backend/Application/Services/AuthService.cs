@@ -3,6 +3,7 @@ using Application.Common;
 using Application.DTOs;
 using Application.Security;
 using Application.Services;
+using Application.Storage;
 using Application.Stores;
 using Domain.Entities;
 using Microsoft.Extensions.Options;
@@ -12,6 +13,7 @@ namespace Application.Services;
 public interface IAuthService
 {
     Task<ServiceResult<AuthResponse>> RegisterAsync(RegisterRequest request, CancellationToken ct = default);
+    Task<ServiceResult<AuthResponse>> RegisterBrokerAsync(RegisterBrokerDto request, CancellationToken ct = default);
     Task<ServiceResult<AuthResponse>> LoginAsync(LoginRequest request, CancellationToken ct = default);
     Task<ServiceResult<AuthResponse>> RefreshAsync(RefreshRequest request, CancellationToken ct = default);
     Task<ServiceResult<object?>> LogoutAsync(int userId, CancellationToken ct = default);
@@ -24,13 +26,23 @@ public sealed class AuthService : IAuthService
     private readonly IAuthStore _store;
     private readonly ITokenService _tokens;
     private readonly IPasswordHasher _hasher;
+    private readonly IOtpService _otp;
+    private readonly IPrivateDocumentStorage _privateStorage;
     private readonly JwtOptions _jwt;
 
-    public AuthService(IAuthStore store, ITokenService tokens, IPasswordHasher hasher, IOptions<JwtOptions> jwt)
+    public AuthService(
+        IAuthStore store,
+        ITokenService tokens,
+        IPasswordHasher hasher,
+        IOtpService otp,
+        IPrivateDocumentStorage privateStorage,
+        IOptions<JwtOptions> jwt)
     {
         _store = store;
         _tokens = tokens;
         _hasher = hasher;
+        _otp = otp;
+        _privateStorage = privateStorage;
         _jwt = jwt.Value;
     }
 
@@ -65,9 +77,114 @@ public sealed class AuthService : IAuthService
             "Account created successfully.");
     }
 
+    public async Task<ServiceResult<AuthResponse>> RegisterBrokerAsync(RegisterBrokerDto request, CancellationToken ct = default)
+    {
+        var phone = request.PhoneNumber.Trim();
+        if (string.IsNullOrWhiteSpace(phone))
+            return ServiceResult<AuthResponse>.Fail("رقم الهاتف مطلوب.", 422,
+                new() { new("Phone number is required.", "phoneNumber") });
+
+        if (string.IsNullOrWhiteSpace(request.FullName))
+            return ServiceResult<AuthResponse>.Fail("الاسم الكامل مطلوب.", 422,
+                new() { new("Full name is required.", "fullName") });
+
+        if (string.IsNullOrWhiteSpace(request.Password) || request.Password.Length < 6)
+            return ServiceResult<AuthResponse>.Fail("كلمة المرور يجب ألا تقل عن 6 أحرف.", 422,
+                new() { new("Password must be at least 6 characters.", "password") });
+
+        // 1. Verify OTP
+        var isOtpValid = await _otp.VerifyOtpAsync(phone, request.OtpCode);
+        if (!isOtpValid)
+            return ServiceResult<AuthResponse>.Fail("رمز التحقق (OTP) غير صحيح أو انتهت صلاحيته.", 422,
+                new() { new("Invalid or expired OTP code.", "otpCode") });
+
+        // 2. Check phone exists
+        if (await _store.PhoneExistsAsync(phone, ct))
+            return ServiceResult<AuthResponse>.Conflict("رقم الهاتف مسجل بالفعل مسبقاً.",
+                new() { new("Phone number is already registered.", "phoneNumber") });
+
+        // Generate normalized unique email for the broker
+        var cleanPhone = new string(phone.Where(char.IsDigit).ToArray());
+        var email = $"broker_{cleanPhone}@broker.darcom.local";
+        if (await _store.EmailExistsAsync(email, ct))
+            return ServiceResult<AuthResponse>.Conflict("الحساب مسجل بالفعل مسبقاً.",
+                new() { new("Account already registered.", "phoneNumber") });
+
+        var brokerRoleId = await _store.GetRoleIdByNameAsync("Broker", ct)
+            ?? throw new InvalidOperationException("Broker role is not seeded.");
+
+        // 3. Save ID Card images to private storage (never in public /uploads)
+        string? frontPath = null;
+        if (!string.IsNullOrWhiteSpace(request.IdCardFrontBase64))
+        {
+            var bytes = ConvertBase64ToBytes(request.IdCardFrontBase64);
+            if (bytes != null && bytes.Length > 0)
+            {
+                using var ms = new MemoryStream(bytes);
+                frontPath = await _privateStorage.SavePrivateDocumentAsync(ms, $"id_front_{cleanPhone}.jpg", "image/jpeg", "broker-ids", ct);
+            }
+        }
+
+        string? backPath = null;
+        if (!string.IsNullOrWhiteSpace(request.IdCardBackBase64))
+        {
+            var bytes = ConvertBase64ToBytes(request.IdCardBackBase64);
+            if (bytes != null && bytes.Length > 0)
+            {
+                using var ms = new MemoryStream(bytes);
+                backPath = await _privateStorage.SavePrivateDocumentAsync(ms, $"id_back_{cleanPhone}.jpg", "image/jpeg", "broker-ids", ct);
+            }
+        }
+
+        var user = new User
+        {
+            FullName = request.FullName.Trim(),
+            Email = email,
+            PhoneNumber = phone,
+            PasswordHash = _hasher.Hash(request.Password),
+            RoleId = brokerRoleId,
+            IsActive = true,
+            BrokerProfile = new BrokerProfile
+            {
+                AgencyName = request.AgencyName?.Trim(),
+                LicenseNumber = request.LicenseNumber?.Trim(),
+                NationalId = request.NationalId?.Trim(),
+                IdCardFrontPath = frontPath,
+                IdCardBackPath = backPath,
+                IsPhoneVerified = true,
+                Status = BrokerStatus.Pending
+            }
+        };
+
+        await _store.AddUserAsync(user, ct);
+
+        var refreshToken = _tokens.CreateRefreshToken();
+        user.RefreshToken = refreshToken;
+        user.RefreshTokenExpiry = DateTime.UtcNow.AddDays(_jwt.RefreshTokenDays);
+        await _store.SaveChangesAsync(ct);
+
+        return ServiceResult<AuthResponse>.Created(BuildAuthResponse(user, "Broker", refreshToken),
+            "تم تقديم طلب تسجيل البروكر بنجاح، والحساب قيد مراجعة الإدارة.");
+    }
+
+    private static byte[]? ConvertBase64ToBytes(string base64)
+    {
+        try
+        {
+            var commaIdx = base64.IndexOf(',');
+            var clean = commaIdx >= 0 ? base64[(commaIdx + 1)..] : base64;
+            return Convert.FromBase64String(clean.Trim());
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
     public async Task<ServiceResult<AuthResponse>> LoginAsync(LoginRequest request, CancellationToken ct = default)
     {
-        var user = await _store.FindUserByEmailAsync(request.Email.Trim().ToLowerInvariant(), ct);
+        var term = request.Email.Trim();
+        var user = await _store.FindUserByEmailOrPhoneAsync(term, ct);
         if (user is null || !user.IsActive || !_hasher.Verify(request.Password, user.PasswordHash))
             return ServiceResult<AuthResponse>.Unauthorized();
 
