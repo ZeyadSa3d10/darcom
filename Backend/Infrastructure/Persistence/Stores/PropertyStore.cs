@@ -72,7 +72,7 @@ public sealed class PropertyStore : IPropertyStore
     {
         var entity = await DetailsQuery(isAdmin)
             .FirstOrDefaultAsync(p => p.Id == id, ct);
-        return entity is null ? null : ToDetailsDto(entity);
+        return entity is null ? null : ToDetailsDto(entity, isAdmin);
     }
 
     public async Task<PropertyDetailsDto?> GetDetailsBySlugAsync(string slug, bool isAdmin, CancellationToken ct = default)
@@ -80,18 +80,25 @@ public sealed class PropertyStore : IPropertyStore
         var lowered = slug.ToLowerInvariant();
         var entity = await DetailsQuery(isAdmin)
             .FirstOrDefaultAsync(p => p.Slug == lowered, ct);
-        return entity is null ? null : ToDetailsDto(entity);
+        return entity is null ? null : ToDetailsDto(entity, isAdmin);
     }
 
     private IQueryable<Property> DetailsQuery(bool isAdmin)
     {
         var query = _db.Properties.AsNoTracking().AsQueryable();
         if (!isAdmin)
+        {
             query = query.Where(p => p.Status == PropertyStatus.Published
                 || p.Status == PropertyStatus.Featured
                 || p.Status == PropertyStatus.Reserved
                 || p.Status == PropertyStatus.Sold
                 || p.Status == PropertyStatus.Rented);
+        }
+        else
+        {
+            query = query.Include(p => p.Owner).Include(p => p.Broker);
+        }
+
         return query
             .Include(p => p.PropertyType)
             .Include(p => p.Village)
@@ -104,11 +111,19 @@ public sealed class PropertyStore : IPropertyStore
             .Include(p => p.Features);
     }
 
-    public async Task<List<PropertyListDto>> GetFeaturedAsync(int count, CancellationToken ct = default)
+    public async Task<List<PropertyListDto>> GetFeaturedAsync(int count, string? purpose = null, CancellationToken ct = default)
     {
-        var entities = await _db.Properties.AsNoTracking()
-            .Where(p => p.IsFeatured && PublicListStatuses.Contains(p.Status) && p.VillageId > 0 && p.Village.IsActive)
-            .OrderByDescending(p => p.CreatedAt)
+        var query = _db.Properties.AsNoTracking()
+            .Where(p => PublicListStatuses.Contains(p.Status) && p.VillageId > 0 && p.Village.IsActive);
+
+        if (!string.IsNullOrWhiteSpace(purpose) && Enum.TryParse<PropertyPurpose>(purpose.Replace(" ", ""), true, out var pEnum))
+        {
+            query = query.Where(p => p.Purpose == pEnum);
+        }
+
+        var entities = await query
+            .OrderByDescending(p => p.IsFeatured)
+            .ThenByDescending(p => p.CreatedAt)
             .Take(count)
             .Include(p => p.PropertyType)
             .Include(p => p.Village)
@@ -119,13 +134,20 @@ public sealed class PropertyStore : IPropertyStore
         return entities.Select(ToListDto).ToList();
     }
 
-    public async Task<PagedResult<PropertyListDto>> QuickSearchAsync(string term, int page, int pageSize, CancellationToken ct = default)
+    public async Task<PagedResult<PropertyListDto>> QuickSearchAsync(string term, string? purpose = null, int page = 1, int pageSize = 12, CancellationToken ct = default)
     {
         pageSize = Math.Clamp(pageSize, 1, 50);
         page = Math.Max(1, page);
         var lowered = term.ToLowerInvariant();
         var query = _db.Properties.AsNoTracking()
-            .Where(p => PublicListStatuses.Contains(p.Status) && p.VillageId > 0 && p.Village.IsActive)
+            .Where(p => PublicListStatuses.Contains(p.Status) && p.VillageId > 0 && p.Village.IsActive);
+
+        if (!string.IsNullOrWhiteSpace(purpose) && Enum.TryParse<PropertyPurpose>(purpose.Replace(" ", ""), true, out var pEnum))
+        {
+            query = query.Where(p => p.Purpose == pEnum);
+        }
+
+        query = query
             .Where(p => p.Title.ToLower().Contains(lowered)
                 || (p.Description != null && p.Description.ToLower().Contains(lowered))
                 || p.Village.Name.ToLower().Contains(lowered)
@@ -382,13 +404,14 @@ public sealed class PropertyStore : IPropertyStore
     {
         var current = await _db.Properties.AsNoTracking()
             .Where(p => p.Id == propertyId)
-            .Select(p => new { p.PropertyTypeId, p.VillageId, p.Price })
+            .Select(p => new { p.PropertyTypeId, p.VillageId, p.Price, p.Purpose })
             .FirstOrDefaultAsync(ct);
         if (current is null) return new();
 
         var candidates = await _db.Properties.AsNoTracking()
             .Where(p => p.Id != propertyId
                 && p.PropertyTypeId == current.PropertyTypeId
+                && p.Purpose == current.Purpose
                 && (p.Status == PropertyStatus.Published
                     || p.Status == PropertyStatus.Featured
                     || p.Status == PropertyStatus.Reserved))
@@ -539,6 +562,14 @@ public sealed class PropertyStore : IPropertyStore
             }
         }
 
+        // 18. Rental availability dates (exclude properties with overlapping booked rental periods)
+        if (q.StartDate.HasValue && q.EndDate.HasValue)
+        {
+            var start = q.StartDate.Value;
+            var end = q.EndDate.Value;
+            query = query.Where(p => !p.RentalPeriods.Any(rp => rp.StartDate < end && rp.EndDate > start));
+        }
+
         // Legacy location fallback: only allow matching North Coast villages
         if (!string.IsNullOrWhiteSpace(q.Location))
         {
@@ -595,8 +626,41 @@ public sealed class PropertyStore : IPropertyStore
             p.BuildingNumber,
             p.RejectionReason);
 
-    private static PropertyDetailsDto ToDetailsDto(Property p)
-        => new(
+    private static PropertyDetailsDto ToDetailsDto(Property p, bool isAdmin = false)
+    {
+        string? ownerName = null;
+        string? ownerPhone = null;
+        int? ownerId = null;
+        string? ownerType = null;
+
+        if (isAdmin)
+        {
+            ownerId = p.OwnerId;
+            if (p.Owner != null)
+            {
+                ownerName = p.Owner.FullName;
+                ownerPhone = p.Owner.PhoneNumber;
+                ownerType = "RegisteredUser";
+            }
+            else if (!string.IsNullOrWhiteSpace(p.OwnerName))
+            {
+                ownerName = p.OwnerName;
+                ownerPhone = p.OwnerPhone;
+                ownerType = "Independent";
+            }
+            else if (p.BrokerId.HasValue || p.BrokerSubmissionId.HasValue)
+            {
+                ownerName = p.Broker?.FullName;
+                ownerPhone = p.Broker?.PhoneNumber;
+                ownerType = "Broker";
+            }
+            else
+            {
+                ownerType = "CompanyManaged";
+            }
+        }
+
+        return new(
             p.Id, p.Title, p.Slug, p.ReferenceNumber, p.Description,
             p.Price, p.Currency, p.Area, p.Bedrooms, p.Bathrooms,
             p.Floor, p.TotalFloors, p.BuiltYear, p.DeliveryDate,
@@ -624,8 +688,78 @@ public sealed class PropertyStore : IPropertyStore
             p.CreatedByUserId,
             p.RejectionReason,
             p.PropertyListingRequestId,
-            p.OwnerId);
+            ownerId,
+            ownerName,
+            ownerPhone,
+            ownerType);
+    }
 
     public async Task<PropertyListingRequest?> GetListingRequestAsync(int id, CancellationToken ct = default)
         => await _db.PropertyListingRequests.FirstOrDefaultAsync(r => r.Id == id, ct);
+
+    public async Task<bool> SetPrimaryImageAsync(int propertyId, int imageId, CancellationToken ct = default)
+    {
+        var images = await _db.PropertyImages
+            .Where(i => i.PropertyId == propertyId)
+            .ToListAsync(ct);
+
+        var target = images.FirstOrDefault(i => i.Id == imageId);
+        if (target is null) return false;
+
+        foreach (var img in images)
+        {
+            img.IsPrimary = (img.Id == imageId);
+        }
+
+        return true;
+    }
+
+    public async Task<List<PublicRentalPeriodDto>> GetPublicRentalPeriodsAsync(int propertyId, CancellationToken ct = default)
+    {
+        return await _db.RentalPeriods.AsNoTracking()
+            .Where(rp => rp.PropertyId == propertyId && rp.EndDate >= DateTime.UtcNow.Date)
+            .OrderBy(rp => rp.StartDate)
+            .Select(rp => new PublicRentalPeriodDto(rp.StartDate, rp.EndDate))
+            .ToListAsync(ct);
+    }
+
+    public async Task<bool> HasOverlappingRentalPeriodAsync(int propertyId, DateTime startDate, DateTime endDate, int? excludeId = null, CancellationToken ct = default)
+    {
+        var query = _db.RentalPeriods.AsNoTracking()
+            .Where(rp => rp.PropertyId == propertyId);
+
+        if (excludeId.HasValue)
+            query = query.Where(rp => rp.Id != excludeId.Value);
+
+        // Standard half-open interval overlap rule: Existing.StartDate < Requested.EndDate && Existing.EndDate > Requested.StartDate
+        return await query.AnyAsync(rp => rp.StartDate < endDate && rp.EndDate > startDate, ct);
+    }
+
+    public async Task AddRentalPeriodAsync(RentalPeriod period, CancellationToken ct = default)
+    {
+        await _db.RentalPeriods.AddAsync(period, ct);
+        await _db.SaveChangesAsync(ct);
+    }
+
+    public async Task<bool> DeleteRentalPeriodAsync(int propertyId, int periodId, CancellationToken ct = default)
+    {
+        var period = await _db.RentalPeriods
+            .FirstOrDefaultAsync(rp => rp.Id == periodId && rp.PropertyId == propertyId, ct);
+        if (period is null) return false;
+
+        _db.RentalPeriods.Remove(period);
+        await _db.SaveChangesAsync(ct);
+        return true;
+    }
+
+    public async Task RemoveRentalPeriodByBookingIdAsync(int bookingRequestId, CancellationToken ct = default)
+    {
+        var period = await _db.RentalPeriods
+            .FirstOrDefaultAsync(rp => rp.BookingRequestId == bookingRequestId, ct);
+        if (period is not null)
+        {
+            _db.RentalPeriods.Remove(period);
+            await _db.SaveChangesAsync(ct);
+        }
+    }
 }

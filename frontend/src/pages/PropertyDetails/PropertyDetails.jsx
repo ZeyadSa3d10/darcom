@@ -11,7 +11,6 @@ import PropertyLocation from '../../components/PropertyLocation/PropertyLocation
 import AgentCard from '../../components/AgentCard/AgentCard.jsx';
 import InquiryForm from '../../components/InquiryForm/InquiryForm.jsx';
 import PropertyCard from '../../components/PropertyCard/PropertyCard.jsx';
-import InstallmentCalculator from '../../components/InstallmentCalculator/InstallmentCalculator.jsx';
 import PropertyFloorPlan from '../../components/PropertyFloorPlan/PropertyFloorPlan.jsx';
 import { SkeletonGallery, SkeletonDetails } from '../../components/LoadingSkeleton/LoadingSkeleton.jsx';
 import ErrorState from '../../components/ErrorState/ErrorState.jsx';
@@ -19,6 +18,8 @@ import { useSeo, propertyJsonLd } from '../../hooks/useSeo.js';
 import { useRevealScope } from '../../hooks/useRevealScope.js';
 import { propertyService } from '../../services/propertyService.js';
 import { useAuth } from '../../context/AuthContext.jsx';
+import { usePurpose } from '../../context/PurposeContext.jsx';
+import RentalCalendar from '../../components/RentalCalendar/RentalCalendar.jsx';
 import BrokerDirectRequestModal from './components/BrokerDirectRequestModal.jsx';
 import './PropertyDetails.css';
 
@@ -35,8 +36,10 @@ export default function PropertyDetails() {
   const { slug } = useParams();
   const { t, isRtl } = useSettings();
   const { isBroker } = useAuth();
+  const { purpose: currentPurpose, setPurpose } = usePurpose();
   const [property, setProperty] = useState(null);
   const [related, setRelated] = useState([]);
+  const [rentalPeriods, setRentalPeriods] = useState([]);
   const [showBrokerModal, setShowBrokerModal] = useState(false);
   const scopeRef = useRevealScope(
     ':scope .details-main > *, :scope .details-aside > *, :scope .related-section',
@@ -53,6 +56,21 @@ export default function PropertyDetails() {
       const data = res.data;
       setProperty(data);
       setState('done');
+
+      const propPurpose = (data.purpose || '').toLowerCase();
+      if ((propPurpose === 'rent' || propPurpose === 'sale') && propPurpose !== currentPurpose) {
+        setPurpose(propPurpose);
+      }
+
+      if (propPurpose === 'rent') {
+        try {
+          const pRes = await propertyService.rentalPeriods(data.id);
+          setRentalPeriods(pRes.data ?? []);
+        } catch {
+          setRentalPeriods([]);
+        }
+      }
+
       try {
         const rel = await propertyService.related(data.id, 4);
         setRelated(rel.data ?? []);
@@ -130,14 +148,17 @@ export default function PropertyDetails() {
       <div className="details-breadcrumbs-wrap">
         <Breadcrumbs
           items={[
-            { label: t('common.darcom', 'Home'), to: '/' },
-            { label: t('nav.properties', 'Properties'), to: '/properties' },
+            { label: t('common.darcom', isRtl ? 'الرئيسية' : 'Home'), to: '/' },
+            {
+              label: purpose === 'rent' ? (isRtl ? 'إيجار' : 'Rent') : (isRtl ? 'عقارات للبيع' : 'Properties For Sale'),
+              to: `/properties?purpose=${purpose}`,
+            },
             { label: property.title },
           ]}
         />
-        <Link to="/properties" className="back-link">
+        <Link to={`/properties?purpose=${purpose}`} className="back-link">
           <i className={`bi ${isRtl ? 'bi-arrow-right' : 'bi-arrow-left'} me-1`}></i>
-          <span>{t('detailsPage.backToProperties', 'All Properties')}</span>
+          <span>{purpose === 'rent' ? (isRtl ? 'كل وحدات الإيجار' : 'All Rentals') : (isRtl ? 'كل عقارات البيع' : 'All Properties')}</span>
         </Link>
       </div>
 
@@ -166,12 +187,20 @@ export default function PropertyDetails() {
           <PropertyDescription property={property} />
           <PropertyAmenities property={property} />
           <PropertyFloorPlan property={property} />
-          <InstallmentCalculator
-            propertyPrice={property.price}
-            propertyTitle={property.title}
-            propertyRef={property.referenceNumber}
-            developer={property.developer}
-          />
+
+          {purpose === 'rent' && (
+            <div className="mb-4">
+              <h3 className="fs-5 fw-bold mb-2">
+                <i className="bi bi-calendar2-range me-2 text-gold"></i>
+                {isRtl ? 'تقويم الإتاحة وفترات الحجز' : 'Rental Availability Calendar'}
+              </h3>
+              <p className="text-muted small mb-3">
+                {isRtl ? 'التواريخ المحددة بالأحمر محجوزة، بينما التواريخ بالأخضر متاحة للحجز الفوري.' : 'Dates marked in red are booked. Green dates are available for immediate reservation.'}
+              </p>
+              <RentalCalendar periods={rentalPeriods} />
+            </div>
+          )}
+
           <PropertyLocation property={property} />
         </div>
 

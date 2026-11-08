@@ -10,7 +10,7 @@ namespace API.Controllers;
 /// <summary>Seller / Owner submission pipeline and rental period tracking.</summary>
 [ApiController]
 [Route("api/seller/properties")]
-[Authorize(Roles = "Seller,Agent,Admin")]
+[Authorize]
 public sealed class SellerController : ApiBaseController
 {
     private readonly ISellerService _seller;
@@ -49,6 +49,7 @@ public sealed class SellerController : ApiBaseController
     /// <response code="201">Draft created.</response>
     /// <response code="422">Validation failed.</response>
     [HttpPost]
+    [Authorize(Roles = "Seller,Agent,Admin")]
     [ProducesResponseType(typeof(ApiResponse<PropertyDetailsDto>), 201)]
     [ProducesResponseType(typeof(ApiResponse<PropertyDetailsDto>), 422)]
     public Task<ActionResult<ApiResponse<PropertyDetailsDto>>> Submit(
@@ -61,6 +62,7 @@ public sealed class SellerController : ApiBaseController
     /// <summary>Move own Draft to PendingReview.</summary>
     /// <response code="409">Not a draft.</response>
     [HttpPost("{id:int}/submit")]
+    [Authorize(Roles = "Seller,Agent,Admin")]
     [ProducesResponseType(typeof(ApiResponse<object?>), 200)]
     [ProducesResponseType(typeof(ApiResponse<object?>), 409)]
     public Task<ActionResult<ApiResponse<object?>>> SubmitForReview(

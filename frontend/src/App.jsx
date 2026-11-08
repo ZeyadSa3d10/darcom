@@ -35,7 +35,9 @@ import Compare from './pages/Compare/Compare.jsx';
 import Rent from './pages/Rent/Rent.jsx';
 import Developers from './pages/Developers/Developers.jsx';
 import { CompareProvider } from './context/CompareContext.jsx';
+import { PurposeProvider } from './context/PurposeContext.jsx';
 import CompareFloatingBar from './components/CompareFloatingBar/CompareFloatingBar.jsx';
+import WhatsAppButton from './components/WhatsAppButton/WhatsAppButton.jsx';
 
 function ScrollToTop() {
   const { pathname, search } = useLocation();
@@ -102,31 +104,34 @@ export default function App() {
   if (isWelcome) {
     return (
       <SettingsProvider>
-        <LoadingScreen />
-        <WelcomeSelector />
+        <PurposeProvider>
+          <LoadingScreen />
+          <WelcomeSelector />
+        </PurposeProvider>
       </SettingsProvider>
     );
   }
 
   return (
     <SettingsProvider>
-      <AuthProvider>
-        <ToastProvider>
-          <CompareProvider>
-            <LoadingScreen />
-            <LanguageTransitionOverlay />
-            <ScrollToTop />
-            <a href="#main-content" className="skip-link">
-              Skip to main content
-            </a>
-            <Navbar />
-            <OfflineBanner />
-            <PageTransition>
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/properties" element={<Properties />} />
-              <Route path="/rent" element={<Rent />} />
-              <Route path="/welcome" element={<WelcomeSelector />} />
+      <PurposeProvider>
+        <AuthProvider>
+          <ToastProvider>
+            <CompareProvider>
+              <LoadingScreen />
+              <LanguageTransitionOverlay />
+              <ScrollToTop />
+              <a href="#main-content" className="skip-link">
+                Skip to main content
+              </a>
+              <Navbar />
+              <OfflineBanner />
+              <PageTransition>
+              <Routes>
+                <Route path="/" element={<Home />} />
+                <Route path="/properties" element={<Properties />} />
+                <Route path="/rent" element={<Navigate to="/properties?purpose=rent" replace />} />
+                <Route path="/welcome" element={<WelcomeSelector />} />
               <Route path="/properties/:slug" element={<PropertyDetails />} />
               <Route path="/compare" element={<Compare />} />
               <Route path="/developers" element={<Developers />} />
@@ -191,10 +196,12 @@ export default function App() {
             </Routes>
             </PageTransition>
             <CompareFloatingBar />
+            <WhatsAppButton />
             <Footer />
           </CompareProvider>
         </ToastProvider>
       </AuthProvider>
+      </PurposeProvider>
     </SettingsProvider>
   );
 }

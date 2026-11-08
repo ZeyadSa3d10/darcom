@@ -27,10 +27,13 @@ const api = axios.create({
   paramsSerializer: { indexes: null },
 });
 
-// Attach JWT to every request.
+// Attach JWT to every request and ensure FormData gets proper multipart boundary.
 api.interceptors.request.use((config) => {
   const token = getAccessToken();
   if (token) config.headers.Authorization = `Bearer ${token}`;
+  if (config.data instanceof FormData) {
+    delete config.headers['Content-Type'];
+  }
   return config;
 });
 

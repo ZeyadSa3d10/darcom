@@ -179,9 +179,9 @@ public sealed class CreateInquiryValidator : AbstractValidator<CreateInquiryRequ
 {
     public CreateInquiryValidator()
     {
-        RuleFor(x => x.Name).NotEmpty().MaximumLength(160);
-        RuleFor(x => x.Email).NotEmpty().EmailAddress().MaximumLength(200);
-        RuleFor(x => x.Phone).MaximumLength(32).When(x => x.Phone is not null);
+        RuleFor(x => x.Name).MaximumLength(160);
+        RuleFor(x => x.Email).EmailAddress().MaximumLength(200).When(x => !string.IsNullOrWhiteSpace(x.Email));
+        RuleFor(x => x.Phone).MaximumLength(32).When(x => !string.IsNullOrWhiteSpace(x.Phone));
         RuleFor(x => x.Message).NotEmpty().MaximumLength(5000);
     }
 }

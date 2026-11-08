@@ -11,13 +11,14 @@ public interface IMediaService
     Task<ServiceResult<MediaItemDto>> AttachUrlAsync(int propertyId, int userId, bool isAdmin, string kind, string url, string? type, string? altText, CancellationToken ct = default);
     Task<ServiceResult<List<MediaItemDto>>> ListAsync(int propertyId, CancellationToken ct = default);
     Task<ServiceResult<object?>> DeleteAsync(int userId, bool isAdmin, string kind, int mediaId, CancellationToken ct = default);
+    Task<ServiceResult<object?>> SetPrimaryImageAsync(int propertyId, int userId, bool isAdmin, int imageId, CancellationToken ct = default);
 }
 
 public sealed class MediaService : IMediaService
 {
     private static readonly Dictionary<string, (string[] Extensions, string[] ContentTypes, long MaxBytes, string Folder)> Kinds = new()
     {
-        ["image"] = (new[] { ".jpg", ".jpeg", ".png", ".webp" }, new[] { "image/jpeg", "image/png", "image/webp" }, 10 * 1024 * 1024, "images"),
+        ["image"] = (new[] { ".jpg", ".jpeg", ".png", ".webp" }, new[] { "image/jpeg", "image/jpg", "image/png", "image/webp", "image/pjpeg", "image/x-png" }, 15 * 1024 * 1024, "images"),
         ["video"] = (new[] { ".mp4" }, new[] { "video/mp4" }, 200 * 1024 * 1024, "videos"),
         ["document"] = (new[] { ".pdf" }, new[] { "application/pdf" }, 20 * 1024 * 1024, "documents")
     };
@@ -41,7 +42,8 @@ public sealed class MediaService : IMediaService
         if (ownerCheck is not null) return ownerCheck;
 
         var ext = Path.GetExtension(fileName).ToLowerInvariant();
-        if (!spec.Extensions.Contains(ext) || !spec.ContentTypes.Contains(contentType.ToLowerInvariant()))
+        var cleanContentType = (contentType ?? "").Split(';')[0].Trim().ToLowerInvariant();
+        if (!spec.Extensions.Contains(ext) || (!spec.ContentTypes.Contains(cleanContentType) && cleanContentType != "application/octet-stream" && !cleanContentType.StartsWith("image/")))
             return ServiceResult<MediaItemDto>.Fail($"Invalid {kind} file type.", 422,
                 new() { new($"Allowed: {string.Join(", ", spec.Extensions)}.", "file") });
         if (length <= 0 || length > spec.MaxBytes)
@@ -91,6 +93,19 @@ public sealed class MediaService : IMediaService
         catch { }
 
         return ServiceResult<object?>.Ok(null, "Media deleted.");
+    }
+
+    public async Task<ServiceResult<object?>> SetPrimaryImageAsync(int propertyId, int userId, bool isAdmin, int imageId, CancellationToken ct = default)
+    {
+        var ownerCheck = await CheckOwnership(propertyId, userId, isAdmin, ct);
+        if (ownerCheck is not null) return ServiceResult<object?>.Fail(ownerCheck.Message, ownerCheck.StatusCode);
+
+        var success = await _properties.SetPrimaryImageAsync(propertyId, imageId, ct);
+        if (!success)
+            return ServiceResult<object?>.NotFound("Image not found on this property.");
+
+        await _properties.SaveChangesAsync(ct);
+        return ServiceResult<object?>.Ok(null, "Primary cover image updated.");
     }
 
     private async Task<ServiceResult<MediaItemDto>?> CheckOwnership(int propertyId, int userId, bool isAdmin, CancellationToken ct)

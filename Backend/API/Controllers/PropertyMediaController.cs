@@ -34,7 +34,7 @@ public sealed class PropertyMediaController : ApiBaseController
     [ProducesResponseType(typeof(ApiResponse<MediaItemDto>), 201)]
     [ProducesResponseType(typeof(ApiResponse<MediaItemDto>), 422)]
     public async Task<ActionResult<ApiResponse<MediaItemDto>>> Upload(
-        int propertyId, string kind, IFormFile file,
+        int propertyId, string kind, [FromForm] IFormFile file,
         [FromForm] string? altText, CancellationToken ct)
     {
         if (file is null)
@@ -70,6 +70,19 @@ public sealed class PropertyMediaController : ApiBaseController
         string kind, int mediaId, CancellationToken ct)
     {
         var result = await _media.DeleteAsync(CurrentUserId(), IsAdmin(), kind, mediaId, ct);
+        return StatusCode(result.StatusCode, result.Succeeded
+            ? ApiResponse<object?>.Ok(result.Message)
+            : ApiResponse<object?>.Fail(result.Message, result.Errors));
+    }
+
+    /// <summary>Set an image as the primary cover image for this property.</summary>
+    [HttpPut("image/{mediaId:int}/primary")]
+    [ProducesResponseType(typeof(ApiResponse<object?>), 200)]
+    [ProducesResponseType(404)]
+    public async Task<ActionResult<ApiResponse<object?>>> SetPrimary(
+        int propertyId, int mediaId, CancellationToken ct)
+    {
+        var result = await _media.SetPrimaryImageAsync(propertyId, CurrentUserId(), IsAdmin(), mediaId, ct);
         return StatusCode(result.StatusCode, result.Succeeded
             ? ApiResponse<object?>.Ok(result.Message)
             : ApiResponse<object?>.Fail(result.Message, result.Errors));

@@ -37,9 +37,11 @@ public sealed class PropertiesController : ApiBaseController
     [HttpGet("featured")]
     [ProducesResponseType(typeof(ApiResponse<List<PropertyListDto>>), 200)]
     public async Task<ActionResult<ApiResponse<List<PropertyListDto>>>> Featured(
-        [FromQuery] int count = 8, CancellationToken ct = default)
+        [FromQuery] int count = 8,
+        [FromQuery] string? purpose = null,
+        CancellationToken ct = default)
     {
-        var result = await _properties.GetFeaturedAsync(count, ct);
+        var result = await _properties.GetFeaturedAsync(count, purpose, ct);
         return Ok(ApiResponse<List<PropertyListDto>>.Ok(result.Data!));
     }
 
@@ -48,13 +50,14 @@ public sealed class PropertiesController : ApiBaseController
     [ProducesResponseType(typeof(ApiResponse<PagedResult<PropertyListDto>>), 200)]
     public async Task<ActionResult<ApiResponse<PagedResult<PropertyListDto>>>> Search(
         [FromQuery] string q = "",
+        [FromQuery] string? purpose = null,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 12,
         CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(q))
             return Ok(ApiResponse<PagedResult<PropertyListDto>>.Ok(new(new(), page, pageSize, 0, 1)));
-        var result = await _properties.QuickSearchAsync(q, page, pageSize, ct);
+        var result = await _properties.QuickSearchAsync(q, purpose, page, pageSize, ct);
         return Ok(ApiResponse<PagedResult<PropertyListDto>>.Ok(result.Data!));
     }
 
@@ -92,6 +95,15 @@ public sealed class PropertiesController : ApiBaseController
     {
         var result = await _properties.GetRelatedAsync(id, count, ct);
         return Ok(ApiResponse<List<PropertyListDto>>.Ok(result.Data!));
+    }
+
+    /// <summary>Public property rental availability calendar (booked intervals only — no private renter info).</summary>
+    [HttpGet("{id:int}/rental-periods")]
+    [ProducesResponseType(typeof(ApiResponse<List<PublicRentalPeriodDto>>), 200)]
+    public async Task<ActionResult<ApiResponse<List<PublicRentalPeriodDto>>>> RentalPeriods(int id, CancellationToken ct)
+    {
+        var result = await _properties.GetPublicRentalPeriodsAsync(id, ct);
+        return Ok(ApiResponse<List<PublicRentalPeriodDto>>.Ok(result.Data!));
     }
 
     /// <summary>Seller/Agent listings start as Draft; Admin listings publish immediately.</summary>

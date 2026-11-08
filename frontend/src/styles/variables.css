@@ -60,7 +60,7 @@
 
    /* Layout */
    --container-max: 1200px;
-   --navbar-height: 72px;
+   --navbar-height: 58px;
 }
 
 /* RTL readiness: logical properties preferred in components.

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import FormField from '../../../components/FormField/FormField.jsx';
 import { locationService } from '../../../services/locationService.js';
+import { adminService } from '../../../services/adminService.js';
 
 const PURPOSES = ['Sale', 'Rent', 'Investment'];
 const FURNISHED = ['Fully Furnished', 'Semi Furnished', 'Unfurnished'];
@@ -39,6 +40,9 @@ const BLANK = {
   locationId: '',
   address: '',
   developer: '',
+  ownerName: '',
+  ownerPhone: '',
+  ownerId: '',
 };
 
 const numOrNull = (v) => (v === '' || v == null ? null : Number(v));
@@ -96,6 +100,9 @@ function fromDetails(d, types, locations, villages) {
     locationId: locId === '' ? '' : String(locId),
     address: d.address ?? '',
     developer: d.developer ?? '',
+    ownerName: d.ownerName ?? '',
+    ownerPhone: d.ownerPhone ?? '',
+    ownerId: d.ownerId ? String(d.ownerId) : '',
   };
 }
 
@@ -110,19 +117,29 @@ export default function AdminPropertyForm({
   const [types, setTypes] = useState([]);
   const [locations, setLocations] = useState([]);
   const [villages, setVillages] = useState([]);
+  const [users, setUsers] = useState([]);
+  const [ownerMode, setOwnerMode] = useState('independent'); // 'registered' | 'independent'
   const [form, setForm] = useState({ ...BLANK });
   const [primed, setPrimed] = useState(false);
+  const [clientErrors, setClientErrors] = useState({});
 
   useEffect(() => {
     locationService.getPropertyTypes().then((r) => setTypes(r.data ?? [])).catch(() => setTypes([]));
     locationService.getLocations().then((r) => setLocations(r.data ?? [])).catch(() => setLocations([]));
     locationService.getVillages().then((r) => setVillages(r.data ?? [])).catch(() => setVillages([]));
+    adminService.users({ page: 1, pageSize: 100 }).then((r) => setUsers(r.data?.data ?? [])).catch(() => setUsers([]));
   }, []);
 
   useEffect(() => {
     if (!initial || primed) return;
     if (!types.length || !villages.length) return;
-    setForm(fromDetails(initial, types, locations, villages));
+    const details = fromDetails(initial, types, locations, villages);
+    setForm(details);
+    if (details.ownerId) {
+      setOwnerMode('registered');
+    } else {
+      setOwnerMode('independent');
+    }
     setPrimed(true);
   }, [initial, primed, types, locations, villages]);
 
@@ -136,6 +153,9 @@ export default function AdminPropertyForm({
   const set = (key) => (e) => {
     const v = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
     setForm((f) => ({ ...f, [key]: v }));
+    if (clientErrors[key]) {
+      setClientErrors((ce) => ({ ...ce, [key]: undefined }));
+    }
   };
 
   const handleVillageChange = (e) => {
@@ -152,11 +172,38 @@ export default function AdminPropertyForm({
     });
   };
 
-  const errors = useMemo(() => serverErrors || {}, [serverErrors]);
+  const errors = useMemo(() => ({ ...(serverErrors || {}), ...clientErrors }), [serverErrors, clientErrors]);
   const id = (k) => `${idPrefix}-${k}`;
 
   const handleSubmit = (e) => {
     e.preventDefault();
+
+    const cErrs = {};
+    if (ownerMode === 'registered' && !form.ownerId) {
+      cErrs.ownerId = 'Please select a registered user or switch to Independent Owner.';
+    } else if (ownerMode === 'independent') {
+      if (!form.ownerName?.trim()) {
+        cErrs.ownerName = 'Owner name is mandatory for independent properties.';
+      }
+      if (!form.ownerPhone?.trim()) {
+        cErrs.ownerPhone = 'Owner phone is mandatory for independent properties.';
+      }
+    }
+
+    if (Object.keys(cErrs).length > 0) {
+      setClientErrors(cErrs);
+      return;
+    }
+    setClientErrors({});
+    const finalOwnerId = ownerMode === 'registered' ? numOrNull(form.ownerId) : null;
+    const selectedUser = ownerMode === 'registered' ? users.find((u) => String(u.id) === String(form.ownerId)) : null;
+    const finalOwnerName = ownerMode === 'registered'
+      ? (selectedUser?.fullName || null)
+      : strOrNull(form.ownerName);
+    const finalOwnerPhone = ownerMode === 'registered'
+      ? (selectedUser?.phoneNumber || null)
+      : strOrNull(form.ownerPhone);
+
     onSubmit({
       title: form.title.trim(),
       description: strOrNull(form.description),
@@ -183,6 +230,9 @@ export default function AdminPropertyForm({
       locationId: numOrNull(form.locationId) || 1,
       address: strOrNull(form.address),
       developer: strOrNull(form.developer),
+      ownerId: finalOwnerId,
+      ownerName: finalOwnerName,
+      ownerPhone: finalOwnerPhone,
     });
   };
 
@@ -370,6 +420,74 @@ export default function AdminPropertyForm({
           <input id={id('developer')} className="form-control" value={form.developer} onChange={set('developer')} />
         </FormField>
       </div>
+
+      {/* Owner Information (Registered User Picker OR Manual Owner) */}
+      <div className="d-flex align-items-center justify-content-between apf-section-wrap mt-3 mb-2">
+        <h6 className="apf-section m-0">Owner Information</h6>
+        <div className="btn-group btn-group-sm" role="group">
+          <button
+            type="button"
+            className={`btn ${ownerMode === 'registered' ? 'btn-brand' : 'btn-outline-secondary'}`}
+            onClick={() => setOwnerMode('registered')}
+          >
+            Registered User
+          </button>
+          <button
+            type="button"
+            className={`btn ${ownerMode === 'independent' ? 'btn-brand' : 'btn-outline-secondary'}`}
+            onClick={() => setOwnerMode('independent')}
+          >
+            Independent Owner
+          </button>
+        </div>
+      </div>
+
+      {ownerMode === 'registered' ? (
+        <div className="apf-grid-2">
+          <FormField id={id('ownerId')} label="Select Registered User" error={errors.ownerId}>
+            <select
+              id={id('ownerId')}
+              className={`form-select ${errors.ownerId ? 'is-invalid' : ''}`}
+              value={form.ownerId}
+              onChange={set('ownerId')}
+            >
+              <option value="">Select User…</option>
+              {users.map((u) => (
+                <option key={u.id} value={u.id}>
+                  {u.fullName} ({u.email}) {u.phoneNumber ? `· ${u.phoneNumber}` : ''}
+                </option>
+              ))}
+            </select>
+          </FormField>
+          <div className="d-flex align-items-center">
+            <span className="text-muted small">
+              The property will be linked to this user's account under &ldquo;My Properties&rdquo; with their rental calendar.
+            </span>
+          </div>
+        </div>
+      ) : (
+        <div className="apf-grid-2">
+          <FormField id={id('ownerName')} label="Owner Full Name" error={errors.ownerName}>
+            <input
+              id={id('ownerName')}
+              className={`form-control ${errors.ownerName ? 'is-invalid' : ''}`}
+              value={form.ownerName}
+              onChange={set('ownerName')}
+              placeholder="e.g. Mahmoud Mostafa"
+            />
+          </FormField>
+          <FormField id={id('ownerPhone')} label="Owner Phone Number" error={errors.ownerPhone}>
+            <input
+              id={id('ownerPhone')}
+              type="tel"
+              className={`form-control ${errors.ownerPhone ? 'is-invalid' : ''}`}
+              value={form.ownerPhone}
+              onChange={set('ownerPhone')}
+              placeholder="01012345678"
+            />
+          </FormField>
+        </div>
+      )}
 
       <div className="apf-actions">
         <button type="submit" className="btn btn-brand" disabled={saving}>

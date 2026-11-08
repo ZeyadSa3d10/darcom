@@ -7,7 +7,7 @@ namespace Application.Services;
 
 public interface IInquiryService
 {
-    Task<ServiceResult<object?>> SubmitAsync(int propertyId, CreateInquiryRequest request, CancellationToken ct = default);
+    Task<ServiceResult<object?>> SubmitAsync(int propertyId, CreateInquiryRequest request, int? userId = null, CancellationToken ct = default);
     Task<ServiceResult<PagedResult<InquiryDto>>> AdminListAsync(int? propertyId, int page, int pageSize, CancellationToken ct = default);
     Task<ServiceResult<object?>> SubmitContactAsync(ContactRequest request, CancellationToken ct = default);
 }
@@ -16,27 +16,59 @@ public sealed class InquiryService : IInquiryService
 {
     private readonly IEngagementStore _store;
     private readonly IRequestStore _requests;
+    private readonly IAuthStore _auth;
     private readonly IAuditWriter _audit;
 
-    public InquiryService(IEngagementStore store, IRequestStore requests, IAuditWriter audit)
+    public InquiryService(IEngagementStore store, IRequestStore requests, IAuthStore auth, IAuditWriter audit)
     {
         _store = store;
         _requests = requests;
+        _auth = auth;
         _audit = audit;
     }
 
-    public async Task<ServiceResult<object?>> SubmitAsync(int propertyId, CreateInquiryRequest request, CancellationToken ct = default)
+    public async Task<ServiceResult<object?>> SubmitAsync(int propertyId, CreateInquiryRequest request, int? userId = null, CancellationToken ct = default)
     {
         var property = await _requests.GetPropertyAsync(propertyId, ct);
         if (property is null)
             return ServiceResult<object?>.NotFound("Property not found.");
 
+        string name = request.Name?.Trim() ?? string.Empty;
+        string email = request.Email?.Trim().ToLowerInvariant() ?? string.Empty;
+        string? phone = request.Phone?.Trim();
+
+        // If authenticated, associate verified user identity and fallback to user profile details if blank
+        int? validUserId = null;
+        if (userId.HasValue && userId.Value > 0)
+        {
+            var user = await _auth.FindUserByIdAsync(userId.Value, ct);
+            if (user is not null)
+            {
+                validUserId = user.Id;
+                if (string.IsNullOrWhiteSpace(name))
+                    name = user.FullName;
+                if (string.IsNullOrWhiteSpace(email))
+                    email = user.Email.ToLowerInvariant();
+                if (string.IsNullOrWhiteSpace(phone))
+                    phone = user.PhoneNumber;
+            }
+        }
+
+        if (validUserId is null)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+                return ServiceResult<object?>.Fail("Name is required.", 422, new() { new("Name is required.", "name") });
+            if (string.IsNullOrWhiteSpace(email))
+                return ServiceResult<object?>.Fail("Email is required.", 422, new() { new("Email is required.", "email") });
+        }
+
         await _store.AddInquiryAsync(new PropertyInquiry
         {
             PropertyId = propertyId,
-            Name = request.Name.Trim(),
-            Email = request.Email.Trim().ToLowerInvariant(),
-            Phone = request.Phone?.Trim(),
+            UserId = validUserId,
+            Name = name,
+            Email = email,
+            Phone = phone,
             Message = request.Message.Trim(),
             IsRead = false
         }, ct);
@@ -44,10 +76,10 @@ public sealed class InquiryService : IInquiryService
 
         foreach (var adminId in await _requests.GetAdminUserIdsAsync(ct))
             await _store.AddNotificationAsync(adminId, "New property inquiry",
-                $"{request.Name} asked about {property.Title}.", "inquiry", ct);
+                $"{name} asked about {property.Title}.", "inquiry", ct);
         await _store.SaveChangesAsync(ct);
-        await _audit.LogAsync(null, "inquiry.created", "PropertyInquiry",
-            propertyId.ToString(), null, request.Email, null, ct);
+        await _audit.LogAsync(validUserId, "inquiry.created", "PropertyInquiry",
+            propertyId.ToString(), null, email, null, ct);
 
         return ServiceResult<object?>.Created(null, "Inquiry sent. The agent will contact you shortly.");
     }

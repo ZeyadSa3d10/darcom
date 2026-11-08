@@ -123,6 +123,31 @@ public sealed class AdminController : ApiBaseController
         return Ok(ApiResponse<List<RentalPeriodDto>>.Ok(result.Data!));
     }
 
+    [HttpPost("properties/{propertyId:int}/rental-periods")]
+    [ProducesResponseType(typeof(ApiResponse<RentalPeriodDto>), 201)]
+    [ProducesResponseType(typeof(ApiResponse<RentalPeriodDto>), 409)]
+    [ProducesResponseType(typeof(ApiResponse<RentalPeriodDto>), 422)]
+    public async Task<ActionResult<ApiResponse<RentalPeriodDto>>> AddPropertyRentalPeriod(
+        int propertyId, [FromBody] CreateRentalPeriodRequest request, CancellationToken ct)
+    {
+        var result = await _properties.AddAdminRentalPeriodAsync(CurrentUserId(), propertyId, request, ct);
+        return StatusCode(result.StatusCode, result.Succeeded
+            ? ApiResponse<RentalPeriodDto>.Ok(result.Data!, result.Message)
+            : ApiResponse<RentalPeriodDto>.Fail(result.Message, result.Errors));
+    }
+
+    [HttpDelete("properties/{propertyId:int}/rental-periods/{periodId:int}")]
+    [ProducesResponseType(typeof(ApiResponse<object?>), 200)]
+    [ProducesResponseType(404)]
+    public async Task<ActionResult<ApiResponse<object?>>> DeletePropertyRentalPeriod(
+        int propertyId, int periodId, CancellationToken ct)
+    {
+        var result = await _properties.DeleteAdminRentalPeriodAsync(CurrentUserId(), propertyId, periodId, ct);
+        return StatusCode(result.StatusCode, result.Succeeded
+            ? ApiResponse<object?>.Ok(result.Message)
+            : ApiResponse<object?>.Fail(result.Message, result.Errors));
+    }
+
     /// <summary>Approve a pending-review property → Published (notifies the owner, writes audit).</summary>
     /// <response code="409">Not pending review.</response>
     [HttpPut("properties/{id:int}/approve")]

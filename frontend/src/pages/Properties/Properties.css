@@ -352,26 +352,209 @@
 }
 
 /* ==========================================================================
-   4. Main Listing Layout: Sidebar & Results Grid
+   4. Horizontal Filter Bar & Full-Width Results Grid
    ========================================================================== */
-.listing-layout {
-  display: grid;
-  grid-template-columns: 290px 1fr;
-  gap: var(--space-8);
-  align-items: start;
+.horizontal-filter-bar {
+  background: #ffffff;
+  border: 1px solid rgba(20, 66, 79, 0.12);
+  border-radius: 16px;
+  padding: 1.25rem 1.5rem;
+  margin-block-end: var(--space-6);
+  box-shadow: 0 4px 20px -5px rgba(14, 42, 50, 0.06);
 }
 
-.listing-sidebar-luxury {
-  position: sticky;
-  top: calc(var(--navbar-height) + var(--space-4));
-  border: 1px solid rgba(20, 66, 79, 0.12);
-  border-radius: 20px;
-  padding: 1.5rem;
+.hfilter-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 1rem;
+}
+
+.hfilter-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  flex: 1 1 140px;
+  min-inline-size: 130px;
+}
+
+.hfilter-item.area-range-item {
+  flex: 1.2 1 180px;
+  min-inline-size: 170px;
+}
+
+.hfilter-item.features-item {
+  flex: 2 1 260px;
+}
+
+.hfilter-actions-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.hfilter-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-slate-600, #475569);
+  margin: 0;
+}
+
+.hfilter-select-box {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 0.45rem 0.75rem;
+  transition: all 0.2s ease;
+}
+
+.hfilter-select-box:focus-within {
+  border-color: #d4af37;
   background: #ffffff;
-  box-shadow: 0 10px 30px -10px rgba(14, 42, 50, 0.08);
-  max-block-size: calc(100vh - var(--navbar-height) - var(--space-8));
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
+  box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.15);
+}
+
+.hfilter-select {
+  border: none;
+  background: transparent;
+  inline-size: 100%;
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: #1e293b;
+  outline: none;
+  cursor: pointer;
+}
+
+.hfilter-range-inputs {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 0.4rem 0.5rem;
+}
+
+.hfilter-number-input {
+  border: none;
+  background: transparent;
+  inline-size: 65px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #1e293b;
+  outline: none;
+  text-align: center;
+}
+
+.hfilter-dash {
+  color: #94a3b8;
+  font-weight: 600;
+}
+
+.hfilter-pills-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.hfilter-pill-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.85rem;
+  border-radius: 20px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  color: #334155;
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.hfilter-purpose-header {
+  padding-block-end: 0.75rem;
+  border-block-end: 1px solid #f1f5f9;
+}
+
+.mode-current-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.35rem 0.85rem;
+  border-radius: 9999px;
+  background: rgba(20, 66, 79, 0.08);
+  color: var(--brand-primary);
+  font-size: 0.84rem;
+  font-weight: 700;
+  border: 1px solid rgba(20, 66, 79, 0.15);
+}
+
+.btn-switch-purpose-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.85rem;
+  border-radius: 9999px;
+  background: #ffffff;
+  border: 1px solid #d4af37;
+  color: #8b6e15;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-switch-purpose-inline:hover {
+  background: rgba(212, 175, 55, 0.12);
+  color: #70580e;
+  transform: translateY(-1px);
+}
+
+.hfilter-purpose-header .btn-group .btn {
+  font-size: 0.82rem;
+  padding: 0.35rem 0.85rem;
+  font-weight: 600;
+  border-radius: 8px;
+}
+
+.hfilter-item.budget-item .hfilter-select {
+  min-width: 140px;
+}
+
+.hfilter-pill-btn:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+.hfilter-pill-btn.active {
+  background: rgba(212, 175, 55, 0.15);
+  border-color: #d4af37;
+  color: #8b6e15;
+  font-weight: 600;
+}
+
+.hfilter-btn-more {
+  border-radius: 10px;
+  font-size: 0.85rem;
+  padding: 0.45rem 0.85rem;
+  font-weight: 500;
+}
+
+.hfilter-btn-reset {
+  border-radius: 10px;
+  font-size: 0.85rem;
+  padding: 0.45rem 0.75rem;
+}
+
+.listing-layout {
+  display: block;
+  inline-size: 100%;
 }
 
 .results-list {

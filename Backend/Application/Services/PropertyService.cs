@@ -12,11 +12,14 @@ public interface IPropertyService
     Task<ServiceResult<PagedResult<PropertyListDto>>> SearchAsync(PropertyQuery query, bool isAdmin, CancellationToken ct = default);
     Task<ServiceResult<PropertyDetailsDto>> GetByIdAsync(int id, bool isAdmin, CancellationToken ct = default);
     Task<ServiceResult<PropertyDetailsDto>> GetBySlugAsync(string slug, bool isAdmin, CancellationToken ct = default);
-    Task<ServiceResult<List<PropertyListDto>>> GetFeaturedAsync(int count, CancellationToken ct = default);
-    Task<ServiceResult<PagedResult<PropertyListDto>>> QuickSearchAsync(string term, int page, int pageSize, CancellationToken ct = default);
+    Task<ServiceResult<List<PropertyListDto>>> GetFeaturedAsync(int count, string? purpose = null, CancellationToken ct = default);
+    Task<ServiceResult<PagedResult<PropertyListDto>>> QuickSearchAsync(string term, string? purpose = null, int page = 1, int pageSize = 12, CancellationToken ct = default);
     Task<ServiceResult<List<PropertyListDto>>> GetRelatedAsync(int id, int count, CancellationToken ct = default);
     Task<ServiceResult<PagedResult<PropertyListDto>>> MyPropertiesAsync(int ownerId, int page, int pageSize, CancellationToken ct = default);
     Task<ServiceResult<List<RentalPeriodDto>>> GetRentalPeriodsAsync(int userId, bool isAdmin, int? propertyId = null, CancellationToken ct = default);
+    Task<ServiceResult<List<PublicRentalPeriodDto>>> GetPublicRentalPeriodsAsync(int propertyId, CancellationToken ct = default);
+    Task<ServiceResult<RentalPeriodDto>> AddAdminRentalPeriodAsync(int adminId, int propertyId, CreateRentalPeriodRequest request, CancellationToken ct = default);
+    Task<ServiceResult<object?>> DeleteAdminRentalPeriodAsync(int adminId, int propertyId, int periodId, CancellationToken ct = default);
     Task<ServiceResult<PropertyDetailsDto>> CreateAsync(int userId, string role, CreatePropertyRequest request, CancellationToken ct = default);
     Task<ServiceResult<PropertyDetailsDto>> UpdateAsync(int userId, bool isAdmin, int id, UpdatePropertyRequest request, CancellationToken ct = default);
     Task<ServiceResult<object?>> DeleteAsync(int userId, bool isAdmin, int id, CancellationToken ct = default);
@@ -58,18 +61,18 @@ public sealed class PropertyService : IPropertyService
             : ServiceResult<PropertyDetailsDto>.Ok(dto);
     }
 
-    public async Task<ServiceResult<List<PropertyListDto>>> GetFeaturedAsync(int count, CancellationToken ct = default)
+    public async Task<ServiceResult<List<PropertyListDto>>> GetFeaturedAsync(int count, string? purpose = null, CancellationToken ct = default)
     {
         count = Math.Clamp(count, 1, 24);
-        return ServiceResult<List<PropertyListDto>>.Ok(await _store.GetFeaturedAsync(count, ct));
+        return ServiceResult<List<PropertyListDto>>.Ok(await _store.GetFeaturedAsync(count, purpose, ct));
     }
 
-    public async Task<ServiceResult<PagedResult<PropertyListDto>>> QuickSearchAsync(string term, int page, int pageSize, CancellationToken ct = default)
+    public async Task<ServiceResult<PagedResult<PropertyListDto>>> QuickSearchAsync(string term, string? purpose = null, int page = 1, int pageSize = 12, CancellationToken ct = default)
     {
         page = page < 1 ? 1 : page;
         pageSize = Math.Clamp(pageSize, 1, 50);
         return ServiceResult<PagedResult<PropertyListDto>>.Ok(
-            await _store.QuickSearchAsync(term.Trim(), page, pageSize, ct));
+            await _store.QuickSearchAsync(term.Trim(), purpose, page, pageSize, ct));
     }
 
     public async Task<ServiceResult<List<PropertyListDto>>> GetRelatedAsync(int id, int count, CancellationToken ct = default)
@@ -99,6 +102,55 @@ public sealed class PropertyService : IPropertyService
         // Owners view their own properties' confirmed rental periods
         var ownerPeriods = await _store.GetOwnerRentalPeriodsAsync(userId, propertyId, ct);
         return ServiceResult<List<RentalPeriodDto>>.Ok(ownerPeriods);
+    }
+
+    public async Task<ServiceResult<List<PublicRentalPeriodDto>>> GetPublicRentalPeriodsAsync(int propertyId, CancellationToken ct = default)
+    {
+        var periods = await _store.GetPublicRentalPeriodsAsync(propertyId, ct);
+        return ServiceResult<List<PublicRentalPeriodDto>>.Ok(periods);
+    }
+
+    public async Task<ServiceResult<RentalPeriodDto>> AddAdminRentalPeriodAsync(int adminId, int propertyId, CreateRentalPeriodRequest request, CancellationToken ct = default)
+    {
+        var property = await _store.GetEntityAsync(propertyId, ct);
+        if (property is null)
+            return ServiceResult<RentalPeriodDto>.NotFound("Property not found.");
+
+        if (request.StartDate >= request.EndDate)
+            return ServiceResult<RentalPeriodDto>.Fail("End date must be after start date.", 422,
+                new() { new("End date must be after start date.", "endDate") });
+
+        if (await _store.HasOverlappingRentalPeriodAsync(propertyId, request.StartDate, request.EndDate, null, ct))
+        {
+            return ServiceResult<RentalPeriodDto>.Fail("This property already has an overlapping confirmed rental reservation for these dates.", 409,
+                new() { new("Property has an overlapping confirmed reservation.", "dates") });
+        }
+
+        var period = new RentalPeriod
+        {
+            PropertyId = propertyId,
+            StartDate = request.StartDate,
+            EndDate = request.EndDate,
+            RenterName = string.IsNullOrWhiteSpace(request.RenterName) ? "Direct Booking" : request.RenterName.Trim(),
+            RenterPhone = request.RenterPhone?.Trim(),
+            Notes = request.Notes?.Trim()
+        };
+
+        await _store.AddRentalPeriodAsync(period, ct);
+        await _audit.LogAsync(adminId, "rental-period.create", "RentalPeriod", period.Id.ToString(), null, $"{request.StartDate:yyyy-MM-dd} to {request.EndDate:yyyy-MM-dd}", null, ct);
+
+        var dto = new RentalPeriodDto(period.Id, period.PropertyId, period.BookingRequestId, period.StartDate, period.EndDate, period.RenterName, period.RenterPhone, period.Notes, period.CreatedAt);
+        return ServiceResult<RentalPeriodDto>.Created(dto, "Rental period added successfully.");
+    }
+
+    public async Task<ServiceResult<object?>> DeleteAdminRentalPeriodAsync(int adminId, int propertyId, int periodId, CancellationToken ct = default)
+    {
+        var success = await _store.DeleteRentalPeriodAsync(propertyId, periodId, ct);
+        if (!success)
+            return ServiceResult<object?>.NotFound("Rental period not found.");
+
+        await _audit.LogAsync(adminId, "rental-period.delete", "RentalPeriod", periodId.ToString(), null, "Deleted", null, ct);
+        return ServiceResult<object?>.Ok(null, "Rental period deleted.");
     }
 
     public async Task<ServiceResult<PropertyDetailsDto>> CreateAsync(int userId, string role, CreatePropertyRequest request, CancellationToken ct = default)
@@ -180,7 +232,9 @@ public sealed class PropertyService : IPropertyService
             Developer = request.Developer,
             OwnerId = listingRequest != null ? listingRequest.UserId : (request.OwnerId ?? (role == "Seller" ? userId : null)),
             CreatedByUserId = userId,
-            PropertyListingRequestId = listingRequest?.Id
+            PropertyListingRequestId = listingRequest?.Id,
+            OwnerName = request.OwnerName?.Trim(),
+            OwnerPhone = request.OwnerPhone?.Trim()
         };
 
         await _store.AddAsync(property, ct);
@@ -287,6 +341,8 @@ public sealed class PropertyService : IPropertyService
         if (request.Address is not null) property.Address = request.Address;
         if (request.Developer is not null) property.Developer = request.Developer;
         if (isAdmin && request.OwnerId.HasValue) property.OwnerId = request.OwnerId.Value;
+        if (isAdmin && request.OwnerName is not null) property.OwnerName = request.OwnerName.Trim();
+        if (isAdmin && request.OwnerPhone is not null) property.OwnerPhone = request.OwnerPhone.Trim();
 
         if (request.IsFeatured.HasValue || request.IsVerified.HasValue)
         {

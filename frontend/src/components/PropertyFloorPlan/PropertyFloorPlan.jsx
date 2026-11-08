@@ -12,12 +12,8 @@ export default function PropertyFloorPlan({ property }) {
   const bathrooms = property.bathrooms ?? 2;
   const area = property.area ?? 220;
 
-  const handlePrintBrochure = () => {
-    window.print();
-  };
-
   return (
-    <section className="darcom-floorplan-section" id="floor-plan" aria-label="Floor plan and brochure">
+    <section className="darcom-floorplan-section" id="floor-plan" aria-label="Floor plan">
       {/* Header */}
       <div className="floorplan-header">
         <div>
@@ -34,17 +30,6 @@ export default function PropertyFloorPlan({ property }) {
               : 'Precision architectural schematic showcasing room circulation, master suites, terraces, and service quarters.'}
           </p>
         </div>
-
-        {/* Brochure CTA Button */}
-        <button
-          type="button"
-          className="btn-download-brochure"
-          onClick={handlePrintBrochure}
-          title={isRtl ? 'طباعة / حفظ البروشور الفاخر' : 'Download Luxury Architectural Brochure'}
-        >
-          <i className="bi bi-file-earmark-pdf-fill text-gold"></i>
-          <span>{isRtl ? 'تحميل البروشور المعماري (PDF)' : 'Download Luxury Brochure (PDF)'}</span>
-        </button>
       </div>
 
       {/* Tabs */}

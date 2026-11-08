@@ -1161,6 +1161,12 @@ namespace Infrastructure.Persistence.Migrations
                     b.Property<int?>("OwnerId")
                         .HasColumnType("int");
 
+                    b.Property<string>("OwnerName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("OwnerPhone")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<bool>("Parking")
                         .HasColumnType("bit");
 

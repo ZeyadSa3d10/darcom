@@ -50,6 +50,10 @@ public sealed class Property : EntityBase
     public int? BrokerId { get; set; }
     public int? BrokerSubmissionId { get; set; }
     public int? PropertyListingRequestId { get; set; }
+
+    // Owner contact info (optional — for unregistered property owners)
+    public string? OwnerName { get; set; }
+    public string? OwnerPhone { get; set; }
     public bool IsVerified { get; set; }
     public bool IsFeatured { get; set; }
     public long ViewCount { get; set; }

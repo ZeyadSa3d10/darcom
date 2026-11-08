@@ -72,6 +72,16 @@ export const adminService = {
   setRequirementStatus: (id, payload) =>
     api.put(`/admin/requirements/${id}/status`, payload).then((r) => r.data),
 
+  // Property lifecycle actions (called by PropertiesManager)
+  setPropertyStatus: (id, status) =>
+    api.put(`/properties/${id}`, { status }).then((r) => r.data),
+  toggleFeatured: (id, isFeatured) =>
+    api.put(`/properties/${id}`, { isFeatured }).then((r) => r.data),
+  toggleVerified: (id, isVerified) =>
+    api.put(`/properties/${id}`, { isVerified }).then((r) => r.data),
+  archiveProperty: (id) =>
+    api.delete(`/properties/${id}`).then((r) => r.data),
+
   // Rental Periods Tracking (Requirement 9)
   propertyRentalPeriods: (propertyId) =>
     api
@@ -79,4 +89,10 @@ export const adminService = {
         params: propertyId ? { propertyId } : {},
       })
       .then((r) => r.data),
+
+  // Admin rental period management
+  createRentalPeriod: (propertyId, payload) =>
+    api.post(`/admin/properties/${propertyId}/rental-periods`, payload).then((r) => r.data),
+  deleteRentalPeriod: (propertyId, periodId) =>
+    api.delete(`/admin/properties/${propertyId}/rental-periods/${periodId}`).then((r) => r.data),
 };

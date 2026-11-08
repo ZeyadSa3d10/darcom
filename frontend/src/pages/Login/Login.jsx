@@ -4,6 +4,7 @@ import FormField, { mapFieldErrors } from '../../components/FormField/FormField.
 import { useToast } from '../../components/Toast/Toast.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useSettings } from '../../context/SettingsContext.jsx';
+import { normalizeDigits } from '../../utils/phoneUtils.js';
 import { useSeo } from '../../hooks/useSeo.js';
 import './Login.css';
 
@@ -15,7 +16,10 @@ export default function Login() {
   const toast = useToast();
   const navigate = useNavigate();
   const location = useLocation();
-  const from = location.state?.from || '/';
+
+  const searchParams = new URLSearchParams(location.search);
+  const redirectTarget = searchParams.get('redirect') || searchParams.get('returnUrl');
+  const from = location.state?.from || redirectTarget || '/';
 
   const [form, setForm] = useState({ email: '', password: '' });
   const [errors, setErrors] = useState({});
@@ -23,7 +27,13 @@ export default function Login() {
   const [busy, setBusy] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
+  const set = (key) => (e) => {
+    let val = e.target.value;
+    if (key === 'email') {
+      val = normalizeDigits(val);
+    }
+    setForm((f) => ({ ...f, [key]: val }));
+  };
 
   const submit = async (e) => {
     e.preventDefault();
@@ -31,7 +41,8 @@ export default function Login() {
     setErrors({});
     setGeneral('');
     try {
-      await login(form);
+      const cleanIdentifier = normalizeDigits(form.email).trim();
+      await login({ email: cleanIdentifier, password: form.password });
       toast.success(t('auth.loginSuccess', isRtl ? 'تم تسجيل الدخول بنجاح. مرحباً بعودتك!' : 'Welcome back.'));
       navigate(from, { replace: true });
     } catch (err) {

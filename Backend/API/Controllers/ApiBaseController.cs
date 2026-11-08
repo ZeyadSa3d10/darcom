@@ -62,6 +62,12 @@ public abstract class ApiBaseController : ControllerBase
             ?? User.FindFirstValue("sub")
             ?? throw new UnauthorizedAccessException());
 
+    protected int? TryGetCurrentUserId()
+    {
+        var idStr = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
+        return int.TryParse(idStr, out var id) ? id : null;
+    }
+
     protected string? CurrentRole()
         => User.FindFirstValue(ClaimTypes.Role);
 

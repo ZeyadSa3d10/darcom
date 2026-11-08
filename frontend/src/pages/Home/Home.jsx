@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useSettings } from '../../context/SettingsContext.jsx';
+import { usePurpose } from '../../context/PurposeContext.jsx';
 import Hero from '../../components/Hero/Hero.jsx';
 import PropertyGrid from '../../components/PropertyGrid/PropertyGrid.jsx';
 import PropertyCard from '../../components/PropertyCard/PropertyCard.jsx';
@@ -134,11 +135,12 @@ function SectionHead({ kicker, title, linkTo, linkLabel, isRtl }) {
 
 export default function Home() {
   const { t, isRtl } = useSettings();
+  const { purpose, isRental, isSale, purposeLabelAr, purposeLabelEn } = usePurpose();
   const scopeRef = useRevealScope(':scope > section:not(.hero)');
   const cmsSeo = useCmsSeo('home');
   useSeo({
-    title: cmsSeo?.title || 'Darcom — Find a Place Worth Calling Home',
-    description: cmsSeo?.description || 'Chalets, villas and twin houses across the North Coast of Egypt. Sidi Abdel Rahman, Ras El Hekma, Marassi, Hacienda Bay and more. Verified listings, transparent prices.',
+    title: cmsSeo?.title || (isRental ? 'داركم — شاليهات وفلل فاخرة للإيجار بالساحل الشمالي' : 'Darcom — Find a Place Worth Calling Home'),
+    description: cmsSeo?.description || (isRental ? 'استكشف شاليهات وفلل للإيجار في أرقى قرى الساحل الشمالي (مراسي، هاسيندا، تلال، رأس الحكمة).' : 'Chalets, villas and twin houses across the North Coast of Egypt. Sidi Abdel Rahman, Ras El Hekma, Marassi, Hacienda Bay and more. Verified listings, transparent prices.'),
     image: cmsSeo?.image || HERO_POSTER,
   });
   const [featured, setFeatured] = useState([]);
@@ -171,13 +173,13 @@ export default function Home() {
   const loadFeatured = useCallback(async () => {
     setFeaturedState('loading');
     try {
-      const res = await propertyService.featured(6);
+      const res = await propertyService.featured(6, purpose);
       setFeatured(res.data ?? []);
       setFeaturedState('done');
     } catch (e) {
       setFeaturedState('error');
     }
-  }, []);
+  }, [purpose]);
 
   const loadInvestment = useCallback(async () => {
     setInvestmentState('loading');
@@ -234,10 +236,10 @@ export default function Home() {
       {/* 2 — FEATURED (card grid) */}
       <section className="container home-section" id="featured-properties">
         <SectionHead
-          kicker={t('home.featuredKicker', 'Handpicked')}
-          title={t('home.featuredTitle', 'Featured properties')}
-          linkTo="/properties"
-          linkLabel={t('home.browseAll', 'Browse all')}
+          kicker={isRental ? (isRtl ? 'وحدات إيجار مختارة' : 'Handpicked Rentals') : (isRtl ? 'عقارات مختارة للبيع' : t('home.featuredKicker', 'Handpicked'))}
+          title={isRental ? (isRtl ? 'أبرز وحدات الإيجار بالساحل الشمالي' : 'Featured North Coast Rentals') : (isRtl ? 'أبرز عقارات الشراء بالساحل الشمالي' : t('home.featuredTitle', 'Featured properties'))}
+          linkTo={`/properties?purpose=${purpose}`}
+          linkLabel={isRental ? (isRtl ? 'عرض كل وحدات الإيجار' : 'View all rentals') : (isRtl ? 'عرض كل العقارات' : t('home.browseAll', 'Browse all'))}
           isRtl={isRtl}
         />
         {featuredState === 'error' ? (

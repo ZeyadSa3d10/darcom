@@ -57,11 +57,15 @@ public sealed class AuthService : IAuthService
         var buyerRoleId = await _store.GetRoleIdByNameAsync("Buyer", ct)
             ?? throw new InvalidOperationException("Buyer role is not seeded.");
 
+        var normalizedPhone = string.IsNullOrWhiteSpace(request.PhoneNumber)
+            ? null
+            : Application.Common.PhoneNormalizer.Normalize(request.PhoneNumber);
+
         var user = new User
         {
             FullName = request.FullName.Trim(),
             Email = email,
-            PhoneNumber = string.IsNullOrWhiteSpace(request.PhoneNumber) ? null : request.PhoneNumber.Trim(),
+            PhoneNumber = normalizedPhone,
             PasswordHash = _hasher.Hash(request.Password),
             RoleId = buyerRoleId,
             IsActive = true
@@ -79,7 +83,7 @@ public sealed class AuthService : IAuthService
 
     public async Task<ServiceResult<AuthResponse>> RegisterBrokerAsync(RegisterBrokerDto request, CancellationToken ct = default)
     {
-        var phone = request.PhoneNumber.Trim();
+        var phone = Application.Common.PhoneNormalizer.Normalize(request.PhoneNumber);
         if (string.IsNullOrWhiteSpace(phone))
             return ServiceResult<AuthResponse>.Fail("رقم الهاتف مطلوب.", 422,
                 new() { new("Phone number is required.", "phoneNumber") });
@@ -104,7 +108,7 @@ public sealed class AuthService : IAuthService
                 new() { new("Phone number is already registered.", "phoneNumber") });
 
         // Generate normalized unique email for the broker
-        var cleanPhone = new string(phone.Where(char.IsDigit).ToArray());
+        var cleanPhone = phone;
         var email = $"broker_{cleanPhone}@broker.darcom.local";
         if (await _store.EmailExistsAsync(email, ct))
             return ServiceResult<AuthResponse>.Conflict("الحساب مسجل بالفعل مسبقاً.",

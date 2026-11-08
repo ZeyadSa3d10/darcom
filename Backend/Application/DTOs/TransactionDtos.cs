@@ -113,8 +113,8 @@ public sealed record SellerSubmissionRequest(
 // ---------- Inquiries ----------
 
 public sealed record CreateInquiryRequest(
-    string Name,
-    string Email,
+    string? Name,
+    string? Email,
     string? Phone,
     string Message);
 

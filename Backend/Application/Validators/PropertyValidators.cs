@@ -57,6 +57,8 @@ public sealed class CreatePropertyValidator : AbstractValidator<CreatePropertyRe
         RuleFor(x => x.Bathrooms).GreaterThanOrEqualTo(0).When(x => x.Bathrooms.HasValue);
         RuleFor(x => x.Address).MaximumLength(300).When(x => x.Address is not null);
         RuleFor(x => x.Developer).MaximumLength(160).When(x => x.Developer is not null);
+        RuleFor(x => x.OwnerName).MaximumLength(150).When(x => x.OwnerName is not null);
+        RuleFor(x => x.OwnerPhone).MaximumLength(32).When(x => x.OwnerPhone is not null);
     }
 }
 
@@ -76,6 +78,8 @@ public sealed class UpdatePropertyValidator : AbstractValidator<UpdatePropertyRe
             .WithMessage("Purpose must be Sale, Rent or Investment.");
         RuleFor(x => x.Price).GreaterThan(0).When(x => x.Price.HasValue);
         RuleFor(x => x.Area).GreaterThan(0).When(x => x.Area.HasValue);
+        RuleFor(x => x.OwnerName).MaximumLength(150).When(x => x.OwnerName is not null);
+        RuleFor(x => x.OwnerPhone).MaximumLength(32).When(x => x.OwnerPhone is not null);
         RuleFor(x => x.Status)
             .Must(s => Enum.TryParse<PropertyStatus>(s!.Replace(" ", ""), true, out _))
             .When(x => x.Status is not null)

@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import FormField, { mapFieldErrors } from '../../components/FormField/FormField.jsx';
 import { useToast } from '../../components/Toast/Toast.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useSettings } from '../../context/SettingsContext.jsx';
 import { useSeo } from '../../hooks/useSeo.js';
 import { authService } from '../../services/authService.js';
+import { cleanPhoneNumber, normalizeDigits } from '../../utils/phoneUtils.js';
 import './Register.css';
 
 export default function Register() {
@@ -15,6 +16,11 @@ export default function Register() {
   const { register, registerBroker } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const searchParams = new URLSearchParams(location.search);
+  const redirectTarget = searchParams.get('redirect') || searchParams.get('returnUrl');
+  const from = location.state?.from || redirectTarget || '/';
 
   // Mode: 'user' or 'broker'
   const [accountType, setAccountType] = useState('user');
@@ -82,14 +88,15 @@ export default function Register() {
 
   // OTP handlers
   const handleSendOtp = async () => {
-    if (!brokerForm.phoneNumber.trim()) {
+    const cleaned = cleanPhoneNumber(brokerForm.phoneNumber);
+    if (!cleaned) {
       toast.error(isRtl ? 'يرجى إدخال رقم الهاتف أولاً.' : 'Please enter your phone number first.');
       return;
     }
     setOtpSending(true);
     setGeneral('');
     try {
-      const res = await authService.sendOtp(brokerForm.phoneNumber.trim());
+      const res = await authService.sendOtp(cleaned);
       setOtpSent(true);
       if (res.data?.debugCode) {
         setDebugOtpCode(res.data.debugCode);
@@ -103,14 +110,16 @@ export default function Register() {
   };
 
   const handleVerifyOtp = async () => {
-    if (!brokerForm.otpCode.trim()) {
+    const cleanedPhone = cleanPhoneNumber(brokerForm.phoneNumber);
+    const cleanedOtp = normalizeDigits(brokerForm.otpCode).trim();
+    if (!cleanedOtp) {
       toast.error(isRtl ? 'يرجى إدخال رمز التحقق المكون من 6 أرقام.' : 'Please enter the 6-digit code.');
       return;
     }
     setOtpVerifying(true);
     setGeneral('');
     try {
-      await authService.verifyOtp(brokerForm.phoneNumber.trim(), brokerForm.otpCode.trim());
+      await authService.verifyOtp(cleanedPhone, cleanedOtp);
       setOtpVerified(true);
       toast.success(isRtl ? 'تم التحقق من رقم الهاتف بنجاح!' : 'Phone verified successfully!');
     } catch (err) {
@@ -127,11 +136,16 @@ export default function Register() {
     setErrors({});
     setGeneral('');
     try {
-      const payload = { ...userForm };
-      if (!payload.phoneNumber.trim()) delete payload.phoneNumber;
+      const payload = {
+        fullName: userForm.fullName.trim(),
+        email: userForm.email.trim().toLowerCase(),
+        password: userForm.password,
+      };
+      const cleaned = cleanPhoneNumber(userForm.phoneNumber);
+      if (cleaned) payload.phoneNumber = cleaned;
       await register(payload);
       toast.success(t('auth.registerSuccess', isRtl ? 'تم إنشاء الحساب بنجاح. أهلاً بك في داركم!' : 'Account created. Welcome to Darcom.'));
-      navigate('/', { replace: true });
+      navigate(from, { replace: true });
     } catch (err) {
       const fields = mapFieldErrors(err);
       setErrors(fields);
@@ -150,19 +164,22 @@ export default function Register() {
     setErrors({});
     setGeneral('');
 
+    const cleanedPhone = cleanPhoneNumber(brokerForm.phoneNumber);
+    const cleanedOtp = normalizeDigits(brokerForm.otpCode).trim();
+
     if (!brokerForm.fullName.trim()) {
       setGeneral(isRtl ? 'يرجى إدخال الاسم الكامل للوسيط.' : 'Please enter full name.');
       setBusy(false);
       return;
     }
 
-    if (!brokerForm.phoneNumber.trim()) {
+    if (!cleanedPhone) {
       setGeneral(isRtl ? 'يرجى إدخال رقم الهاتف المحمول.' : 'Please enter phone number.');
       setBusy(false);
       return;
     }
 
-    if (!otpVerified && !brokerForm.otpCode.trim()) {
+    if (!otpVerified && !cleanedOtp) {
       setGeneral(isRtl ? 'يرجى تأكيد رقم الهاتف عبر رمز التحقق (OTP) أولاً.' : 'Please verify your phone number via OTP.');
       setBusy(false);
       return;
@@ -177,9 +194,9 @@ export default function Register() {
     try {
       await registerBroker({
         fullName: brokerForm.fullName.trim(),
-        phoneNumber: brokerForm.phoneNumber.trim(),
+        phoneNumber: cleanedPhone,
         password: brokerForm.password,
-        otpCode: brokerForm.otpCode.trim(),
+        otpCode: cleanedOtp,
         agencyName: brokerForm.agencyName?.trim() || brokerForm.fullName.trim(),
         idCardFrontBase64: brokerForm.idCardFrontBase64,
         idCardBackBase64: brokerForm.idCardBackBase64,

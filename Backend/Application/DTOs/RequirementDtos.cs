@@ -56,3 +56,14 @@ public sealed record RentalPeriodDto(
     string? Notes,
     DateTime CreatedAt);
 
+public sealed record PublicRentalPeriodDto(DateTime StartDate, DateTime EndDate);
+
+public sealed class CreateRentalPeriodRequest
+{
+    public DateTime StartDate { get; set; }
+    public DateTime EndDate { get; set; }
+    public string RenterName { get; set; } = string.Empty;
+    public string? RenterPhone { get; set; }
+    public string? Notes { get; set; }
+}
+

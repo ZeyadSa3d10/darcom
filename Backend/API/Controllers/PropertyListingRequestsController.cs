@@ -4,12 +4,14 @@ using Application.Services;
 using Application.Validators;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace API.Controllers;
 
 [ApiController]
 [Route("api/property-listing-requests")]
 [Authorize]
+[EnableRateLimiting("submit")]
 public sealed class PropertyListingRequestsController : ApiBaseController
 {
     private readonly IRequestService _requests;

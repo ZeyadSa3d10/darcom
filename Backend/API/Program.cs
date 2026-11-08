@@ -108,12 +108,18 @@ builder.Services.AddCors(options =>
         policy.WithOrigins(allowedOrigins).AllowAnyHeader().AllowAnyMethod().AllowCredentials());
 });
 
-// Rate limiting for auth endpoints (website.md #29).
+// Rate limiting for auth and public submission endpoints (website.md #29).
 builder.Services.AddRateLimiter(options =>
 {
     options.AddFixedWindowLimiter("auth", o =>
     {
         o.PermitLimit = 20;
+        o.Window = TimeSpan.FromMinutes(1);
+        o.QueueLimit = 0;
+    });
+    options.AddFixedWindowLimiter("submit", o =>
+    {
+        o.PermitLimit = 15;
         o.Window = TimeSpan.FromMinutes(1);
         o.QueueLimit = 0;
     });

@@ -12,6 +12,8 @@ import { purchaseService } from '../../services/purchaseService.js';
 import { brokerService } from '../../services/brokerService.js';
 import { requirementService } from '../../services/requirementService.js';
 import { listingRequestService } from '../../services/listingRequestService.js';
+import Modal from '../../components/Modal/Modal.jsx';
+import RentalCalendar from '../../components/RentalCalendar/RentalCalendar.jsx';
 import { useSeo } from '../../hooks/useSeo.js';
 import './Profile.css';
 
@@ -71,6 +73,7 @@ export default function Profile() {
   const [ownerProperties, setOwnerProperties] = useState([]);
   const [rentalPeriods, setRentalPeriods] = useState([]);
   const [ownerLoading, setOwnerLoading] = useState(false);
+  const [viewCalendarProperty, setViewCalendarProperty] = useState(null);
 
   // Broker Area
   const [brokerProfile, setBrokerProfile] = useState(null);
@@ -783,6 +786,98 @@ export default function Profile() {
         {/* TAB 2: OWNER PORTAL & RENTAL PERIODS */}
         {tab === 'owner' && (
           <section className="profile-tab-panel owner-portal-panel" aria-label="Owner Area">
+            {/* 1. My Properties Section */}
+            <div className="portal-subhead mb-3">
+              <div>
+                <h3>{isRtl ? 'عقاراتي ووحداتي المسجلة' : 'My Registered Properties'}</h3>
+                <p className="text-muted m-0 fs-6">
+                  {isRtl
+                    ? 'قائمة الشاليهات والوحدات المربوطة بحسابك، يمكنك متابعة حالتها وتقويم إتاحة الإيجار.'
+                    : 'Manage your owned properties, track listing status, and inspect rental calendars.'}
+                </p>
+              </div>
+            </div>
+
+            {ownerLoading ? (
+              <LoadingSkeleton count={3} />
+            ) : ownerProperties.length === 0 ? (
+              <div className="profile-empty-card mb-4">
+                <EmptyState
+                  icon="bi-building"
+                  title={isRtl ? 'لا توجد وحدات مسجلة باسمك حالياً' : 'No properties registered yet'}
+                  message={
+                    isRtl
+                      ? 'عندما يتم اعتماد وربط شاليهاتك بواسطة فريق داركم، ستظهر جميع تفاصيلها هنا.'
+                      : 'When Darcom links your chalets, their details and confirmed rental records will appear here.'
+                  }
+                />
+              </div>
+            ) : (
+              <div className="row g-3 mb-5">
+                {ownerProperties.map((p) => (
+                  <div key={p.id} className="col-12 col-md-6 col-lg-4">
+                    <div className="card h-100 shadow-sm border-0 rounded-3 overflow-hidden bg-white" style={{ border: '1px solid #e2e8f0' }}>
+                      <div className="position-relative" style={{ height: '170px' }}>
+                        <img
+                          src={p.primaryImageUrl || '/images/hero-sahel.svg'}
+                          alt={p.title}
+                          className="w-100 h-100 object-fit-cover"
+                          loading="lazy"
+                        />
+                        <span className="badge bg-dark bg-opacity-75 position-absolute top-0 start-0 m-2">
+                          {p.purpose}
+                        </span>
+                        <span className={`badge position-absolute top-0 end-0 m-2 ${p.status === 'Published' ? 'bg-success' : 'bg-secondary'}`}>
+                          {p.status}
+                        </span>
+                      </div>
+                      <div className="card-body p-3 d-flex flex-column justify-content-between">
+                        <div>
+                          <strong className="d-block text-truncate fs-6 mb-1 text-dark" title={p.title}>
+                            {p.title}
+                          </strong>
+                          <span className="text-muted small d-block mb-2">
+                            <i className="bi bi-geo-alt me-1 text-gold"></i>
+                            {p.villageName || p.location || 'North Coast'}
+                            {p.zoneName ? ` · ${p.zoneName}` : ''}
+                            {p.buildingNumber ? ` · Bldg ${p.buildingNumber}` : ''}
+                          </span>
+                          <span className="fw-bold text-dark d-block">
+                            {Number(p.price).toLocaleString()} {p.currency || 'EGP'}
+                          </span>
+                        </div>
+
+                        <div className="d-flex align-items-center gap-2 mt-3 pt-2 border-top">
+                          <Link
+                            to={`/properties/${p.slug}`}
+                            className="btn btn-sm btn-outline-secondary flex-grow-1"
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            <i className="bi bi-eye me-1"></i>
+                            <span>{isRtl ? 'عرض' : 'View'}</span>
+                          </Link>
+                          {p.purpose?.toLowerCase() === 'rent' && (
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-outline-warning d-inline-flex align-items-center gap-1"
+                              style={{ color: '#b8972e', borderColor: '#d4af37' }}
+                              onClick={() => setViewCalendarProperty(p)}
+                              title={isRtl ? 'تقويم الإتاحة' : 'Availability Calendar'}
+                            >
+                              <i className="bi bi-calendar2-range"></i>
+                              <span>{isRtl ? 'التقويم' : 'Calendar'}</span>
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* 2. Confirmed Rental Periods Section */}
             <div className="portal-subhead">
               <div>
                 <h3>{isRtl ? 'فترات الإيجار المؤكدة لوحداتك' : 'Confirmed Rental Periods For Your Properties'}</h3>
@@ -846,48 +941,6 @@ export default function Profile() {
                     ))}
                   </tbody>
                 </table>
-              </div>
-            )}
-
-            {/* Owned Properties List */}
-            <div className="portal-subhead mt-4">
-              <div>
-                <h3>{isRtl ? 'عقاراتي المسجلة' : 'My Registered Properties'}</h3>
-                <p className="text-muted m-0 fs-6">
-                  {isRtl ? 'قائمة الوحدات المسجلة باسمك في نظام داركم' : 'Properties managed on your behalf.'}
-                </p>
-              </div>
-            </div>
-
-            {ownerProperties.length === 0 ? (
-              <p className="text-muted">{isRtl ? 'لا توجد عقارات مسجلة حتى الآن.' : 'No owned properties listed yet.'}</p>
-            ) : (
-              <div className="request-cards-grid">
-                {ownerProperties.map((op) => (
-                  <article key={op.id} className="request-item-card">
-                    <div className="request-card-header">
-                      <strong>{op.title}</strong>
-                      <span className={`badge ${op.status === 'Published' ? 'bg-success' : 'bg-secondary'}`}>
-                        {op.status}
-                      </span>
-                    </div>
-                    <div className="request-card-body">
-                      <p className="text-meta">
-                        {op.villageName || op.location} · Ref: {op.referenceNumber}
-                      </p>
-                      <p className="fw-bold">
-                        {op.price?.toLocaleString()} {op.currency || 'EGP'}
-                      </p>
-                    </div>
-                    {op.slug && (
-                      <div className="request-card-footer">
-                        <Link to={`/properties/${op.slug}`} className="btn btn-outline-brand btn-sm">
-                          {isRtl ? 'عرض الإعلان' : 'View Listing'}
-                        </Link>
-                      </div>
-                    )}
-                  </article>
-                ))}
               </div>
             )}
           </section>
@@ -1428,6 +1481,22 @@ export default function Profile() {
               </form>
             </div>
           </section>
+        )}
+
+        {viewCalendarProperty && (
+          <Modal
+            title={isRtl ? `تقويم الإشغال: ${viewCalendarProperty.title}` : `Availability: ${viewCalendarProperty.title}`}
+            onClose={() => setViewCalendarProperty(null)}
+          >
+            <p className="text-meta small mb-3">
+              {isRtl
+                ? 'يوضح التقويم الفترات المؤكدة باللون الأحمر والمتاحة باللون الأخضر وفقاً لسجل الحجوزات المركزي لدى داركم.'
+                : 'The calendar reflects confirmed periods in red and open availability in green from Darcom central backend records.'}
+            </p>
+            <RentalCalendar
+              periods={rentalPeriods.filter((rp) => rp.propertyId === viewCalendarProperty.id)}
+            />
+          </Modal>
         )}
       </div>
     </main>

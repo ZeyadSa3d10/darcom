@@ -8,6 +8,7 @@ import { useToast } from '../../components/Toast/Toast.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { locationService } from '../../services/locationService.js';
 import { listingRequestService } from '../../services/listingRequestService.js';
+import { cleanPhoneNumber, normalizeDigits } from '../../utils/phoneUtils.js';
 import { useSeo } from '../../hooks/useSeo.js';
 import { useCmsSeo } from '../../hooks/useCmsSeo.js';
 import './Sell.css';
@@ -123,7 +124,13 @@ export default function Sell() {
   };
 
   const handleChange = (field) => (e) => {
-    setForm((prev) => ({ ...prev, [field]: e.target.value }));
+    let val = e.target.value;
+    if (field === 'phoneNumber') {
+      val = cleanPhoneNumber(val);
+    } else if (field === 'buildingNumber' || field === 'unitNumber') {
+      val = normalizeDigits(val);
+    }
+    setForm((prev) => ({ ...prev, [field]: val }));
     setErrors((prev) => ({ ...prev, [field]: '' }));
   };
 
@@ -133,10 +140,11 @@ export default function Sell() {
     if (!form.zoneId) newErrors.zoneId = 'يرجى اختيار المنطقة داخل القرية';
     if (!form.buildingNumber?.trim()) newErrors.buildingNumber = 'يرجى إدخال رقم العمارة / المبنى';
     if (!form.unitNumber?.trim()) newErrors.unitNumber = 'يرجى إدخال رقم الشاليه / الوحدة';
-    if (!form.phoneNumber?.trim()) {
-      newErrors.phoneNumber = 'يرجى إدخال رقم الهاتف';
-    } else if (!/^\+?[0-9\s\-()]{8,20}$/.test(form.phoneNumber.trim())) {
-      newErrors.phoneNumber = 'يرجى إدخال رقم هاتف صحيح';
+    const cleanPhone = cleanPhoneNumber(form.phoneNumber);
+    if (!cleanPhone) {
+      newErrors.phoneNumber = 'يرجى إدخال رقم الهاتف للتواصل';
+    } else if (cleanPhone.length < 10) {
+      newErrors.phoneNumber = 'يرجى إدخال رقم هاتف محمول صحيح (مثال: 01012345678)';
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -155,9 +163,9 @@ export default function Sell() {
       const payload = {
         villageId: parseInt(form.villageId, 10),
         zoneId: parseInt(form.zoneId, 10),
-        buildingNumber: form.buildingNumber.trim(),
-        unitNumber: form.unitNumber.trim(),
-        phoneNumber: form.phoneNumber.trim(),
+        buildingNumber: normalizeDigits(form.buildingNumber).trim(),
+        unitNumber: normalizeDigits(form.unitNumber).trim(),
+        phoneNumber: cleanPhoneNumber(form.phoneNumber),
       };
 
       const res = await listingRequestService.submit(payload);
@@ -257,11 +265,20 @@ export default function Sell() {
             <div><strong>رقم المبنى:</strong> {submittedRequest.buildingNumber}</div>
             <div><strong>رقم الوحدة:</strong> {submittedRequest.unitNumber}</div>
           </div>
-          <div className="d-flex justify-content-center gap-3">
-            <button type="button" className="btn btn-brand" onClick={handleReset}>
+          <div className="d-flex flex-wrap justify-content-center gap-3">
+            <a
+              href={`https://wa.me/201001234500?text=${encodeURIComponent(`السلام عليكم، قدمت طلب عرض وحدة برقم ${submittedRequest.requestNumber} في قرية ${submittedRequest.villageNameAr || submittedRequest.villageName}. أرغب في التنسيق لموعد المعاينة.`)}`}
+              target="_blank"
+              rel="noreferrer"
+              className="btn btn-success d-inline-flex align-items-center gap-2"
+            >
+              <i className="bi bi-whatsapp"></i>
+              <span>تأكيد موعد المعاينة عبر واتساب</span>
+            </a>
+            <button type="button" className="btn btn-outline-secondary" onClick={handleReset}>
               تقديم طلب لوحدة أخرى
             </button>
-            <Link to="/profile" className="btn btn-outline-secondary">
+            <Link to="/profile" className="btn btn-outline-dark">
               عرض كل طلباتي
             </Link>
           </div>

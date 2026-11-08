@@ -190,6 +190,10 @@ public sealed class RequestService : IRequestService
             // Date validation & conflict check (Requirement 9)
             if (request.StartDate.HasValue && request.EndDate.HasValue)
             {
+                if (request.StartDate.Value.Date < DateTime.UtcNow.Date)
+                    throw new RequestFailure(422, "Start date cannot be in the past.",
+                        new() { new("Start date cannot be in the past.", "startDate") });
+
                 if (request.EndDate.Value <= request.StartDate.Value)
                     throw new RequestFailure(422, "End date must be after start date.",
                         new() { new("End date must be after start date.", "endDate") });
@@ -252,34 +256,52 @@ public sealed class RequestService : IRequestService
                 $"Cannot move request from {entity.Status} to {next}.", 422,
                 new() { new("Illegal status transition.", "status") });
 
-        // Confirming a booking reservation creates a confirmed RentalPeriod (Requirement 9)
-        if (next == RequestStatus.Approved && entity.StartDate.HasValue && entity.EndDate.HasValue)
-        {
-            // Proper date-overlap check: Existing.StartDate < Requested.EndDate && Existing.EndDate > Requested.StartDate
-            if (await _store.HasOverlappingRentalPeriodAsync(entity.PropertyId, entity.StartDate.Value, entity.EndDate.Value, null, ct))
-            {
-                return ServiceResult<BookingRequestDto>.Fail(
-                    "Cannot approve: this property has an overlapping confirmed rental reservation.", 409,
-                    new() { new("Property has an overlapping confirmed reservation for these dates.", "status") });
-            }
-
-            var confirmedReservation = new RentalPeriod
-            {
-                PropertyId = entity.PropertyId,
-                BookingRequestId = entity.Id,
-                StartDate = entity.StartDate.Value,
-                EndDate = entity.EndDate.Value,
-                RenterName = entity.FullName,
-                RenterPhone = entity.Phone,
-                Notes = $"Confirmed from {entity.RequestNumber}"
-            };
-            await _store.AddRentalPeriodAsync(confirmedReservation, ct);
-        }
-
         var old = entity.Status;
-        entity.Status = next;
-        entity.UpdatedAt = DateTime.UtcNow;
-        await _store.SaveChangesAsync(ct);
+
+        try
+        {
+            await _store.ExecuteInTransactionAsync(async () =>
+            {
+                // Confirming a booking reservation creates a confirmed RentalPeriod
+                if (next == RequestStatus.Approved && entity.Status != RequestStatus.Approved)
+                {
+                    if (entity.StartDate.HasValue && entity.EndDate.HasValue)
+                    {
+                        // Proper half-open date-overlap check: Existing.StartDate < Requested.EndDate && Existing.EndDate > Requested.StartDate
+                        if (await _store.HasOverlappingRentalPeriodAsync(entity.PropertyId, entity.StartDate.Value, entity.EndDate.Value, null, ct))
+                        {
+                            throw new RequestFailure(409, "Cannot approve: this property has an overlapping confirmed rental reservation.",
+                                new() { new("Property has an overlapping confirmed reservation for these dates.", "status") });
+                        }
+
+                        var confirmedReservation = new RentalPeriod
+                        {
+                            PropertyId = entity.PropertyId,
+                            BookingRequestId = entity.Id,
+                            StartDate = entity.StartDate.Value,
+                            EndDate = entity.EndDate.Value,
+                            RenterName = entity.FullName,
+                            RenterPhone = entity.Phone,
+                            Notes = $"Confirmed from {entity.RequestNumber}"
+                        };
+                        await _store.AddRentalPeriodAsync(confirmedReservation, ct);
+                    }
+                }
+                else if (entity.Status == RequestStatus.Approved && next != RequestStatus.Approved)
+                {
+                    // Release the confirmed period immediately so the property becomes available again
+                    await _properties.RemoveRentalPeriodByBookingIdAsync(entity.Id, ct);
+                }
+
+                entity.Status = next;
+                entity.UpdatedAt = DateTime.UtcNow;
+                await _store.SaveChangesAsync(ct);
+            }, ct);
+        }
+        catch (RequestFailure rf)
+        {
+            return ServiceResult<BookingRequestDto>.Fail(rf.Message, rf.StatusCode, rf.Errors);
+        }
 
         await _engagement.AddNotificationAsync(entity.RenterId, $"Request {entity.RequestNumber}: {next}",
             $"Your rental request for {entity.Property?.Title ?? "the property"} is now {next}.", "request-status", ct);

@@ -93,7 +93,10 @@ public sealed record PropertyDetailsDto(
     int? CreatedByUserId = null,
     string? RejectionReason = null,
     int? PropertyListingRequestId = null,
-    int? OwnerId = null);
+    int? OwnerId = null,
+    string? OwnerName = null,
+    string? OwnerPhone = null,
+    string? OwnerType = null);
 
 /// <summary>All listing filters from website.md #10 + North Coast Village/Zone/BuildingNumber.</summary>
 public sealed class PropertyQuery
@@ -124,6 +127,9 @@ public sealed class PropertyQuery
     public bool? Parking { get; set; }
     public bool? Featured { get; set; }
     public List<int>? AmenityIds { get; set; }
+    public DateTime? StartDate { get; set; }
+    public DateTime? EndDate { get; set; }
+    public string? RentalDuration { get; set; }
     /// <summary>Admin-only. Ignored for other callers.</summary>
     public string? Status { get; set; }
     public string? Q { get; set; }
@@ -164,6 +170,8 @@ public sealed class CreatePropertyRequest
     public string? Developer { get; set; }
     public int? OwnerId { get; set; }
     public int? PropertyListingRequestId { get; set; }
+    public string? OwnerName { get; set; }
+    public string? OwnerPhone { get; set; }
 }
 
 public sealed class UpdatePropertyRequest
@@ -204,4 +212,6 @@ public sealed class UpdatePropertyRequest
     public bool? IsFeatured { get; set; }
     /// <summary>Admin-only verification flag.</summary>
     public bool? IsVerified { get; set; }
+    public string? OwnerName { get; set; }
+    public string? OwnerPhone { get; set; }
 }

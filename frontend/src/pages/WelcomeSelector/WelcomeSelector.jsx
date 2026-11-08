@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { usePurpose } from '../../context/PurposeContext.jsx';
 import './WelcomeSelector.css';
 
 export default function WelcomeSelector({ onSelect }) {
   const navigate = useNavigate();
+  const { setPurpose } = usePurpose();
   const [hovered, setHovered] = useState(null);
   const [selected, setSelected] = useState(null);
   const [exiting, setExiting] = useState(false);
@@ -19,9 +21,9 @@ export default function WelcomeSelector({ onSelect }) {
     setSelected(type);
     setTimeout(() => setExiting(true), 350);
     setTimeout(() => {
-      sessionStorage.setItem('darcom-mode-selected', type);
+      setPurpose(type);
       onSelect?.();
-      navigate(type === 'rent' ? '/rent' : '/');
+      navigate('/');
     }, 900);
   }
 
@@ -113,7 +115,7 @@ export default function WelcomeSelector({ onSelect }) {
         id="ws-btn-skip"
         className="ws-skip"
         onClick={() => {
-          sessionStorage.setItem('darcom-mode-selected', 'sale');
+          setPurpose('sale');
           onSelect?.();
           navigate('/');
         }}

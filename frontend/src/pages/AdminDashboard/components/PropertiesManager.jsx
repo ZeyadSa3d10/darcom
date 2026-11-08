@@ -46,15 +46,56 @@ export default function PropertiesManager({ onChanged }) {
   const [uploadUrl, setUploadUrl] = useState('');
   const [uploading, setUploading] = useState(false);
   const [rentalModal, setRentalModal] = useState(null);
+  const [newPeriod, setNewPeriod] = useState({ startDate: '', endDate: '', renterName: '', renterPhone: '', notes: '' });
+  const [addingPeriod, setAddingPeriod] = useState(false);
+  const [showAddPeriod, setShowAddPeriod] = useState(false);
 
   const openRentalPeriods = async (p) => {
     setRentalModal({ prop: p, loading: true, periods: [] });
+    setShowAddPeriod(false);
+    setNewPeriod({ startDate: '', endDate: '', renterName: '', renterPhone: '', notes: '' });
     try {
       const res = await adminService.propertyRentalPeriods(p.id);
       setRentalModal({ prop: p, loading: false, periods: res.data ?? [] });
     } catch {
       toast.error(isRtl ? 'تعذر جلب فترات الإيجار' : 'Failed to load rental periods.');
       setRentalModal(null);
+    }
+  };
+
+  const handleAddPeriod = async (e) => {
+    e.preventDefault();
+    if (!rentalModal?.prop?.id) return;
+    setAddingPeriod(true);
+    try {
+      await adminService.createRentalPeriod(rentalModal.prop.id, {
+        startDate: new Date(newPeriod.startDate).toISOString(),
+        endDate: new Date(newPeriod.endDate).toISOString(),
+        renterName: newPeriod.renterName.trim(),
+        renterPhone: newPeriod.renterPhone.trim() || null,
+        notes: newPeriod.notes.trim() || null,
+      });
+      toast.success(isRtl ? 'تمت إضافة فترة الإيجار بنجاح.' : 'Rental period added.');
+      setNewPeriod({ startDate: '', endDate: '', renterName: '', renterPhone: '', notes: '' });
+      setShowAddPeriod(false);
+      const res = await adminService.propertyRentalPeriods(rentalModal.prop.id);
+      setRentalModal((prev) => ({ ...prev, periods: res.data ?? [] }));
+    } catch (err) {
+      toast.error(err.message || (isRtl ? 'فشلت إضافة فترة الإيجار (ربما يوجد تداخل في التواريخ).' : 'Failed to add rental period (possible overlap).'));
+    } finally {
+      setAddingPeriod(false);
+    }
+  };
+
+  const handleDeletePeriod = async (periodId) => {
+    if (!rentalModal?.prop?.id) return;
+    try {
+      await adminService.deleteRentalPeriod(rentalModal.prop.id, periodId);
+      toast.success(isRtl ? 'تم حذف فترة الإيجار.' : 'Rental period removed.');
+      const res = await adminService.propertyRentalPeriods(rentalModal.prop.id);
+      setRentalModal((prev) => ({ ...prev, periods: res.data ?? [] }));
+    } catch (err) {
+      toast.error(err.message || (isRtl ? 'فشل حذف فترة الإيجار.' : 'Failed to remove rental period.'));
     }
   };
 
@@ -259,6 +300,19 @@ export default function PropertiesManager({ onChanged }) {
     }
   };
 
+  const setPrimaryImage = async (mediaId) => {
+    if (!selected) return;
+    try {
+      await propertyService.setPrimaryMedia(selected.id, mediaId);
+      toast.success(isRtl ? 'تم تعيين الصورة كغلاف رئيسي.' : 'Primary cover image updated.');
+      const m = await propertyService.media(selected.id);
+      setMedia(m.data ?? []);
+      load(page, q, status);
+    } catch (e) {
+      toast.error(e.message || (isRtl ? 'فشل تعيين صورة الغلاف.' : 'Failed to set cover image.'));
+    }
+  };
+
   return (
     <div>
       <form className="admin-toolbar" onSubmit={search}>
@@ -460,6 +514,65 @@ export default function PropertiesManager({ onChanged }) {
           <p className="text-meta">
             {selected.referenceNumber} · {getStatusLabel(selected.status)} · {selected.purpose}
           </p>
+
+          {/* Owner Information Block (Admin-Only Visibility) */}
+          <div className="card mb-3 border-0 bg-light p-3 rounded-3" style={{ background: '#f8fafc', border: '1px solid #e2e8f0' }}>
+            <div className="d-flex align-items-center justify-content-between mb-2">
+              <span className="fw-semibold text-secondary small">
+                <i className="bi bi-person-badge me-1"></i>
+                {isRtl ? 'بيانات المالك والمسؤولية' : 'Property Owner & Responsibility'}
+              </span>
+              <span className={`badge ${selected.ownerType === 'RegisteredUser' ? 'bg-primary' : selected.ownerType === 'Broker' ? 'bg-warning text-dark' : 'bg-secondary'}`}>
+                {selected.ownerType === 'RegisteredUser'
+                  ? (isRtl ? 'مستخدم مسجل' : 'Registered User')
+                  : selected.ownerType === 'Broker'
+                  ? (isRtl ? 'وسيط عقاري' : 'Broker')
+                  : selected.ownerType === 'Independent'
+                  ? (isRtl ? 'مالك مستقل' : 'Independent Owner')
+                  : (isRtl ? 'إدارة داركم المباشرة' : 'Direct Management')}
+              </span>
+            </div>
+
+            <div className="d-flex flex-wrap align-items-center justify-content-between gap-2">
+              <div>
+                <strong className="fs-6 d-block text-dark">
+                  {selected.ownerName || (isRtl ? 'غير محدد' : 'Not specified')}
+                </strong>
+                {selected.ownerPhone ? (
+                  <span className="text-muted small" dir="ltr">
+                    <i className="bi bi-telephone me-1"></i>
+                    {selected.ownerPhone}
+                  </span>
+                ) : (
+                  <span className="text-muted small">{isRtl ? 'لا يوجد رقم هاتف' : 'No phone provided'}</span>
+                )}
+              </div>
+
+              {selected.ownerPhone && (
+                <div className="d-flex gap-2">
+                  <a
+                    href={`https://wa.me/${selected.ownerPhone.replace(/\D/g, '').replace(/^01/, '201')}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="btn btn-sm btn-outline-success d-inline-flex align-items-center gap-1"
+                    title="WhatsApp"
+                  >
+                    <i className="bi bi-whatsapp"></i>
+                    <span>WhatsApp</span>
+                  </a>
+                  <a
+                    href={`tel:${selected.ownerPhone}`}
+                    className="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-1"
+                    title="Call"
+                  >
+                    <i className="bi bi-telephone"></i>
+                    <span>{isRtl ? 'اتصال' : 'Call'}</span>
+                  </a>
+                </div>
+              )}
+            </div>
+          </div>
+
           <div className="drawer-actions">
             {selected.status === 'PendingReview' && (
               <>
@@ -597,9 +710,26 @@ export default function PropertiesManager({ onChanged }) {
           {uploading && <p className="text-meta">{isRtl ? 'جارٍ العمل…' : 'Working…'}</p>}
           <div className="drawer-media">
             {media.map((m) => (
-              <div key={`${m.kind}-${m.id}`} className="drawer-media-item">
+              <div key={`${m.kind}-${m.id}`} className="drawer-media-item position-relative">
                 {m.kind === 'image' ? (
-                  <img src={m.url} alt={m.altText || ''} loading="lazy" />
+                  <>
+                    <img src={m.url} alt={m.altText || ''} loading="lazy" />
+                    {m.isPrimary ? (
+                      <span className="badge bg-warning text-dark position-absolute top-0 start-0 m-1" style={{ fontSize: '0.72rem' }}>
+                        ★ {isRtl ? 'صورة الغلاف' : 'Cover'}
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-outline-warning py-0 px-1 position-absolute top-0 start-0 m-1"
+                        style={{ fontSize: '0.7rem', backgroundColor: 'rgba(0,0,0,0.65)', color: '#d4af37', borderColor: '#d4af37' }}
+                        onClick={() => setPrimaryImage(m.id)}
+                        title={isRtl ? 'تعيين كغلاف' : 'Set as cover'}
+                      >
+                        {isRtl ? 'تعيين كغلاف' : 'Set Cover'}
+                      </button>
+                    )}
+                  </>
                 ) : (
                   <span className="badge-status">{m.kind}</span>
                 )}
@@ -624,6 +754,86 @@ export default function PropertiesManager({ onChanged }) {
           title={isRtl ? `فترات إيجار: ${rentalModal.prop.title}` : `Rental Periods: ${rentalModal.prop.title}`}
           onClose={() => setRentalModal(null)}
         >
+          <div className="d-flex justify-content-between align-items-center mb-3">
+            <span className="text-meta small">
+              {isRtl ? 'الفترات المؤكدة تُحجب فوراً من التقويم العام.' : 'Confirmed periods are blocked on the public calendar.'}
+            </span>
+            <button
+              type="button"
+              className="btn btn-sm btn-brand"
+              onClick={() => setShowAddPeriod((v) => !v)}
+            >
+              <i className={`bi ${showAddPeriod ? 'bi-dash' : 'bi-plus-lg'} me-1`}></i>
+              <span>{showAddPeriod ? (isRtl ? 'إلغاء' : 'Cancel') : (isRtl ? 'إضافة فترة إيجار' : 'Add Period')}</span>
+            </button>
+          </div>
+
+          {showAddPeriod && (
+            <form onSubmit={handleAddPeriod} className="card p-3 mb-3 bg-light-subtle border">
+              <h6 className="mb-2 fs-6">{isRtl ? 'إضافة فترة حجز مؤكدة' : 'Add Confirmed Booking Period'}</h6>
+              <div className="row g-2 mb-2">
+                <div className="col-6">
+                  <label className="form-label small">{isRtl ? 'تاريخ البدء' : 'Start Date'}</label>
+                  <input
+                    type="date"
+                    required
+                    className="form-control form-control-sm"
+                    value={newPeriod.startDate}
+                    onChange={(e) => setNewPeriod((p) => ({ ...p, startDate: e.target.value }))}
+                  />
+                </div>
+                <div className="col-6">
+                  <label className="form-label small">{isRtl ? 'تاريخ الانتهاء' : 'End Date'}</label>
+                  <input
+                    type="date"
+                    required
+                    className="form-control form-control-sm"
+                    value={newPeriod.endDate}
+                    onChange={(e) => setNewPeriod((p) => ({ ...p, endDate: e.target.value }))}
+                  />
+                </div>
+              </div>
+              <div className="row g-2 mb-2">
+                <div className="col-6">
+                  <label className="form-label small">{isRtl ? 'اسم المستأجر' : 'Renter Name'}</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Ahmed Ali"
+                    className="form-control form-control-sm"
+                    value={newPeriod.renterName}
+                    onChange={(e) => setNewPeriod((p) => ({ ...p, renterName: e.target.value }))}
+                  />
+                </div>
+                <div className="col-6">
+                  <label className="form-label small">{isRtl ? 'رقم الهاتف' : 'Renter Phone'}</label>
+                  <input
+                    type="tel"
+                    placeholder="01012345678"
+                    className="form-control form-control-sm"
+                    value={newPeriod.renterPhone}
+                    onChange={(e) => setNewPeriod((p) => ({ ...p, renterPhone: e.target.value }))}
+                  />
+                </div>
+              </div>
+              <div className="mb-2">
+                <label className="form-label small">{isRtl ? 'ملاحظات (اختياري)' : 'Notes (Optional)'}</label>
+                <input
+                  type="text"
+                  placeholder="Direct booking / Paid deposit"
+                  className="form-control form-control-sm"
+                  value={newPeriod.notes}
+                  onChange={(e) => setNewPeriod((p) => ({ ...p, notes: e.target.value }))}
+                />
+              </div>
+              <div className="text-end">
+                <button type="submit" className="btn btn-sm btn-brand" disabled={addingPeriod}>
+                  {addingPeriod ? (isRtl ? 'جارٍ الحفظ…' : 'Saving…') : (isRtl ? 'حفظ وتأكيد' : 'Save Period')}
+                </button>
+              </div>
+            </form>
+          )}
+
           {rentalModal.loading ? (
             <LoadingSkeleton count={3} />
           ) : rentalModal.periods.length === 0 ? (
@@ -633,11 +843,12 @@ export default function PropertiesManager({ onChanged }) {
               <table className="table table-hover align-middle mb-0">
                 <thead>
                   <tr>
-                    <th>Renter</th>
-                    <th>Phone</th>
-                    <th>Start Date</th>
-                    <th>End Date</th>
-                    <th>Notes</th>
+                    <th>{isRtl ? 'المستأجر' : 'Renter'}</th>
+                    <th>{isRtl ? 'الهاتف' : 'Phone'}</th>
+                    <th>{isRtl ? 'تاريخ البدء' : 'Start Date'}</th>
+                    <th>{isRtl ? 'تاريخ الانتهاء' : 'End Date'}</th>
+                    <th>{isRtl ? 'ملاحظات' : 'Notes'}</th>
+                    <th>{isRtl ? 'إجراء' : 'Action'}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -647,7 +858,17 @@ export default function PropertiesManager({ onChanged }) {
                       <td dir="ltr">{rp.renterPhone || '—'}</td>
                       <td>{new Date(rp.startDate).toLocaleDateString()}</td>
                       <td>{new Date(rp.endDate).toLocaleDateString()}</td>
-                      <td className="text-muted">{rp.notes || '—'}</td>
+                      <td className="text-muted small">{rp.notes || '—'}</td>
+                      <td>
+                        <button
+                          type="button"
+                          className="btn btn-link btn-sm text-danger p-0"
+                          onClick={() => handleDeletePeriod(rp.id)}
+                          title={isRtl ? 'حذف فترة الإيجار' : 'Delete period'}
+                        >
+                          <i className="bi bi-trash3"></i>
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>

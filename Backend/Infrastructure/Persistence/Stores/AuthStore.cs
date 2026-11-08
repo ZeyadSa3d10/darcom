@@ -20,8 +20,10 @@ public sealed class AuthStore : IAuthStore
     public Task<User?> FindUserByEmailOrPhoneAsync(string emailOrPhone, CancellationToken ct = default)
     {
         var term = emailOrPhone.Trim().ToLowerInvariant();
+        var normalizedPhone = Application.Common.PhoneNormalizer.Normalize(emailOrPhone);
         return _db.Users.Include(u => u.Role)
-            .FirstOrDefaultAsync(u => u.Email == term || (u.PhoneNumber != null && u.PhoneNumber == term), ct);
+            .FirstOrDefaultAsync(u => u.Email == term 
+                || (u.PhoneNumber != null && (u.PhoneNumber == term || u.PhoneNumber == normalizedPhone)), ct);
     }
 
     public Task<User?> FindUserByIdAsync(int id, CancellationToken ct = default)
@@ -31,10 +33,14 @@ public sealed class AuthStore : IAuthStore
         => _db.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.RefreshToken == refreshToken, ct);
 
     public Task<bool> EmailExistsAsync(string email, CancellationToken ct = default)
-        => _db.Users.AnyAsync(u => u.Email == email, ct);
+        => _db.Users.AnyAsync(u => u.Email == email.Trim().ToLowerInvariant(), ct);
 
     public Task<bool> PhoneExistsAsync(string phone, CancellationToken ct = default)
-        => _db.Users.AnyAsync(u => u.PhoneNumber == phone, ct);
+    {
+        var raw = phone.Trim();
+        var normalized = Application.Common.PhoneNormalizer.Normalize(phone);
+        return _db.Users.AnyAsync(u => u.PhoneNumber == raw || u.PhoneNumber == normalized, ct);
+    }
 
     public async Task<string?> GetRoleNameAsync(int roleId, CancellationToken ct = default)
         => (await _db.Roles.FindAsync(new object[] { roleId }, ct))?.Name;

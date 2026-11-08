@@ -10,8 +10,8 @@ public interface IPropertyStore
     Task<PagedResult<PropertyListDto>> SearchAsync(PropertyQuery query, bool includeAllStatuses, CancellationToken ct = default);
     Task<PropertyDetailsDto?> GetDetailsAsync(int id, bool isAdmin, CancellationToken ct = default);
     Task<PropertyDetailsDto?> GetDetailsBySlugAsync(string slug, bool isAdmin, CancellationToken ct = default);
-    Task<List<PropertyListDto>> GetFeaturedAsync(int count, CancellationToken ct = default);
-    Task<PagedResult<PropertyListDto>> QuickSearchAsync(string term, int page, int pageSize, CancellationToken ct = default);
+    Task<List<PropertyListDto>> GetFeaturedAsync(int count, string? purpose = null, CancellationToken ct = default);
+    Task<PagedResult<PropertyListDto>> QuickSearchAsync(string term, string? purpose = null, int page = 1, int pageSize = 12, CancellationToken ct = default);
     Task<Property?> GetEntityAsync(int id, CancellationToken ct = default);
     Task<bool> SlugExistsAsync(string slug, int? excludeId = null, CancellationToken ct = default);
     Task<bool> ReferenceExistsAsync(string reference, CancellationToken ct = default);
@@ -42,4 +42,10 @@ public interface IPropertyStore
     Task<List<RentalPeriodDto>> GetOwnerRentalPeriodsAsync(int ownerId, int? propertyId = null, CancellationToken ct = default);
     Task<List<RentalPeriodDto>> GetPropertyRentalPeriodsAsync(int propertyId, CancellationToken ct = default);
     Task<PropertyListingRequest?> GetListingRequestAsync(int id, CancellationToken ct = default);
+    Task<bool> SetPrimaryImageAsync(int propertyId, int imageId, CancellationToken ct = default);
+    Task<List<PublicRentalPeriodDto>> GetPublicRentalPeriodsAsync(int propertyId, CancellationToken ct = default);
+    Task<bool> HasOverlappingRentalPeriodAsync(int propertyId, DateTime startDate, DateTime endDate, int? excludeId = null, CancellationToken ct = default);
+    Task AddRentalPeriodAsync(RentalPeriod period, CancellationToken ct = default);
+    Task<bool> DeleteRentalPeriodAsync(int propertyId, int periodId, CancellationToken ct = default);
+    Task RemoveRentalPeriodByBookingIdAsync(int bookingRequestId, CancellationToken ct = default);
 }

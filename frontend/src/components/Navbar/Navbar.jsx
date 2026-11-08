@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useSettings } from '../../context/SettingsContext.jsx';
+import { usePurpose } from '../../context/PurposeContext.jsx';
 import NavbarSearch from '../NavbarSearch/NavbarSearch.jsx';
 import './Navbar.css';
 
@@ -26,6 +27,7 @@ const POPULAR_TYPES = [
 export default function Navbar({ transparent = false }) {
   const { user, isAuthenticated, isAdmin, isBroker, logout } = useAuth();
   const { isRtl, toggleDir, toggleLang, lang, isSwitchingLang, t } = useSettings();
+  const { purpose, isRental, isSale, switchPurpose, setPurpose, purposeLabelAr, purposeLabelEn, otherPurposeLabelAr, otherPurposeLabelEn } = usePurpose();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -238,10 +240,24 @@ export default function Navbar({ transparent = false }) {
             )}
           </div>
 
-          <NavLink to="/rent" className={({ isActive }) => `nav-link-btn d-none d-lg-inline-flex ${isActive ? 'active' : ''}`}>
-            <i className="bi bi-key-fill me-1"></i>
-            {isRtl ? 'إيجار' : 'Rent'}
-          </NavLink>
+          {/* Purpose Switch Button (Sale <-> Rent) */}
+          <button
+            type="button"
+            className={`purpose-toggle-pill d-none d-lg-inline-flex ${isRental ? 'mode-rent' : 'mode-sale'}`}
+            onClick={switchPurpose}
+            title={isRtl ? otherPurposeLabelAr : otherPurposeLabelEn}
+            aria-label={isRtl ? otherPurposeLabelAr : otherPurposeLabelEn}
+          >
+            <span className="purpose-pill-current">
+              <i className={`bi ${isRental ? 'bi-key-fill text-gold' : 'bi-house-heart-fill text-accent'} me-1`}></i>
+              <span>{isRtl ? purposeLabelAr : purposeLabelEn}</span>
+            </span>
+            <span className="purpose-pill-divider" aria-hidden="true">•</span>
+            <span className="purpose-pill-switch">
+              <i className="bi bi-arrow-repeat me-1"></i>
+              <span>{isRtl ? otherPurposeLabelAr : otherPurposeLabelEn}</span>
+            </span>
+          </button>
 
           <NavLink to="/developers" className={({ isActive }) => `nav-link-btn d-none d-xl-inline-flex ${isActive ? 'active' : ''}`}>
             {t('nav.developers', isRtl ? 'المطورون' : 'Developers')}
@@ -361,8 +377,18 @@ export default function Navbar({ transparent = false }) {
           )}
         </div>
 
-        {/* MOBILE ACTIONS BAR (Search + Language + Favorites + Morphing Hamburger) */}
+        {/* MOBILE ACTIONS BAR (Search + Purpose + Language + Favorites + Morphing Hamburger) */}
         <div className="d-flex d-lg-none mobile-nav-actions">
+          <button
+            type="button"
+            className={`mobile-quick-btn mobile-purpose-quick ${isRental ? 'mode-rent' : 'mode-sale'}`}
+            onClick={switchPurpose}
+            title={isRtl ? otherPurposeLabelAr : otherPurposeLabelEn}
+            aria-label={isRtl ? otherPurposeLabelAr : otherPurposeLabelEn}
+          >
+            <i className={`bi ${isRental ? 'bi-key-fill text-gold' : 'bi-house-heart-fill text-accent'}`}></i>
+          </button>
+
           <button
             type="button"
             className={`mobile-quick-btn mobile-search-btn ${mobileSearchOpen ? 'active' : ''}`}
@@ -455,6 +481,28 @@ export default function Navbar({ transparent = false }) {
               </Link>
             </div>
 
+            {/* Purpose Mode Switcher in Mobile Menu */}
+            <div className="mobile-purpose-segment-wrap">
+              <div className="mobile-purpose-segment">
+                <button
+                  type="button"
+                  className={`segment-btn ${isSale ? 'active' : ''}`}
+                  onClick={() => { setPurpose('sale'); setOpen(false); }}
+                >
+                  <i className="bi bi-house-door-fill me-1"></i>
+                  <span>{isRtl ? 'شراء' : 'Buy'}</span>
+                </button>
+                <button
+                  type="button"
+                  className={`segment-btn ${isRental ? 'active' : ''}`}
+                  onClick={() => { setPurpose('rent'); setOpen(false); }}
+                >
+                  <i className="bi bi-key-fill me-1"></i>
+                  <span>{isRtl ? 'إيجار' : 'Rent'}</span>
+                </button>
+              </div>
+            </div>
+
             {/* Quick Search in Mobile Menu */}
             <div className="mobile-search-panel-box">
               <NavbarSearch solid={true} />
@@ -464,19 +512,21 @@ export default function Navbar({ transparent = false }) {
             <nav className="mobile-menu-links">
               <Link to="/properties" className="mobile-nav-item" onClick={() => setOpen(false)}>
                 <i className="bi bi-grid-fill nav-icon"></i>
-                <span>{t('nav.exploreAll', 'All Properties')}</span>
+                <span>{isRental ? (isRtl ? 'تصفح وحدات الإيجار' : 'Browse Rental Units') : (isRtl ? 'تصفح عقارات الشراء' : 'Browse Properties for Sale')}</span>
                 <i className={`bi ${isRtl ? 'bi-chevron-left' : 'bi-chevron-right'} ms-auto arrow-icon`}></i>
               </Link>
-              <Link to="/properties?purpose=sale" className="mobile-nav-item" onClick={() => setOpen(false)}>
-                <i className="bi bi-tag-fill nav-icon"></i>
-                <span>{t('purposes.sale', 'Buy Property')}</span>
-                <i className={`bi ${isRtl ? 'bi-chevron-left' : 'bi-chevron-right'} ms-auto arrow-icon`}></i>
-              </Link>
-              <Link to="/rent" className="mobile-nav-item" onClick={() => setOpen(false)}>
-                <i className="bi bi-key-fill nav-icon"></i>
-                <span>{t('purposes.rent', 'Rent Property')}</span>
-                <i className={`bi ${isRtl ? 'bi-chevron-left' : 'bi-chevron-right'} ms-auto arrow-icon`}></i>
-              </Link>
+              <button
+                type="button"
+                className="mobile-nav-item mobile-switch-action"
+                onClick={() => {
+                  switchPurpose();
+                  setOpen(false);
+                }}
+              >
+                <i className={`bi ${isRental ? 'bi-house-fill' : 'bi-key-fill'} nav-icon text-accent`}></i>
+                <span>{isRtl ? otherPurposeLabelAr : otherPurposeLabelEn}</span>
+                <span className="mobile-mode-badge ms-auto">{isRtl ? purposeLabelAr : purposeLabelEn}</span>
+              </button>
               <Link to="/developers" className="mobile-nav-item" onClick={() => setOpen(false)}>
                 <i className="bi bi-patch-check-fill nav-icon"></i>
                 <span>{t('nav.developers', isRtl ? 'كبار المطورين' : 'Premier Developers')}</span>

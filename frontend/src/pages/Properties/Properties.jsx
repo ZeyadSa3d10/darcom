@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useSettings } from '../../context/SettingsContext.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
+import { usePurpose } from '../../context/PurposeContext.jsx';
 import Breadcrumbs from '../../components/Breadcrumbs/Breadcrumbs.jsx';
 import PropertyFilters, { EMPTY_FILTERS } from '../../components/PropertyFilters/PropertyFilters.jsx';
 import PropertyGrid from '../../components/PropertyGrid/PropertyGrid.jsx';
@@ -62,6 +63,9 @@ function parseParams(params) {
     installmentYears: pick('installmentYears'),
     deliveryStatus: pick('deliveryStatus'),
     developer: pick('developer'),
+    startDate: pick('startDate'),
+    endDate: pick('endDate'),
+    rentalDuration: pick('rentalDuration'),
     sort: pick('sort'),
     page: Math.max(1, parseInt(params.get('page') || '1', 10) || 1),
   };
@@ -85,6 +89,9 @@ function toQuery(applied) {
   if (applied.installmentYears !== '') q.installmentYears = applied.installmentYears;
   if (applied.deliveryStatus !== '') q.deliveryStatus = applied.deliveryStatus;
   if (applied.developer !== '') q.developer = applied.developer;
+  if (applied.startDate) q.startDate = applied.startDate;
+  if (applied.endDate) q.endDate = applied.endDate;
+  if (applied.rentalDuration) q.rentalDuration = applied.rentalDuration;
   if (applied.bedrooms !== '') q.bedrooms = applied.bedrooms;
   if (applied.bathrooms !== '') q.bathrooms = applied.bathrooms;
   if (applied.minArea !== '') q.minArea = applied.minArea;
@@ -106,6 +113,7 @@ function toQuery(applied) {
 export default function Properties() {
   const { t, isRtl } = useSettings();
   const { isBroker } = useAuth();
+  const { purpose, isRental, isSale, switchPurpose, setPurpose, purposeLabelAr, purposeLabelEn, otherPurposeLabelAr, otherPurposeLabelEn } = usePurpose();
   const [searchParams, setSearchParams] = useSearchParams();
   const applied = useMemo(() => parseParams(searchParams), [searchParams]);
 
@@ -118,6 +126,7 @@ export default function Properties() {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [leadModalOpen, setLeadModalOpen] = useState(false);
   const [maps, setMaps] = useState({ types: {}, cities: {}, villages: {}, zones: {} });
+  const [villagesList, setVillagesList] = useState([]);
   const [input, setInput] = useState(applied.q);
   const debounce = useRef(null);
   const resultsRef = useRef(null);
@@ -151,9 +160,11 @@ export default function Properties() {
       setMaps((prev) => ({ ...prev, cities: m }));
     });
     locationService.getVillages().then((r) => {
+      const data = r.data ?? [];
+      setVillagesList(data);
       const vMap = {};
       const zMap = {};
-      for (const v of r.data ?? []) {
+      for (const v of data) {
         vMap[v.id] = isRtl ? (v.nameAr || v.name) : (v.name || v.nameAr);
         vMap[v.slug] = vMap[v.id];
         for (const z of v.zones ?? []) {
@@ -165,6 +176,20 @@ export default function Properties() {
     });
   }, [isRtl]);
 
+  const availableZones = useMemo(() => {
+    if (!applied.villageId && !applied.village) return [];
+    const selectedV = villagesList.find(
+      (v) =>
+        (applied.villageId && String(v.id) === String(applied.villageId)) ||
+        (applied.village && (
+          (v.slug && v.slug.toLowerCase() === String(applied.village).toLowerCase()) ||
+          (v.name && v.name.toLowerCase() === String(applied.village).toLowerCase()) ||
+          String(v.id) === String(applied.village)
+        ))
+    );
+    return selectedV?.zones ?? [];
+  }, [applied.villageId, applied.village, villagesList]);
+
   // Keep the search box in sync with back/forward navigation.
   useEffect(() => {
     setInput(applied.q);
@@ -174,7 +199,10 @@ export default function Properties() {
     setState('loading');
     setError(null);
     try {
-      const params = { ...toQuery(applied), pageSize: 12 };
+      const qObj = toQuery(applied);
+      // Guarantee purpose filter is enforced from active mode if not explicitly set
+      qObj.purpose = applied.purpose || purpose;
+      const params = { ...qObj, pageSize: 12 };
       if (applied.maxDownPayment && !applied.maxPrice) {
         params.maxPrice = Number(applied.maxDownPayment) * 10;
       }
@@ -189,7 +217,7 @@ export default function Properties() {
       setError(e);
       setState('error');
     }
-  }, [applied]);
+  }, [applied, purpose]);
 
   useEffect(() => {
     fetchList();
@@ -283,10 +311,23 @@ export default function Properties() {
         return t('propertiesPage.parking', 'Parking');
       case 'featured':
         return t('propertiesPage.featuredOnly', 'Featured Only');
+      case 'startDate':
+        return `${isRtl ? 'من تاريخ' : 'From'}: ${v}`;
+      case 'endDate':
+        return `${isRtl ? 'إلى تاريخ' : 'To'}: ${v}`;
+      case 'rentalDuration': {
+        const durMap = {
+          daily: isRtl ? 'يومي' : 'Daily',
+          weekly: isRtl ? 'أسبوعي' : 'Weekly',
+          monthly: isRtl ? 'شهري' : 'Monthly',
+          season: isRtl ? 'موسم صيفي' : 'Summer Season',
+        };
+        return `${isRtl ? 'المدة' : 'Duration'}: ${durMap[v] || v}`;
+      }
       default:
         return v;
     }
-  }, [maps, t]);
+  }, [maps, t, isRtl]);
 
   const chips = useMemo(() => {
     const list = [];
@@ -305,6 +346,9 @@ export default function Properties() {
       'installmentYears',
       'deliveryStatus',
       'developer',
+      'startDate',
+      'endDate',
+      'rentalDuration',
       'bedrooms',
       'bathrooms',
       'minArea',
@@ -366,20 +410,31 @@ export default function Properties() {
   return (
     <main id="main-content" className="container properties-page">
       {/* Breadcrumbs Row */}
-      <Breadcrumbs items={[{ label: t('common.darcom', 'Home'), to: '/' }, { label: t('nav.properties', 'Properties') }]} />
+      <Breadcrumbs
+        items={[
+          { label: t('common.darcom', isRtl ? 'الرئيسية' : 'Home'), to: '/' },
+          { label: isRental ? (isRtl ? 'إيجار' : 'Rent') : (isRtl ? 'عقارات للبيع' : 'Properties For Sale') },
+        ]}
+      />
 
       {/* Luxury Hero Header */}
       <div className="properties-hero-header">
         <div className="properties-hero-text">
           <span className="properties-kicker">
             <i className="bi bi-gem text-gold me-1"></i>
-            {t('propertiesPage.kicker', 'Premier Portfolio')}
+            {isRental
+              ? (isRtl ? 'إيجار سياحي ومصيفي بالساحل الشمالي' : 'North Coast Summer Rentals')
+              : (isRtl ? 'عقارات وقرى الساحل الشمالي للبيع' : 'Distinguished North Coast Properties')}
           </span>
           <h1 className="properties-main-title">
-            {isRtl ? 'عقارات وقرى الساحل الشمالي الفاخرة' : t('propertiesPage.title', 'Distinguished Residences & Coastal Havens')}
+            {isRental
+              ? (isRtl ? 'وحدات وشاليهات فاخرة للإيجار' : 'Curated North Coast Rentals')
+              : (isRtl ? 'عقارات وقرى الساحل الشمالي للبيع' : 'Residences & Coastal Havens For Sale')}
           </h1>
           <p className="properties-sub-title">
-            {isRtl ? 'استكشف شاليهات وفلل وبنتهاوس موثقة بالكامل في أرقى قرى الساحل الشمالي برأس الحكمة وسيدي عبد الرحمن.' : t('propertiesPage.subtitle', "Explore verified luxury villas, sea-view chalets, and signature penthouses across Egypt's premier North Coast.")}
+            {isRental
+              ? (isRtl ? 'استكشف شاليهات وفلل وبنتهاوس موثقة بالكامل ومتاحة للإيجار في أرقى قرى الساحل الشمالي.' : 'Explore verified luxury chalets, villas and signature penthouses for rent across North Coast.')
+              : (isRtl ? 'استكشف شاليهات وفلل وبنتهاوس موثقة بالكامل للشراء والاستثمار في أرقى قرى الساحل الشمالي.' : 'Explore verified luxury villas, sea-view chalets, and signature penthouses across Egypt’s premier North Coast.')}
           </p>
         </div>
 
@@ -538,12 +593,271 @@ export default function Properties() {
         </div>
       )}
 
-      {/* Main Listing Layout: Sidebar + Results Grid */}
-      <div className="listing-layout" ref={resultsRef}>
-        <aside className="d-none d-lg-block listing-sidebar-luxury">
-          <PropertyFilters applied={appliedFilters} onApply={applyFilters} onClear={clearAll} />
-        </aside>
+      {/* Compact Horizontal Filter Bar */}
+      <section className="horizontal-filter-bar" aria-label={t('propertiesPage.filters', 'Property Filters')}>
+        {/* Purpose Mode Indicator & Inline Switcher */}
+        <div className="hfilter-purpose-header mb-3 d-flex flex-wrap align-items-center justify-content-between gap-2">
+          <div className="d-flex align-items-center gap-2">
+            <span className="mode-current-pill">
+              <i className={`bi ${isRental ? 'bi-key-fill text-gold' : 'bi-house-door-fill text-accent'} me-1`}></i>
+              <strong>{isRental ? (isRtl ? 'وضع الإيجار (Rent)' : 'Rent Mode') : (isRtl ? 'وضع الشراء (Sale)' : 'Buy Mode')}</strong>
+            </span>
+            <button
+              type="button"
+              className="btn-switch-purpose-inline"
+              onClick={switchPurpose}
+              title={isRtl ? otherPurposeLabelAr : otherPurposeLabelEn}
+            >
+              <i className="bi bi-arrow-repeat me-1"></i>
+              <span>{isRtl ? otherPurposeLabelAr : otherPurposeLabelEn}</span>
+            </button>
+          </div>
 
+          <span className="small text-muted d-none d-md-inline">
+            <i className="bi bi-shield-check text-gold me-1"></i>
+            {isRental
+              ? (isRtl ? 'جميع وحدات الإيجار مفحوصة وموثقة بالساحل الشمالي' : 'North Coast verified rentals only')
+              : (isRtl ? 'جميع عقارات الشراء مفحوصة وموثقة بالساحل الشمالي' : 'North Coast verified properties only')}
+          </span>
+        </div>
+
+        <div className="hfilter-row">
+          {/* 1. Village Dropdown */}
+          <div className="hfilter-item">
+            <label className="hfilter-label">{isRtl ? 'القرية' : 'Village'}</label>
+            <div className="hfilter-select-box">
+              <i className="bi bi-geo-alt text-gold"></i>
+              <select
+                value={applied.villageId || applied.village || ''}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  const vObj = villagesList.find((v) => String(v.id) === String(val) || v.slug === val);
+                  push({
+                    villageId: vObj ? vObj.id : '',
+                    village: vObj ? vObj.slug : '',
+                    zoneId: '',
+                    zone: '',
+                  });
+                }}
+                className="hfilter-select"
+                aria-label={isRtl ? 'اختر القرية' : 'Select Village'}
+              >
+                <option value="">{isRtl ? 'كافة القرى' : 'All Villages'}</option>
+                {villagesList.map((v) => (
+                  <option key={v.id} value={v.id}>
+                    {isRtl ? (v.nameAr || v.name) : v.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* 2. Zone Dropdown (Cascading) */}
+          <div className="hfilter-item">
+            <label className="hfilter-label">{isRtl ? 'المنطقة' : 'Zone'}</label>
+            <div className="hfilter-select-box">
+              <i className="bi bi-compass text-gold"></i>
+              <select
+                value={applied.zoneId || applied.zone || ''}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  const zObj = availableZones.find((z) => String(z.id) === String(val) || z.slug === val);
+                  push({
+                    zoneId: zObj ? zObj.id : '',
+                    zone: zObj ? zObj.slug : '',
+                  });
+                }}
+                disabled={!availableZones.length}
+                className="hfilter-select"
+                aria-label={isRtl ? 'اختر المنطقة' : 'Select Zone'}
+              >
+                <option value="">
+                  {!availableZones.length
+                    ? (isRtl ? 'اختر قرية أولاً' : 'Select Village First')
+                    : (isRtl ? 'كافة المناطق' : 'All Zones')}
+                </option>
+                {availableZones.map((z) => (
+                  <option key={z.id} value={z.id}>
+                    {isRtl ? (z.nameAr || z.name) : z.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* 3. Bedrooms */}
+          <div className="hfilter-item">
+            <label className="hfilter-label">{isRtl ? 'الغرف' : 'Bedrooms'}</label>
+            <div className="hfilter-select-box">
+              <i className="bi bi-door-closed text-gold"></i>
+              <select
+                value={applied.bedrooms || ''}
+                onChange={(e) => push({ bedrooms: e.target.value })}
+                className="hfilter-select"
+                aria-label={isRtl ? 'عدد الغرف' : 'Bedrooms'}
+              >
+                <option value="">{isRtl ? 'الكل' : 'Any'}</option>
+                <option value="1">1+ {isRtl ? 'غرفة' : 'Bed'}</option>
+                <option value="2">2+ {isRtl ? 'غرف' : 'Beds'}</option>
+                <option value="3">3+ {isRtl ? 'غرف' : 'Beds'}</option>
+                <option value="4">4+ {isRtl ? 'غرف' : 'Beds'}</option>
+                <option value="5">5+ {isRtl ? 'غرف' : 'Beds'}</option>
+              </select>
+            </div>
+          </div>
+
+          {/* 4. Price Range */}
+          <div className="hfilter-item budget-item">
+            <label className="hfilter-label">
+              {isRental ? (isRtl ? 'سعر الإيجار' : 'Rental Price') : (isRtl ? 'سعر الشراء' : 'Purchase Price')}
+            </label>
+            <div className="hfilter-select-box">
+              <i className="bi bi-cash-stack text-gold"></i>
+              <select
+                value={
+                  applied.minPrice === '40000000'
+                    ? 'p_above40m'
+                    : applied.minPrice === '20000000' && applied.maxPrice === '40000000'
+                    ? 'p_20_40m'
+                    : applied.minPrice === '10000000' && applied.maxPrice === '20000000'
+                    ? 'p_10_20m'
+                    : applied.minPrice === '5000000' && applied.maxPrice === '10000000'
+                    ? 'p_5_10m'
+                    : applied.maxPrice === '5000000'
+                    ? 'p_under5m'
+                    : applied.minPrice === '120000'
+                    ? 'r_above120k'
+                    : applied.minPrice === '60000' && applied.maxPrice === '120000'
+                    ? 'r_60_120k'
+                    : applied.minPrice === '30000' && applied.maxPrice === '60000'
+                    ? 'r_30_60k'
+                    : applied.maxPrice === '30000'
+                    ? 'r_under30k'
+                    : ''
+                }
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (!val) {
+                    push({ minPrice: '', maxPrice: '' });
+                  } else if (val === 'p_under5m') {
+                    push({ minPrice: '', maxPrice: '5000000' });
+                  } else if (val === 'p_5_10m') {
+                    push({ minPrice: '5000000', maxPrice: '10000000' });
+                  } else if (val === 'p_10_20m') {
+                    push({ minPrice: '10000000', maxPrice: '20000000' });
+                  } else if (val === 'p_20_40m') {
+                    push({ minPrice: '20000000', maxPrice: '40000000' });
+                  } else if (val === 'p_above40m') {
+                    push({ minPrice: '40000000', maxPrice: '' });
+                  } else if (val === 'r_under30k') {
+                    push({ minPrice: '', maxPrice: '30000' });
+                  } else if (val === 'r_30_60k') {
+                    push({ minPrice: '30000', maxPrice: '60000' });
+                  } else if (val === 'r_60_120k') {
+                    push({ minPrice: '60000', maxPrice: '120000' });
+                  } else if (val === 'r_above120k') {
+                    push({ minPrice: '120000', maxPrice: '' });
+                  }
+                }}
+                className="hfilter-select"
+                aria-label={isRtl ? 'نطاق السعر' : 'Price Range'}
+              >
+                <option value="">{isRtl ? 'كافة الأسعار' : 'Any Price'}</option>
+                {isRental ? (
+                  <>
+                    <option value="r_under30k">{isRtl ? 'حتى 30 ألف ج.م / شهر' : 'Up to 30K / mo'}</option>
+                    <option value="r_30_60k">{isRtl ? 'من 30 إلى 60 ألف ج.م / شهر' : '30K - 60K / mo'}</option>
+                    <option value="r_60_120k">{isRtl ? 'من 60 إلى 120 ألف ج.م / شهر' : '60K - 120K / mo'}</option>
+                    <option value="r_above120k">{isRtl ? 'أكثر من 120 ألف ج.م / شهر' : '120K+ / mo'}</option>
+                  </>
+                ) : (
+                  <>
+                    <option value="p_under5m">{isRtl ? 'حتى 5 مليون ج.م' : 'Up to 5M EGP'}</option>
+                    <option value="p_5_10m">{isRtl ? 'من 5 إلى 10 مليون ج.م' : '5M - 10M EGP'}</option>
+                    <option value="p_10_20m">{isRtl ? 'من 10 إلى 20 مليون ج.م' : '10M - 20M EGP'}</option>
+                    <option value="p_20_40m">{isRtl ? 'من 20 إلى 40 مليون ج.م' : '20M - 40M EGP'}</option>
+                    <option value="p_above40m">{isRtl ? 'أكثر من 40 مليون ج.م' : '40M+ EGP'}</option>
+                  </>
+                )}
+              </select>
+            </div>
+          </div>
+
+          {/* 5. Area (m²) Presets */}
+          <div className="hfilter-item area-item">
+            <label className="hfilter-label">{isRtl ? 'المساحة' : 'Area'}</label>
+            <div className="hfilter-select-box">
+              <i className="bi bi-aspect-ratio text-gold"></i>
+              <select
+                value={
+                  applied.minArea === '250'
+                    ? 'a_above250'
+                    : applied.minArea === '150' && applied.maxArea === '250'
+                    ? 'a_150_250'
+                    : applied.minArea === '100' && applied.maxArea === '150'
+                    ? 'a_100_150'
+                    : applied.maxArea === '100'
+                    ? 'a_under100'
+                    : ''
+                }
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (!val) {
+                    push({ minArea: '', maxArea: '' });
+                  } else if (val === 'a_under100') {
+                    push({ minArea: '', maxArea: '100' });
+                  } else if (val === 'a_100_150') {
+                    push({ minArea: '100', maxArea: '150' });
+                  } else if (val === 'a_150_250') {
+                    push({ minArea: '150', maxArea: '250' });
+                  } else if (val === 'a_above250') {
+                    push({ minArea: '250', maxArea: '' });
+                  }
+                }}
+                className="hfilter-select"
+                aria-label={isRtl ? 'المساحة' : 'Area'}
+              >
+                <option value="">{isRtl ? 'كافة المساحات' : 'Any Area'}</option>
+                <option value="a_under100">{isRtl ? 'أقل من 100 م²' : 'Under 100 m²'}</option>
+                <option value="a_100_150">{isRtl ? '100 – 150 م²' : '100 – 150 m²'}</option>
+                <option value="a_150_250">{isRtl ? '150 – 250 م²' : '150 – 250 m²'}</option>
+                <option value="a_above250">{isRtl ? '250 م² فما فوق' : '250+ m²'}</option>
+              </select>
+            </div>
+          </div>
+
+          {/* 6. More Filters & Reset Actions */}
+          <div className="hfilter-actions-item">
+            <label className="hfilter-label d-none d-lg-block">&nbsp;</label>
+            <div className="d-flex align-items-center gap-2">
+              <button
+                type="button"
+                className="btn btn-outline-secondary hfilter-btn-more"
+                onClick={() => setSheetOpen(true)}
+              >
+                <i className="bi bi-sliders me-1"></i>
+                <span>{isRtl ? 'فلاتر إضافية' : 'More Filters'}</span>
+                {chips.length > 0 && <span className="badge bg-gold text-dark ms-1">{chips.length}</span>}
+              </button>
+
+              {chips.length > 0 && (
+                <button
+                  type="button"
+                  className="btn btn-outline-danger hfilter-btn-reset"
+                  onClick={clearAll}
+                  title={isRtl ? 'إعادة ضبط' : 'Reset'}
+                  aria-label={isRtl ? 'إعادة ضبط' : 'Reset'}
+                >
+                  <i className="bi bi-arrow-counterclockwise"></i>
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Main Listing Layout: Full-Width Results Grid */}
+      <div className="listing-layout" ref={resultsRef}>
         <div className="listing-results">
           {state === 'loading' && <LoadingSkeleton variant="card" count={6} />}
           {state === 'error' && <ErrorState error={error} onRetry={fetchList} />}

@@ -31,7 +31,10 @@ public sealed class InquiriesController : ApiBaseController
         [FromBody] CreateInquiryRequest request,
         [FromServices] CreateInquiryValidator validator,
         CancellationToken ct)
-        => ValidateAndExecute(validator, request, () => _inquiries.SubmitAsync(propertyId, request, ct), ct);
+    {
+        var userId = TryGetCurrentUserId();
+        return ValidateAndExecute(validator, request, () => _inquiries.SubmitAsync(propertyId, request, userId, ct), ct);
+    }
 
     /// <response code="200">Paginated inquiries (admin).</response>
     [HttpGet]

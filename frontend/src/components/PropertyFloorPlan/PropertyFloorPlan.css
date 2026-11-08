@@ -54,28 +54,6 @@
   max-width: 65ch;
 }
 
-.btn-download-brochure {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.55rem;
-  padding: 0.75rem 1.35rem;
-  background: #0e2a33;
-  color: #ffffff;
-  border: 1px solid rgba(201, 168, 106, 0.45);
-  border-radius: 12px;
-  font-weight: 700;
-  font-size: 0.88rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  white-space: nowrap;
-}
-
-.btn-download-brochure:hover {
-  background: #14424f;
-  border-color: var(--brand-accent, #c9a86a);
-  transform: translateY(-1px);
-}
-
 /* 2. Tabs Bar */
 .floorplan-tabs-bar {
   display: flex;
@@ -246,7 +224,6 @@
     border: none;
     padding: 0;
   }
-  .btn-download-brochure,
   .floorplan-tabs-bar {
     display: none !important;
   }

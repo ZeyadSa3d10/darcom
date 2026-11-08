@@ -38,6 +38,36 @@ public sealed class BrokerRedesignTests
         Assert.False(replayResult);
     }
 
+    [Theory]
+    [InlineData("٠١٠١٢٣٤٥٦٧٨", "01012345678")]
+    [InlineData("+20 10 1234 5678", "01012345678")]
+    [InlineData("00201012345678", "01012345678")]
+    [InlineData("010-1234-5678", "01012345678")]
+    [InlineData("۰۱۱۱۲۳۴۵۶۷۸", "01112345678")]
+    public void PhoneNormalizer_Normalizes_Various_Formats(string input, string expected)
+    {
+        var result = Application.Common.PhoneNormalizer.Normalize(input);
+        Assert.Equal(expected, result);
+    }
+
+    [Fact]
+    public async Task OtpService_Supports_Arabic_Indic_Numerals_In_Code_And_Phone()
+    {
+        var cache = new MemoryCache(new MemoryCacheOptions());
+        var logger = NullLogger<OtpService>.Instance;
+        var otpService = new OtpService(cache, logger);
+
+        var phone = "٠١٠١٢٣٤٥٦٧٨";
+        var code = await otpService.SendOtpAsync(phone);
+
+        // Convert standard code to Arabic-Indic digits: '1' -> '١'
+        var arabicIndicDigits = new string(code.Select(c => (char)('٠' + (c - '0'))).ToArray());
+
+        // Verifying with Arabic digits must succeed transparently
+        var result = await otpService.VerifyOtpAsync("01012345678", arabicIndicDigits);
+        Assert.True(result);
+    }
+
     [Fact]
     public async Task PrivateDocumentStorage_Saves_And_Retrieves_Securely()
     {
