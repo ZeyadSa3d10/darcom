@@ -6,7 +6,7 @@ import { useSettings } from '../../../context/SettingsContext.jsx';
 import { adminService } from '../../../services/adminService.js';
 import BrokerIdViewerModal from './BrokerIdViewerModal.jsx';
 
-export default function BrokersManager() {
+export default function BrokersManager({ refreshTrigger = 0 }) {
   const { isRtl } = useSettings();
   const toast = useToast();
 
@@ -56,7 +56,7 @@ export default function BrokersManager() {
 
   useEffect(() => {
     loadData();
-  }, [loadData]);
+  }, [loadData, refreshTrigger]);
 
   const openStatusModal = (item, type) => {
     setActiveItem(item);

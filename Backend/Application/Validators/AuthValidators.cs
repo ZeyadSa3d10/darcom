@@ -24,8 +24,34 @@ public sealed class LoginValidator : AbstractValidator<LoginRequest>
 {
     public LoginValidator()
     {
-        RuleFor(x => x.Email).NotEmpty().EmailAddress().MaximumLength(200);
+        RuleFor(x => x.Email).NotEmpty().MaximumLength(200);
         RuleFor(x => x.Password).NotEmpty();
+    }
+}
+
+public sealed class SendEmailOtpValidator : AbstractValidator<SendEmailOtpRequest>
+{
+    public SendEmailOtpValidator()
+    {
+        RuleFor(x => x.Email).NotEmpty().EmailAddress().MaximumLength(200);
+    }
+}
+
+public sealed class VerifyEmailOtpValidator : AbstractValidator<VerifyEmailOtpRequest>
+{
+    public VerifyEmailOtpValidator()
+    {
+        RuleFor(x => x.Email).NotEmpty().EmailAddress().MaximumLength(200);
+        RuleFor(x => x.Code).NotEmpty().MaximumLength(12);
+        RuleFor(x => x.FullName).MaximumLength(160).When(x => !string.IsNullOrWhiteSpace(x.FullName));
+    }
+}
+
+public sealed class GoogleLoginValidator : AbstractValidator<GoogleLoginRequest>
+{
+    public GoogleLoginValidator()
+    {
+        RuleFor(x => x.IdToken).NotEmpty().MaximumLength(8192);
     }
 }
 
@@ -33,7 +59,7 @@ public sealed class RefreshValidator : AbstractValidator<RefreshRequest>
 {
     public RefreshValidator()
     {
-        RuleFor(x => x.RefreshToken).NotEmpty();
+        RuleFor(x => x.RefreshToken).MaximumLength(512).When(x => x.RefreshToken is not null);
     }
 }
 

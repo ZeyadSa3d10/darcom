@@ -1,8 +1,7 @@
-using System.Security.Cryptography;
+using Application.BackgroundJobs;
 using Application.Common;
 using Application.DTOs;
 using Application.Security;
-using Application.Services;
 using Application.Storage;
 using Application.Stores;
 using Domain.Entities;
@@ -12,11 +11,16 @@ namespace Application.Services;
 
 public interface IAuthService
 {
-    Task<ServiceResult<AuthResponse>> RegisterAsync(RegisterRequest request, CancellationToken ct = default);
-    Task<ServiceResult<AuthResponse>> RegisterBrokerAsync(RegisterBrokerDto request, CancellationToken ct = default);
-    Task<ServiceResult<AuthResponse>> LoginAsync(LoginRequest request, CancellationToken ct = default);
-    Task<ServiceResult<AuthResponse>> RefreshAsync(RefreshRequest request, CancellationToken ct = default);
-    Task<ServiceResult<object?>> LogoutAsync(int userId, CancellationToken ct = default);
+    Task<ServiceResult<SendEmailOtpResponse>> SendEmailOtpAsync(SendEmailOtpRequest request, string? ipAddress, bool isDevelopment, CancellationToken ct = default);
+    Task<ServiceResult<AuthTokenBundle>> VerifyEmailOtpAndSignInAsync(VerifyEmailOtpRequest request, string? ipAddress, CancellationToken ct = default);
+    Task<ServiceResult<AuthTokenBundle>> GoogleLoginAsync(GoogleLoginRequest request, string? ipAddress, CancellationToken ct = default);
+    Task<ServiceResult<AuthTokenBundle>> GoogleExternalLoginAsync(GoogleUserPayload payload, string? ipAddress, CancellationToken ct = default);
+    Task<ServiceResult<AuthTokenBundle>> RegisterAsync(RegisterRequest request, string? ipAddress = null, CancellationToken ct = default);
+    Task<ServiceResult<AuthTokenBundle>> RegisterBrokerAsync(RegisterBrokerDto request, string? ipAddress = null, CancellationToken ct = default);
+    Task<ServiceResult<AuthTokenBundle>> LoginAsync(LoginRequest request, string? ipAddress = null, CancellationToken ct = default);
+    Task<ServiceResult<AuthTokenBundle>> RefreshAsync(string refreshToken, string? ipAddress = null, CancellationToken ct = default);
+    Task<ServiceResult<object?>> LogoutAsync(int userId, string? refreshToken = null, string? ipAddress = null, CancellationToken ct = default);
+    Task<ServiceResult<object?>> RevokeAllSessionsAsync(int userId, string? ipAddress = null, CancellationToken ct = default);
     Task<ServiceResult<string?>> ForgotPasswordAsync(ForgotPasswordRequest request, bool exposeToken, CancellationToken ct = default);
     Task<ServiceResult<object?>> ResetPasswordAsync(ResetPasswordRequest request, CancellationToken ct = default);
 }
@@ -25,99 +29,305 @@ public sealed class AuthService : IAuthService
 {
     private readonly IAuthStore _store;
     private readonly ITokenService _tokens;
-    private readonly IPasswordHasher _hasher;
-    private readonly IOtpService _otp;
+    private readonly IOtpService _phoneOtp;
+    private readonly IEmailOtpService _emailOtp;
+    private readonly IGoogleTokenValidator _googleValidator;
     private readonly IPrivateDocumentStorage _privateStorage;
+    private readonly IAuditWriter _audit;
     private readonly JwtOptions _jwt;
+    private readonly IAdminRealtimeNotifier? _notifier;
+    private readonly IEmailJobService? _emailJobs;
 
     public AuthService(
         IAuthStore store,
         ITokenService tokens,
-        IPasswordHasher hasher,
-        IOtpService otp,
+        IOtpService phoneOtp,
+        IEmailOtpService emailOtp,
+        IGoogleTokenValidator googleValidator,
         IPrivateDocumentStorage privateStorage,
-        IOptions<JwtOptions> jwt)
+        IAuditWriter audit,
+        IOptions<JwtOptions> jwt,
+        IAdminRealtimeNotifier? notifier = null,
+        IEmailJobService? emailJobs = null)
     {
         _store = store;
         _tokens = tokens;
-        _hasher = hasher;
-        _otp = otp;
+        _phoneOtp = phoneOtp;
+        _emailOtp = emailOtp;
+        _googleValidator = googleValidator;
         _privateStorage = privateStorage;
+        _audit = audit;
         _jwt = jwt.Value;
+        _notifier = notifier;
+        _emailJobs = emailJobs;
     }
 
-    public async Task<ServiceResult<AuthResponse>> RegisterAsync(RegisterRequest request, CancellationToken ct = default)
+    public Task<ServiceResult<SendEmailOtpResponse>> SendEmailOtpAsync(
+        SendEmailOtpRequest request,
+        string? ipAddress,
+        bool isDevelopment,
+        CancellationToken ct = default)
+        => _emailOtp.SendOtpAsync(request.Email, ipAddress, isDevelopment, ct);
+
+    public async Task<ServiceResult<AuthTokenBundle>> VerifyEmailOtpAndSignInAsync(
+        VerifyEmailOtpRequest request,
+        string? ipAddress,
+        CancellationToken ct = default)
+    {
+        var email = request.Email.Trim().ToLowerInvariant();
+        var verifyResult = await _emailOtp.VerifyOtpAsync(email, request.Code, ct);
+        if (!verifyResult.Succeeded)
+            return ServiceResult<AuthTokenBundle>.Fail(verifyResult.Message, verifyResult.StatusCode, verifyResult.Errors);
+
+        var user = await _store.FindUserByEmailAsync(email, ct);
+        var isNewUser = false;
+
+        if (user is null)
+        {
+            var fullName = string.IsNullOrWhiteSpace(request.FullName)
+                ? DeriveNameFromEmail(email)
+                : request.FullName.Trim();
+
+            user = new User
+            {
+                FullName = fullName,
+                Email = email,
+                UserName = email,
+                EmailConfirmed = true,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            // SECURITY: self-service OTP sign-up always assigns the least-privilege Buyer role.
+            var (created, errors) = await _store.CreateUserAsync(user, null, "Buyer", ct);
+            if (!created)
+                return ServiceResult<AuthTokenBundle>.Fail(
+                    string.Join(" ", errors), 422,
+                    errors.Select(e => new ApiError(e, "email")).ToList());
+
+            isNewUser = true;
+        }
+        else
+        {
+            if (!user.IsActive)
+                return ServiceResult<AuthTokenBundle>.Unauthorized("Account is disabled.");
+
+            if (!user.EmailConfirmed)
+            {
+                user.EmailConfirmed = true;
+                user.UpdatedAt = DateTime.UtcNow;
+                await _store.UpdateUserAsync(user, ct);
+            }
+        }
+
+        var bundle = await IssueTokensAsync(user, ipAddress, ct);
+        await _audit.LogAsync(user.Id, isNewUser ? "auth.otp-register" : "auth.otp-login", "User",
+            user.Id.ToString(), null, email, ipAddress, ct);
+
+        if (isNewUser && _notifier is not null)
+        {
+            await _notifier.NotifyAdminsAsync(
+                "user.registered",
+                "New User Registered",
+                $"New user '{user.FullName}' registered via Email OTP.",
+                relatedEntityId: user.Id,
+                relatedEntityType: "User",
+                eventKey: $"user:registered:{user.Id}",
+                ct: ct);
+        }
+
+        if (isNewUser && _emailJobs is not null && !string.IsNullOrWhiteSpace(user.Email))
+        {
+            try { await _emailJobs.EnqueueWelcomeEmailAsync(user.Id, user.Email, user.FullName, ct); }
+            catch { /* Never block auth flow on background queue failure */ }
+        }
+
+        return isNewUser
+            ? ServiceResult<AuthTokenBundle>.Created(bundle, "Account created and verified successfully.")
+            : ServiceResult<AuthTokenBundle>.Ok(bundle, "Logged in successfully.");
+    }
+
+    public async Task<ServiceResult<AuthTokenBundle>> GoogleLoginAsync(
+        GoogleLoginRequest request,
+        string? ipAddress,
+        CancellationToken ct = default)
+    {
+        var payload = await _googleValidator.ValidateAsync(request.IdToken, ct);
+        if (payload is null)
+            return ServiceResult<AuthTokenBundle>.Unauthorized("Invalid or unverified Google credentials.");
+
+        return await GoogleExternalLoginAsync(payload, ipAddress, ct);
+    }
+
+    public async Task<ServiceResult<AuthTokenBundle>> GoogleExternalLoginAsync(
+        GoogleUserPayload payload,
+        string? ipAddress,
+        CancellationToken ct = default)
+    {
+        if (!payload.EmailVerified || string.IsNullOrWhiteSpace(payload.Email))
+            return ServiceResult<AuthTokenBundle>.Unauthorized("Invalid or unverified Google credentials.");
+
+        var email = payload.Email.Trim().ToLowerInvariant();
+
+        // 1. Try existing external Google link first
+        var user = await _store.FindUserByExternalLoginAsync("Google", payload.Subject, ct);
+        var isNewUser = false;
+
+        if (user is null)
+        {
+            // 2. Safe account linking: Google verified payload.EmailVerified == true
+            user = await _store.FindUserByEmailAsync(email, ct);
+            if (user is not null)
+            {
+                if (!user.IsActive)
+                    return ServiceResult<AuthTokenBundle>.Unauthorized("Account is disabled.");
+
+                if (!user.EmailConfirmed)
+                {
+                    user.EmailConfirmed = true;
+                    user.UpdatedAt = DateTime.UtcNow;
+                    await _store.UpdateUserAsync(user, ct);
+                }
+
+                await _store.AddExternalLoginAsync(user, "Google", payload.Subject, "Google", ct);
+            }
+            else
+            {
+                var fullName = string.IsNullOrWhiteSpace(payload.Name)
+                    ? DeriveNameFromEmail(email)
+                    : payload.Name.Trim();
+
+                user = new User
+                {
+                    FullName = fullName,
+                    Email = email,
+                    UserName = email,
+                    EmailConfirmed = true,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                var (created, errors) = await _store.CreateUserAsync(user, null, "Buyer", ct);
+                if (!created)
+                    return ServiceResult<AuthTokenBundle>.Fail(string.Join(" ", errors), 422);
+
+                await _store.AddExternalLoginAsync(user, "Google", payload.Subject, "Google", ct);
+                isNewUser = true;
+            }
+        }
+        else if (!user.IsActive)
+        {
+            return ServiceResult<AuthTokenBundle>.Unauthorized("Account is disabled.");
+        }
+
+        var bundle = await IssueTokensAsync(user, ipAddress, ct);
+        await _audit.LogAsync(user.Id, isNewUser ? "auth.google-register" : "auth.google-login", "User",
+            user.Id.ToString(), null, email, ipAddress, ct);
+
+        if (isNewUser && _notifier is not null)
+        {
+            await _notifier.NotifyAdminsAsync(
+                "user.registered",
+                "New User Registered",
+                $"New user '{user.FullName}' signed up with Google.",
+                relatedEntityId: user.Id,
+                relatedEntityType: "User",
+                eventKey: $"user:registered:{user.Id}",
+                ct: ct);
+        }
+
+        if (isNewUser && _emailJobs is not null && !string.IsNullOrWhiteSpace(user.Email))
+        {
+            try { await _emailJobs.EnqueueWelcomeEmailAsync(user.Id, user.Email, user.FullName, ct); }
+            catch { /* Never block Google auth on background queue failure */ }
+        }
+
+        return ServiceResult<AuthTokenBundle>.Ok(bundle, "Logged in with Google successfully.");
+    }
+
+    public async Task<ServiceResult<AuthTokenBundle>> RegisterAsync(
+        RegisterRequest request,
+        string? ipAddress = null,
+        CancellationToken ct = default)
     {
         var email = request.Email.Trim().ToLowerInvariant();
         if (await _store.EmailExistsAsync(email, ct))
-            return ServiceResult<AuthResponse>.Conflict("Email is already registered.",
+            return ServiceResult<AuthTokenBundle>.Conflict("Email is already registered.",
                 new() { new("Email is already registered.", "email") });
-
-        // SECURITY: role is NEVER taken from the client — every self-registration is a Buyer.
-        var buyerRoleId = await _store.GetRoleIdByNameAsync("Buyer", ct)
-            ?? throw new InvalidOperationException("Buyer role is not seeded.");
 
         var normalizedPhone = string.IsNullOrWhiteSpace(request.PhoneNumber)
             ? null
-            : Application.Common.PhoneNormalizer.Normalize(request.PhoneNumber);
+            : Common.PhoneNormalizer.Normalize(request.PhoneNumber);
 
         var user = new User
         {
             FullName = request.FullName.Trim(),
             Email = email,
+            UserName = email,
             PhoneNumber = normalizedPhone,
-            PasswordHash = _hasher.Hash(request.Password),
-            RoleId = buyerRoleId,
-            IsActive = true
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow
         };
-        await _store.AddUserAsync(user, ct);
 
-        var refreshToken = _tokens.CreateRefreshToken();
-        user.RefreshToken = refreshToken;
-        user.RefreshTokenExpiry = DateTime.UtcNow.AddDays(_jwt.RefreshTokenDays);
-        await _store.SaveChangesAsync(ct);
+        // SECURITY: role is NEVER taken from the client — every self-registration is a Buyer.
+        var (created, errors) = await _store.CreateUserAsync(user, request.Password, "Buyer", ct);
+        if (!created)
+            return ServiceResult<AuthTokenBundle>.Fail(
+                string.Join(" ", errors), 422,
+                errors.Select(e => new ApiError(e, "password")).ToList());
 
-        return ServiceResult<AuthResponse>.Created(BuildAuthResponse(user, "Buyer", refreshToken),
-            "Account created successfully.");
+        var bundle = await IssueTokensAsync(user, ipAddress, ct);
+        if (_notifier is not null)
+        {
+            await _notifier.NotifyAdminsAsync(
+                "user.registered",
+                "New User Registered",
+                $"New user '{user.FullName}' created an account.",
+                relatedEntityId: user.Id,
+                relatedEntityType: "User",
+                eventKey: $"user:registered:{user.Id}",
+                ct: ct);
+        }
+        if (_emailJobs is not null && !string.IsNullOrWhiteSpace(user.Email))
+        {
+            try { await _emailJobs.EnqueueWelcomeEmailAsync(user.Id, user.Email, user.FullName, ct); }
+            catch { /* Never block registration on background queue failure */ }
+        }
+        return ServiceResult<AuthTokenBundle>.Created(bundle, "Account created successfully.");
     }
 
-    public async Task<ServiceResult<AuthResponse>> RegisterBrokerAsync(RegisterBrokerDto request, CancellationToken ct = default)
+    public async Task<ServiceResult<AuthTokenBundle>> RegisterBrokerAsync(
+        RegisterBrokerDto request,
+        string? ipAddress = null,
+        CancellationToken ct = default)
     {
-        var phone = Application.Common.PhoneNormalizer.Normalize(request.PhoneNumber);
+        var phone = Common.PhoneNormalizer.Normalize(request.PhoneNumber);
         if (string.IsNullOrWhiteSpace(phone))
-            return ServiceResult<AuthResponse>.Fail("رقم الهاتف مطلوب.", 422,
+            return ServiceResult<AuthTokenBundle>.Fail("رقم الهاتف مطلوب.", 422,
                 new() { new("Phone number is required.", "phoneNumber") });
 
         if (string.IsNullOrWhiteSpace(request.FullName))
-            return ServiceResult<AuthResponse>.Fail("الاسم الكامل مطلوب.", 422,
+            return ServiceResult<AuthTokenBundle>.Fail("الاسم الكامل مطلوب.", 422,
                 new() { new("Full name is required.", "fullName") });
 
         if (string.IsNullOrWhiteSpace(request.Password) || request.Password.Length < 6)
-            return ServiceResult<AuthResponse>.Fail("كلمة المرور يجب ألا تقل عن 6 أحرف.", 422,
+            return ServiceResult<AuthTokenBundle>.Fail("كلمة المرور يجب ألا تقل عن 6 أحرف.", 422,
                 new() { new("Password must be at least 6 characters.", "password") });
 
-        // 1. Verify OTP
-        var isOtpValid = await _otp.VerifyOtpAsync(phone, request.OtpCode);
+        var isOtpValid = await _phoneOtp.VerifyOtpAsync(phone, request.OtpCode, ct);
         if (!isOtpValid)
-            return ServiceResult<AuthResponse>.Fail("رمز التحقق (OTP) غير صحيح أو انتهت صلاحيته.", 422,
+            return ServiceResult<AuthTokenBundle>.Fail("رمز التحقق (OTP) غير صحيح أو انتهت صلاحيته.", 422,
                 new() { new("Invalid or expired OTP code.", "otpCode") });
 
-        // 2. Check phone exists
         if (await _store.PhoneExistsAsync(phone, ct))
-            return ServiceResult<AuthResponse>.Conflict("رقم الهاتف مسجل بالفعل مسبقاً.",
+            return ServiceResult<AuthTokenBundle>.Conflict("رقم الهاتف مسجل بالفعل مسبقاً.",
                 new() { new("Phone number is already registered.", "phoneNumber") });
 
-        // Generate normalized unique email for the broker
-        var cleanPhone = phone;
-        var email = $"broker_{cleanPhone}@broker.darcom.local";
+        var email = $"broker_{phone}@broker.darcom.local";
         if (await _store.EmailExistsAsync(email, ct))
-            return ServiceResult<AuthResponse>.Conflict("الحساب مسجل بالفعل مسبقاً.",
+            return ServiceResult<AuthTokenBundle>.Conflict("الحساب مسجل بالفعل مسبقاً.",
                 new() { new("Account already registered.", "phoneNumber") });
 
-        var brokerRoleId = await _store.GetRoleIdByNameAsync("Broker", ct)
-            ?? throw new InvalidOperationException("Broker role is not seeded.");
-
-        // 3. Save ID Card images to private storage (never in public /uploads)
         string? frontPath = null;
         if (!string.IsNullOrWhiteSpace(request.IdCardFrontBase64))
         {
@@ -125,7 +335,7 @@ public sealed class AuthService : IAuthService
             if (bytes != null && bytes.Length > 0)
             {
                 using var ms = new MemoryStream(bytes);
-                frontPath = await _privateStorage.SavePrivateDocumentAsync(ms, $"id_front_{cleanPhone}.jpg", "image/jpeg", "broker-ids", ct);
+                frontPath = await _privateStorage.SavePrivateDocumentAsync(ms, $"id_front_{phone}.jpg", "image/jpeg", "broker-ids", ct);
             }
         }
 
@@ -136,7 +346,7 @@ public sealed class AuthService : IAuthService
             if (bytes != null && bytes.Length > 0)
             {
                 using var ms = new MemoryStream(bytes);
-                backPath = await _privateStorage.SavePrivateDocumentAsync(ms, $"id_back_{cleanPhone}.jpg", "image/jpeg", "broker-ids", ct);
+                backPath = await _privateStorage.SavePrivateDocumentAsync(ms, $"id_back_{phone}.jpg", "image/jpeg", "broker-ids", ct);
             }
         }
 
@@ -144,10 +354,11 @@ public sealed class AuthService : IAuthService
         {
             FullName = request.FullName.Trim(),
             Email = email,
+            UserName = email,
             PhoneNumber = phone,
-            PasswordHash = _hasher.Hash(request.Password),
-            RoleId = brokerRoleId,
+            PhoneNumberConfirmed = true,
             IsActive = true,
+            CreatedAt = DateTime.UtcNow,
             BrokerProfile = new BrokerProfile
             {
                 AgencyName = request.AgencyName?.Trim(),
@@ -160,15 +371,203 @@ public sealed class AuthService : IAuthService
             }
         };
 
-        await _store.AddUserAsync(user, ct);
+        var (created, errors) = await _store.CreateUserAsync(user, request.Password, "Broker", ct);
+        if (!created)
+            return ServiceResult<AuthTokenBundle>.Fail(
+                string.Join(" ", errors), 422,
+                errors.Select(e => new ApiError(e, "password")).ToList());
 
-        var refreshToken = _tokens.CreateRefreshToken();
-        user.RefreshToken = refreshToken;
-        user.RefreshTokenExpiry = DateTime.UtcNow.AddDays(_jwt.RefreshTokenDays);
+        var bundle = await IssueTokensAsync(user, ipAddress, ct);
+        if (_notifier is not null)
+        {
+            await _notifier.NotifyAdminsAsync(
+                "broker.registered",
+                "New Broker Registered",
+                $"Broker '{user.FullName}' registered and is pending approval.",
+                relatedEntityId: user.BrokerProfile?.Id ?? user.Id,
+                relatedEntityType: "BrokerProfile",
+                eventKey: $"broker:registered:{user.Id}",
+                ct: ct);
+        }
+        return ServiceResult<AuthTokenBundle>.Created(bundle,
+            "تم تقديم طلب تسجيل البروكر بنجاح، والحساب قيد مراجعة الإدارة.");
+    }
+
+    public async Task<ServiceResult<AuthTokenBundle>> LoginAsync(
+        LoginRequest request,
+        string? ipAddress = null,
+        CancellationToken ct = default)
+    {
+        var term = request.Email.Trim();
+        var user = await _store.FindUserByEmailOrPhoneAsync(term, ct);
+        if (user is null || !user.IsActive)
+            return ServiceResult<AuthTokenBundle>.Unauthorized();
+
+        var (succeeded, isLockedOut) = await _store.CheckPasswordSignInAsync(user, request.Password, lockoutOnFailure: true, ct);
+        if (isLockedOut)
+            return ServiceResult<AuthTokenBundle>.Fail("Account temporarily locked due to multiple failed attempts. Please try again later.", 429);
+
+        if (!succeeded)
+            return ServiceResult<AuthTokenBundle>.Unauthorized();
+
+        var bundle = await IssueTokensAsync(user, ipAddress, ct);
+        return ServiceResult<AuthTokenBundle>.Ok(bundle, "Logged in successfully.");
+    }
+
+    public async Task<ServiceResult<AuthTokenBundle>> RefreshAsync(
+        string refreshToken,
+        string? ipAddress = null,
+        CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(refreshToken))
+            return ServiceResult<AuthTokenBundle>.Unauthorized("Session expired. Please log in again.");
+
+        var tokenHash = _tokens.HashRefreshToken(refreshToken);
+        var stored = await _store.FindRefreshTokenByHashAsync(tokenHash, ct);
+        if (stored is null)
+            return ServiceResult<AuthTokenBundle>.Unauthorized("Session expired. Please log in again.");
+
+        // Reuse detection: if an already-revoked/rotated refresh token is presented, revoke the whole token family.
+        if (stored.IsRevoked)
+        {
+            await _store.RevokeAllUserRefreshTokensAsync(stored.UserId, ipAddress, "Attempted reuse of revoked refresh token", ct);
+            await _store.SaveChangesAsync(ct);
+            await _audit.LogAsync(stored.UserId, "auth.refresh-reuse-detected", "User",
+                stored.UserId.ToString(), null, "All sessions revoked", ipAddress, ct);
+            return ServiceResult<AuthTokenBundle>.Unauthorized("Session invalidated for security. Please log in again.");
+        }
+
+        if (stored.IsExpired || stored.User is null || !stored.User.IsActive)
+            return ServiceResult<AuthTokenBundle>.Unauthorized("Session expired. Please log in again.");
+
+        var user = stored.User;
+        var roles = await _store.GetRolesAsync(user, ct);
+        var primaryRole = roles.FirstOrDefault() ?? "Buyer";
+
+        var (accessToken, accessExpiresAt) = _tokens.CreateAccessToken(user, roles.Count > 0 ? roles : new[] { primaryRole });
+        var newRawRefresh = _tokens.CreateRefreshToken();
+        var newHash = _tokens.HashRefreshToken(newRawRefresh);
+        var refreshExpiresAt = DateTime.UtcNow.AddDays(_jwt.RefreshTokenDays);
+
+        // Rotation: revoke previous token and link replacement
+        stored.RevokedAt = DateTime.UtcNow;
+        stored.RevokedByIp = ipAddress;
+        stored.ReplacedByTokenHash = newHash;
+        stored.RevocationReason = "Rotated";
+
+        await _store.AddRefreshTokenAsync(new UserRefreshToken
+        {
+            UserId = user.Id,
+            TokenHash = newHash,
+            ExpiresAt = refreshExpiresAt,
+            CreatedByIp = ipAddress
+        }, ct);
         await _store.SaveChangesAsync(ct);
 
-        return ServiceResult<AuthResponse>.Created(BuildAuthResponse(user, "Broker", refreshToken),
-            "تم تقديم طلب تسجيل البروكر بنجاح، والحساب قيد مراجعة الإدارة.");
+        var dto = new UserDto(user.Id, user.FullName, user.Email ?? string.Empty, user.PhoneNumber, primaryRole);
+        return ServiceResult<AuthTokenBundle>.Ok(
+            new AuthTokenBundle(accessToken, newRawRefresh, accessExpiresAt, refreshExpiresAt, dto),
+            "Token refreshed.");
+    }
+
+    public async Task<ServiceResult<object?>> LogoutAsync(
+        int userId,
+        string? refreshToken = null,
+        string? ipAddress = null,
+        CancellationToken ct = default)
+    {
+        if (!string.IsNullOrWhiteSpace(refreshToken))
+        {
+            var tokenHash = _tokens.HashRefreshToken(refreshToken);
+            var stored = await _store.FindRefreshTokenByHashAsync(tokenHash, ct);
+            if (stored is not null && stored.UserId == userId && !stored.IsRevoked)
+            {
+                stored.RevokedAt = DateTime.UtcNow;
+                stored.RevokedByIp = ipAddress;
+                stored.RevocationReason = "Logout";
+                await _store.SaveChangesAsync(ct);
+            }
+        }
+        else if (userId > 0)
+        {
+            await _store.RevokeAllUserRefreshTokensAsync(userId, ipAddress, "Logout", ct);
+            await _store.SaveChangesAsync(ct);
+        }
+
+        return ServiceResult<object?>.Ok(null, "Logged out successfully.");
+    }
+
+    public async Task<ServiceResult<object?>> RevokeAllSessionsAsync(
+        int userId,
+        string? ipAddress = null,
+        CancellationToken ct = default)
+    {
+        var user = await _store.FindUserByIdAsync(userId, ct);
+        if (user is not null)
+        {
+            await _store.RevokeAllUserRefreshTokensAsync(userId, ipAddress, "RevokeAllSessions", ct);
+            await _store.UpdateSecurityStampAsync(user, ct);
+            await _store.SaveChangesAsync(ct);
+        }
+        return ServiceResult<object?>.Ok(null, "All sessions revoked successfully.");
+    }
+
+    public async Task<ServiceResult<string?>> ForgotPasswordAsync(ForgotPasswordRequest request, bool exposeToken, CancellationToken ct = default)
+    {
+        const string message = "If an account exists for this email, a reset token has been issued.";
+        var user = await _store.FindUserByEmailAsync(request.Email.Trim().ToLowerInvariant(), ct);
+        if (user is null || !user.IsActive)
+            return ServiceResult<string?>.Ok(null, message);
+
+        var token = await _store.GeneratePasswordResetTokenAsync(user, ct);
+        return ServiceResult<string?>.Ok(exposeToken ? token : null, message);
+    }
+
+    public async Task<ServiceResult<object?>> ResetPasswordAsync(ResetPasswordRequest request, CancellationToken ct = default)
+    {
+        var user = await _store.FindUserByEmailAsync(request.Email.Trim().ToLowerInvariant(), ct);
+        if (user is null || !user.IsActive)
+            return ServiceResult<object?>.Fail("Invalid or expired reset token.", 400);
+
+        var (succeeded, errors) = await _store.ResetPasswordAsync(user, request.Token, request.NewPassword, ct);
+        if (!succeeded)
+            return ServiceResult<object?>.Fail(
+                errors.FirstOrDefault() ?? "Invalid or expired reset token.", 400);
+
+        await _store.RevokeAllUserRefreshTokensAsync(user.Id, null, "PasswordReset", ct);
+        await _store.SaveChangesAsync(ct);
+        return ServiceResult<object?>.Ok(null, "Password has been reset. You can now log in.");
+    }
+
+    private async Task<AuthTokenBundle> IssueTokensAsync(User user, string? ipAddress, CancellationToken ct)
+    {
+        var roles = await _store.GetRolesAsync(user, ct);
+        var primaryRole = roles.FirstOrDefault() ?? "Buyer";
+        var effectiveRoles = roles.Count > 0 ? roles : new[] { primaryRole };
+
+        var (accessToken, accessExpiresAt) = _tokens.CreateAccessToken(user, effectiveRoles);
+        var rawRefreshToken = _tokens.CreateRefreshToken();
+        var refreshHash = _tokens.HashRefreshToken(rawRefreshToken);
+        var refreshExpiresAt = DateTime.UtcNow.AddDays(_jwt.RefreshTokenDays);
+
+        await _store.AddRefreshTokenAsync(new UserRefreshToken
+        {
+            UserId = user.Id,
+            TokenHash = refreshHash,
+            ExpiresAt = refreshExpiresAt,
+            CreatedByIp = ipAddress
+        }, ct);
+        await _store.SaveChangesAsync(ct);
+
+        var dto = new UserDto(user.Id, user.FullName, user.Email ?? string.Empty, user.PhoneNumber, primaryRole);
+        return new AuthTokenBundle(accessToken, rawRefreshToken, accessExpiresAt, refreshExpiresAt, dto);
+    }
+
+    private static string DeriveNameFromEmail(string email)
+    {
+        var localPart = email.Split('@').FirstOrDefault() ?? "Darcom User";
+        var cleaned = localPart.Replace('.', ' ').Replace('_', ' ').Replace('-', ' ').Trim();
+        return string.IsNullOrWhiteSpace(cleaned) ? "Darcom User" : cleaned;
     }
 
     private static byte[]? ConvertBase64ToBytes(string base64)
@@ -183,95 +582,5 @@ public sealed class AuthService : IAuthService
         {
             return null;
         }
-    }
-
-    public async Task<ServiceResult<AuthResponse>> LoginAsync(LoginRequest request, CancellationToken ct = default)
-    {
-        var term = request.Email.Trim();
-        var user = await _store.FindUserByEmailOrPhoneAsync(term, ct);
-        if (user is null || !user.IsActive || !_hasher.Verify(request.Password, user.PasswordHash))
-            return ServiceResult<AuthResponse>.Unauthorized();
-
-        var roleName = user.Role?.Name ?? await _store.GetRoleNameAsync(user.RoleId, ct) ?? "Buyer";
-        var refreshToken = _tokens.CreateRefreshToken();
-        user.RefreshToken = refreshToken;
-        user.RefreshTokenExpiry = DateTime.UtcNow.AddDays(_jwt.RefreshTokenDays);
-        await _store.SaveChangesAsync(ct);
-
-        return ServiceResult<AuthResponse>.Ok(BuildAuthResponse(user, roleName, refreshToken),
-            "Logged in successfully.");
-    }
-
-    public async Task<ServiceResult<AuthResponse>> RefreshAsync(RefreshRequest request, CancellationToken ct = default)
-    {
-        var user = await _store.FindUserByRefreshTokenAsync(request.RefreshToken, ct);
-        if (user is null || !user.IsActive
-            || user.RefreshTokenExpiry is null || user.RefreshTokenExpiry <= DateTime.UtcNow)
-            return ServiceResult<AuthResponse>.Unauthorized("Session expired. Please log in again.");
-
-        var roleName = user.Role?.Name ?? await _store.GetRoleNameAsync(user.RoleId, ct) ?? "Buyer";
-
-        // Rotation: every refresh mints a brand-new pair, invalidating the old refresh token.
-        var refreshToken = _tokens.CreateRefreshToken();
-        user.RefreshToken = refreshToken;
-        user.RefreshTokenExpiry = DateTime.UtcNow.AddDays(_jwt.RefreshTokenDays);
-        await _store.SaveChangesAsync(ct);
-
-        return ServiceResult<AuthResponse>.Ok(BuildAuthResponse(user, roleName, refreshToken),
-            "Token refreshed.");
-    }
-
-    public async Task<ServiceResult<object?>> LogoutAsync(int userId, CancellationToken ct = default)
-    {
-        var user = await _store.FindUserByIdAsync(userId, ct);
-        if (user is not null)
-        {
-            user.RefreshToken = null;
-            user.RefreshTokenExpiry = null;
-            await _store.SaveChangesAsync(ct);
-        }
-        return ServiceResult<object?>.Ok(null, "Logged out successfully.");
-    }
-
-    public async Task<ServiceResult<string?>> ForgotPasswordAsync(ForgotPasswordRequest request, bool exposeToken, CancellationToken ct = default)
-    {
-        // Generic message either way — no user enumeration.
-        const string message = "If an account exists for this email, a reset token has been issued.";
-        var user = await _store.FindUserByEmailAsync(request.Email.Trim().ToLowerInvariant(), ct);
-        if (user is null || !user.IsActive)
-            return ServiceResult<string?>.Ok(null, message);
-
-        var token = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
-        user.PasswordResetToken = token;
-        user.PasswordResetExpiry = DateTime.UtcNow.AddHours(1);
-        await _store.SaveChangesAsync(ct);
-
-        // Token is returned ONLY in Development so the flow is testable without an SMTP server.
-        return ServiceResult<string?>.Ok(exposeToken ? token : null, message);
-    }
-
-    public async Task<ServiceResult<object?>> ResetPasswordAsync(ResetPasswordRequest request, CancellationToken ct = default)
-    {
-        var user = await _store.FindUserByEmailAsync(request.Email.Trim().ToLowerInvariant(), ct);
-        if (user is null || !user.IsActive
-            || user.PasswordResetToken is null || user.PasswordResetToken != request.Token
-            || user.PasswordResetExpiry is null || user.PasswordResetExpiry <= DateTime.UtcNow)
-            return ServiceResult<object?>.Fail("Reset token is invalid or expired.", 400);
-
-        user.PasswordHash = _hasher.Hash(request.NewPassword);
-        user.PasswordResetToken = null;
-        user.PasswordResetExpiry = null;
-        user.RefreshToken = null; // force re-login on all devices
-        user.RefreshTokenExpiry = null;
-        await _store.SaveChangesAsync(ct);
-
-        return ServiceResult<object?>.Ok(null, "Password has been reset. Please log in.");
-    }
-
-    private AuthResponse BuildAuthResponse(User user, string roleName, string refreshToken)
-    {
-        var (accessToken, expiresAt) = _tokens.CreateAccessToken(user, roleName);
-        return new AuthResponse(accessToken, refreshToken, expiresAt,
-            new UserDto(user.Id, user.FullName, user.Email, user.PhoneNumber, roleName));
     }
 }

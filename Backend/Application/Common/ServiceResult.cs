@@ -1,6 +1,11 @@
-using Application.Common;
-
 namespace Application.Common;
+
+public interface IServiceResult
+{
+    bool Succeeded { get; }
+    string Message { get; }
+    int StatusCode { get; }
+}
 
 /// <summary>Service-layer outcome; controllers translate it to HTTP + <see cref="ApiResponse{T}"/>.</summary>
 public sealed record ServiceResult<T>(
@@ -8,7 +13,7 @@ public sealed record ServiceResult<T>(
     T? Data,
     string Message,
     List<ApiError> Errors,
-    int StatusCode)
+    int StatusCode) : IServiceResult
 {
     public static ServiceResult<T> Ok(T data, string message = "OK", int statusCode = 200)
         => new(true, data, message, new(), statusCode);

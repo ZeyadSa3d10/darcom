@@ -12,7 +12,7 @@ import './RequestsManager.css';
 const STATUSES = ['', 'Pending', 'UnderReview', 'Contacted', 'Negotiation', 'Approved', 'Rejected', 'Completed', 'Cancelled'];
 
 // kind: 'purchase' | 'booking'
-export default function RequestsManager({ kind, onChanged }) {
+export default function RequestsManager({ kind, onChanged, refreshTrigger = 0 }) {
   const { t, isRtl } = useSettings();
   const toast = useToast();
   const isPurchase = kind === 'purchase';
@@ -60,6 +60,11 @@ export default function RequestsManager({ kind, onChanged }) {
   useEffect(() => {
     load(1, '');
   }, [load, kind]);
+
+  useEffect(() => {
+    if (refreshTrigger > 0) load(page, status);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refreshTrigger]);
 
   const openRow = (row) => {
     setSelected(row);

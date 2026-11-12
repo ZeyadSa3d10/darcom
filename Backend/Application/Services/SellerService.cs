@@ -20,14 +20,21 @@ public sealed class SellerService : ISellerService
     private readonly IEngagementStore _engagement;
     private readonly IRequestStore _requests;
     private readonly IAuditWriter _audit;
+    private readonly IAdminRealtimeNotifier? _notifier;
     private static readonly Random ReferenceRandom = new();
 
-    public SellerService(IPropertyStore properties, IEngagementStore engagement, IRequestStore requests, IAuditWriter audit)
+    public SellerService(
+        IPropertyStore properties,
+        IEngagementStore engagement,
+        IRequestStore requests,
+        IAuditWriter audit,
+        IAdminRealtimeNotifier? notifier = null)
     {
         _properties = properties;
         _engagement = engagement;
         _requests = requests;
         _audit = audit;
+        _notifier = notifier;
     }
 
     public async Task<ServiceResult<PropertyDetailsDto>> SubmitAsync(int userId, string role, SellerSubmissionRequest request, CancellationToken ct = default)
@@ -131,10 +138,24 @@ public sealed class SellerService : ISellerService
         property.UpdatedAt = DateTime.UtcNow;
         await _properties.SaveChangesAsync(ct);
 
-        foreach (var adminId in await _requests.GetAdminUserIdsAsync(ct))
-            await _engagement.AddNotificationAsync(adminId, "Property pending review",
-                $"{property.Title} ({property.ReferenceNumber}) was submitted for review.", "property-approved", ct);
-        await _engagement.SaveChangesAsync(ct);
+        if (_notifier is not null)
+        {
+            await _notifier.NotifyAdminsAsync(
+                "property.status.changed",
+                "Property Pending Review",
+                $"{property.Title} ({property.ReferenceNumber}) was submitted for review.",
+                relatedEntityId: property.Id,
+                relatedEntityType: "Property",
+                eventKey: $"property:pending-review:{property.Id}",
+                ct: ct);
+        }
+        else
+        {
+            foreach (var adminId in await _requests.GetAdminUserIdsAsync(ct))
+                await _engagement.AddNotificationAsync(adminId, "Property pending review",
+                    $"{property.Title} ({property.ReferenceNumber}) was submitted for review.", "property-approved", ct);
+            await _engagement.SaveChangesAsync(ct);
+        }
         await _audit.LogAsync(userId, "property.submitted", "Property",
             property.Id.ToString(), "Draft", "PendingReview", null, ct);
 

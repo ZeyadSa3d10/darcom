@@ -1,7 +1,6 @@
+using Application.Common;
 using Application.DTOs;
-using Application.Services;
-using Application.Validators;
-using Microsoft.AspNetCore.Authorization;
+using Application.Features.Inquiries.Commands;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 
@@ -12,22 +11,12 @@ namespace API.Controllers;
 [Route("api/contact")]
 public sealed class ContactController : ApiBaseController
 {
-    private readonly IInquiryService _inquiries;
-
-    public ContactController(IInquiryService inquiries)
-    {
-        _inquiries = inquiries;
-    }
-
-    /// <response code="201">Message received.</response>
-    /// <response code="422">Validation failed.</response>
     [HttpPost]
     [EnableRateLimiting("auth")]
-    [ProducesResponseType(typeof(Application.Common.ApiResponse<object?>), 201)]
-    [ProducesResponseType(typeof(Application.Common.ApiResponse<object?>), 422)]
-    public Task<ActionResult<Application.Common.ApiResponse<object?>>> Submit(
+    [ProducesResponseType(typeof(ApiResponse<object?>), 201)]
+    [ProducesResponseType(typeof(ApiResponse<object?>), 422)]
+    public Task<ActionResult<ApiResponse<object?>>> Submit(
         [FromBody] ContactRequest request,
-        [FromServices] ContactValidator validator,
         CancellationToken ct)
-        => ValidateAndExecute(validator, request, () => _inquiries.SubmitContactAsync(request, ct), ct);
+        => SendAsync(new SubmitContactCommand(request), ct);
 }

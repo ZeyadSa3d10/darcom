@@ -1,6 +1,5 @@
 using Application.Common;
 using Application.DTOs;
-using Application.Security;
 using Application.Stores;
 
 namespace Application.Services;
@@ -15,12 +14,10 @@ public interface IUserService
 public sealed class UserService : IUserService
 {
     private readonly IAuthStore _store;
-    private readonly IPasswordHasher _hasher;
 
-    public UserService(IAuthStore store, IPasswordHasher hasher)
+    public UserService(IAuthStore store)
     {
         _store = store;
-        _hasher = hasher;
     }
 
     public async Task<ServiceResult<UserDto>> GetMeAsync(int userId, CancellationToken ct = default)
@@ -29,7 +26,8 @@ public sealed class UserService : IUserService
         if (user is null || !user.IsActive)
             return ServiceResult<UserDto>.NotFound("User not found.");
 
-        var roleName = user.Role?.Name ?? await _store.GetRoleNameAsync(user.RoleId, ct) ?? "Buyer";
+        var roles = await _store.GetRolesAsync(user, ct);
+        var roleName = roles.FirstOrDefault() ?? "Buyer";
         return ServiceResult<UserDto>.Ok(ToDto(user, roleName));
     }
 
@@ -42,9 +40,10 @@ public sealed class UserService : IUserService
         user.FullName = request.FullName.Trim();
         user.PhoneNumber = string.IsNullOrWhiteSpace(request.PhoneNumber) ? null : request.PhoneNumber.Trim();
         user.UpdatedAt = DateTime.UtcNow;
-        await _store.SaveChangesAsync(ct);
+        await _store.UpdateUserAsync(user, ct);
 
-        var roleName = user.Role?.Name ?? await _store.GetRoleNameAsync(user.RoleId, ct) ?? "Buyer";
+        var roles = await _store.GetRolesAsync(user, ct);
+        var roleName = roles.FirstOrDefault() ?? "Buyer";
         return ServiceResult<UserDto>.Ok(ToDto(user, roleName), "Profile updated.");
     }
 
@@ -54,19 +53,19 @@ public sealed class UserService : IUserService
         if (user is null || !user.IsActive)
             return ServiceResult<object?>.NotFound("User not found.");
 
-        if (!_hasher.Verify(request.CurrentPassword, user.PasswordHash))
-            return ServiceResult<object?>.Fail("Current password is incorrect.", 422,
-                new() { new("Current password is incorrect.", "currentPassword") });
+        var (succeeded, errors) = await _store.ChangePasswordAsync(user, request.CurrentPassword, request.NewPassword, ct);
+        if (!succeeded)
+        {
+            var errMsg = errors.FirstOrDefault() ?? "Current password is incorrect.";
+            return ServiceResult<object?>.Fail(errMsg, 422, new() { new(errMsg, "currentPassword") });
+        }
 
-        user.PasswordHash = _hasher.Hash(request.NewPassword);
-        user.RefreshToken = null; // force re-login on all devices
-        user.RefreshTokenExpiry = null;
-        user.UpdatedAt = DateTime.UtcNow;
+        await _store.RevokeAllUserRefreshTokensAsync(user.Id, null, "PasswordChanged", ct);
         await _store.SaveChangesAsync(ct);
 
         return ServiceResult<object?>.Ok(null, "Password changed. Please log in again.");
     }
 
     private static UserDto ToDto(Domain.Entities.User user, string roleName)
-        => new(user.Id, user.FullName, user.Email, user.PhoneNumber, roleName);
+        => new(user.Id, user.FullName, user.Email ?? string.Empty, user.PhoneNumber, roleName);
 }

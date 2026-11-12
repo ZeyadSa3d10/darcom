@@ -10,7 +10,7 @@ import { adminService } from '../../../services/adminService.js';
 import ConfirmDialog from './ConfirmDialog.jsx';
 import './ApprovalQueue.css';
 
-export default function ApprovalQueue({ onChanged }) {
+export default function ApprovalQueue({ onChanged, refreshTrigger = 0 }) {
   const { t, isRtl } = useSettings();
   const toast = useToast();
   const [items, setItems] = useState([]);
@@ -37,6 +37,11 @@ export default function ApprovalQueue({ onChanged }) {
   useEffect(() => {
     load(1);
   }, [load]);
+
+  useEffect(() => {
+    if (refreshTrigger > 0) load(page);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refreshTrigger]);
 
   const closeConfirm = () => {
     setConfirm(null);

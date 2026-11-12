@@ -15,6 +15,15 @@ public interface IEngagementStore
 
     // Notifications
     Task AddNotificationAsync(int userId, string title, string body, string? type, CancellationToken ct = default);
+    Task<Notification?> AddNotificationWithMetaAsync(
+        int userId,
+        string title,
+        string body,
+        string? type,
+        int? relatedEntityId,
+        string? relatedEntityType,
+        string? eventKey,
+        CancellationToken ct = default);
     Task<PagedResult<NotificationDto>> GetNotificationsAsync(int userId, int page, int pageSize, CancellationToken ct = default);
     Task<int> GetUnreadCountAsync(int userId, CancellationToken ct = default);
     Task<bool> MarkReadAsync(int userId, int notificationId, CancellationToken ct = default);

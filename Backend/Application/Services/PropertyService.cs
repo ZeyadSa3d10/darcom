@@ -207,7 +207,9 @@ public sealed class PropertyService : IPropertyService
             ReferenceNumber = reference,
             Description = request.Description?.Trim(),
             PropertyTypeId = request.PropertyTypeId,
-            Status = role == "Admin" ? PropertyStatus.Published : PropertyStatus.Draft,
+            Status = role == "Admin" && (!request.PublishAt.HasValue || request.PublishAt.Value <= DateTime.UtcNow)
+                ? PropertyStatus.Published
+                : PropertyStatus.Draft,
             Purpose = Enum.Parse<PropertyPurpose>(request.Purpose, true),
             Price = request.Price,
             Currency = string.IsNullOrWhiteSpace(request.Currency) ? "EGP" : request.Currency.Trim().ToUpperInvariant(),
@@ -234,7 +236,9 @@ public sealed class PropertyService : IPropertyService
             CreatedByUserId = userId,
             PropertyListingRequestId = listingRequest?.Id,
             OwnerName = request.OwnerName?.Trim(),
-            OwnerPhone = request.OwnerPhone?.Trim()
+            OwnerPhone = request.OwnerPhone?.Trim(),
+            PublishAt = role == "Admin" ? request.PublishAt : null,
+            ExpiresAt = role == "Admin" ? request.ExpiresAt : null
         };
 
         await _store.AddAsync(property, ct);
@@ -343,6 +347,8 @@ public sealed class PropertyService : IPropertyService
         if (isAdmin && request.OwnerId.HasValue) property.OwnerId = request.OwnerId.Value;
         if (isAdmin && request.OwnerName is not null) property.OwnerName = request.OwnerName.Trim();
         if (isAdmin && request.OwnerPhone is not null) property.OwnerPhone = request.OwnerPhone.Trim();
+        if (isAdmin && request.PublishAt.HasValue) property.PublishAt = request.PublishAt;
+        if (isAdmin && request.ExpiresAt.HasValue) property.ExpiresAt = request.ExpiresAt;
 
         if (request.IsFeatured.HasValue || request.IsVerified.HasValue)
         {

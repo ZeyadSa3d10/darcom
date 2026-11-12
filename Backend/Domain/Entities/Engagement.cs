@@ -76,9 +76,13 @@ public sealed class Notification : EntityBase
     public int UserId { get; set; }
     public string Title { get; set; } = string.Empty;
     public string Body { get; set; } = string.Empty;
-    /// <summary>e.g. purchase-request, request-status, property-approved, inquiry.</summary>
+    /// <summary>e.g. booking.created, booking.confirmed, inquiry.created, property.created.</summary>
     public string? Type { get; set; }
+    public int? RelatedEntityId { get; set; }
+    public string? RelatedEntityType { get; set; }
+    public string? EventKey { get; set; }
     public bool IsRead { get; set; }
+    public DateTime? ReadAt { get; set; }
 
     public User User { get; set; } = null!;
 }

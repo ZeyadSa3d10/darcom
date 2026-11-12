@@ -691,7 +691,9 @@ public sealed class PropertyStore : IPropertyStore
             ownerId,
             ownerName,
             ownerPhone,
-            ownerType);
+            ownerType,
+            isAdmin ? p.PublishAt : null,
+            isAdmin ? p.ExpiresAt : null);
     }
 
     public async Task<PropertyListingRequest?> GetListingRequestAsync(int id, CancellationToken ct = default)

@@ -58,6 +58,8 @@ public sealed class Property : EntityBase
     public bool IsFeatured { get; set; }
     public long ViewCount { get; set; }
     public string? RejectionReason { get; set; }
+    public DateTime? PublishAt { get; set; }
+    public DateTime? ExpiresAt { get; set; }
 
     public PropertyType PropertyType { get; set; } = null!;
     public Village Village { get; set; } = null!;

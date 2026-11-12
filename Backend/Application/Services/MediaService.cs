@@ -1,3 +1,4 @@
+using Application.BackgroundJobs;
 using Application.Common;
 using Application.DTOs;
 using Application.Storage;
@@ -25,11 +26,16 @@ public sealed class MediaService : IMediaService
 
     private readonly IStorageProvider _storage;
     private readonly IPropertyStore _properties;
+    private readonly IPropertyImageJobService? _imageJobs;
 
-    public MediaService(IStorageProvider storage, IPropertyStore properties)
+    public MediaService(
+        IStorageProvider storage,
+        IPropertyStore properties,
+        IPropertyImageJobService? imageJobs = null)
     {
         _storage = storage;
         _properties = properties;
+        _imageJobs = imageJobs;
     }
 
     public async Task<ServiceResult<MediaItemDto>> UploadAsync(int propertyId, int userId, bool isAdmin, string kind, Stream content, string fileName, string contentType, long length, string? altText, CancellationToken ct = default)
@@ -52,6 +58,13 @@ public sealed class MediaService : IMediaService
 
         var url = await _storage.SaveAsync(content, fileName, contentType, spec.Folder, ct);
         var item = await AttachInternal(propertyId, kind, url, kind == "video" ? "upload" : null, altText, ct);
+
+        if (kind.Equals("image", StringComparison.OrdinalIgnoreCase) && _imageJobs is not null)
+        {
+            try { await _imageJobs.EnqueueImageOptimizationAsync(item.Id, ct); }
+            catch { /* Original image already stored and linked; optimization failure must never fail upload */ }
+        }
+
         return ServiceResult<MediaItemDto>.Created(item, $"{kind} uploaded.");
     }
 

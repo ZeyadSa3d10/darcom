@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import FormField, { mapFieldErrors } from '../../components/FormField/FormField.jsx';
+import GoogleSignInButton from '../../components/GoogleSignInButton/GoogleSignInButton.jsx';
 import { useToast } from '../../components/Toast/Toast.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useSettings } from '../../context/SettingsContext.jsx';
@@ -13,7 +14,7 @@ export default function Register() {
   const { t, isRtl } = useSettings();
   useSeo({ title: `${t('auth.registerTitle', 'إنشاء حساب جديد')} | Darcom` });
 
-  const { register, registerBroker } = useAuth();
+  const { sendEmailOtp, verifyEmailOtp, googleLogin, registerBroker } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
   const location = useLocation();
@@ -25,8 +26,19 @@ export default function Register() {
   // Mode: 'user' or 'broker'
   const [accountType, setAccountType] = useState('user');
 
-  // Normal User Form
-  const [userForm, setUserForm] = useState({ fullName: '', email: '', password: '', phoneNumber: '' });
+  // Passwordless User Registration (Email OTP)
+  const [userForm, setUserForm] = useState({ fullName: '', email: '', code: '' });
+  const [userOtpStep, setUserOtpStep] = useState('email'); // 'email' | 'code'
+  const [userCountdown, setUserCountdown] = useState(0);
+  const [userDebugOtp, setUserDebugOtp] = useState('');
+
+  useEffect(() => {
+    if (userCountdown <= 0) return;
+    const timer = setInterval(() => {
+      setUserCountdown((prev) => (prev <= 1 ? 0 : prev - 1));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [userCountdown]);
 
   // Broker Form
   const [brokerForm, setBrokerForm] = useState({
@@ -129,29 +141,80 @@ export default function Register() {
     }
   };
 
-  // Submit User
-  const submitUser = async (e) => {
-    e.preventDefault();
+  // Passwordless User OTP Handlers
+  const sendUserOtp = async (e) => {
+    e?.preventDefault();
+    const cleanEmail = userForm.email.trim().toLowerCase();
+    if (!userForm.fullName.trim()) {
+      setErrors({ fullName: isRtl ? 'الاسم الكامل مطلوب.' : 'Full name is required.' });
+      return;
+    }
+    if (!cleanEmail) {
+      setErrors({ email: isRtl ? 'البريد الإلكتروني مطلوب.' : 'Email is required.' });
+      return;
+    }
+
     setBusy(true);
     setErrors({});
     setGeneral('');
     try {
-      const payload = {
-        fullName: userForm.fullName.trim(),
+      const res = await sendEmailOtp(cleanEmail);
+      const data = res?.data;
+      setUserOtpStep('code');
+      setUserCountdown(data?.cooldownSeconds ?? 60);
+      setUserDebugOtp(data?.debugCode || '');
+      toast.success(isRtl ? 'تم إرسال رمز التحقق إلى بريدك الإلكتروني.' : 'Verification code sent to your email.');
+    } catch (err) {
+      const fields = mapFieldErrors(err);
+      setErrors(fields);
+      if (!Object.keys(fields).length) {
+        setGeneral(err.message || (isRtl ? 'تعذر إرسال رمز التحقق.' : 'Failed to send verification code.'));
+      }
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const submitUser = async (e) => {
+    e.preventDefault();
+    const cleanCode = normalizeDigits(userForm.code).trim();
+    if (!cleanCode) {
+      setErrors({ code: isRtl ? 'رمز التحقق مطلوب.' : 'Verification code is required.' });
+      return;
+    }
+
+    setBusy(true);
+    setErrors({});
+    setGeneral('');
+    try {
+      await verifyEmailOtp({
         email: userForm.email.trim().toLowerCase(),
-        password: userForm.password,
-      };
-      const cleaned = cleanPhoneNumber(userForm.phoneNumber);
-      if (cleaned) payload.phoneNumber = cleaned;
-      await register(payload);
-      toast.success(t('auth.registerSuccess', isRtl ? 'تم إنشاء الحساب بنجاح. أهلاً بك في داركم!' : 'Account created. Welcome to Darcom.'));
+        code: cleanCode,
+        fullName: userForm.fullName.trim(),
+      });
+      toast.success(t('auth.registerSuccess', isRtl ? 'تم إنشاء الحساب وتسجيل الدخول بنجاح. أهلاً بك في داركم!' : 'Account created. Welcome to Darcom.'));
       navigate(from, { replace: true });
     } catch (err) {
       const fields = mapFieldErrors(err);
       setErrors(fields);
       if (!Object.keys(fields).length) {
-        setGeneral(err.message || (isRtl ? 'فشل إنشاء الحساب. يرجى مراجعة البيانات المدخلة.' : 'Registration failed.'));
+        setGeneral(err.message || (isRtl ? 'رمز التحقق غير صحيح أو منتهي الصلاحية.' : 'Invalid or expired code.'));
       }
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleGoogleRegister = async (idToken) => {
+    setBusy(true);
+    setErrors({});
+    setGeneral('');
+    try {
+      await googleLogin(idToken);
+      toast.success(isRtl ? 'تم تسجيل الدخول عبر Google بنجاح!' : 'Signed in with Google successfully!');
+      navigate(from, { replace: true });
+    } catch (err) {
+      setGeneral(err.message || (isRtl ? 'فشل التسجيل عبر Google.' : 'Google sign-up failed.'));
     } finally {
       setBusy(false);
     }
@@ -304,108 +367,154 @@ export default function Register() {
         )}
 
         {accountType === 'user' ? (
-          /* ================= NORMAL USER FORM ================= */
-          <form onSubmit={submitUser} noValidate className="auth-form">
-            {/* Full Name */}
-            <FormField id="reg-name" label={t('auth.fullNameLabel', 'الاسم بالكامل')} required error={errors.fullName}>
-              <div className="auth-input-wrapper">
-                <i className="bi bi-person auth-input-icon"></i>
-                <input
-                  id="reg-name"
-                  type="text"
-                  autoComplete="name"
-                  placeholder={t('auth.fullNamePlaceholder', 'مثال: أحمد محمود')}
-                  className={`form-control auth-input ${errors.fullName ? 'is-invalid' : ''}`}
-                  value={userForm.fullName}
-                  onChange={setUserField('fullName')}
-                  required
-                />
-              </div>
-            </FormField>
+          /* ================= PASSWORDLESS CUSTOMER SIGN-UP ================= */
+          <div>
+            <GoogleSignInButton
+              onSuccessToken={handleGoogleRegister}
+              onError={(msg) => setGeneral(msg)}
+              returnUrl={from}
+              disabled={busy}
+            />
 
-            {/* Email */}
-            <FormField id="reg-email" label={t('auth.emailLabel', 'البريد الإلكتروني')} required error={errors.email}>
-              <div className="auth-input-wrapper">
-                <i className="bi bi-envelope auth-input-icon"></i>
-                <input
-                  id="reg-email"
-                  type="email"
-                  autoComplete="email"
-                  dir="ltr"
-                  placeholder={t('auth.emailPlaceholder', 'name@example.com')}
-                  className={`form-control auth-input ${errors.email ? 'is-invalid' : ''}`}
-                  value={userForm.email}
-                  onChange={setUserField('email')}
-                  required
-                />
-              </div>
-            </FormField>
+            <div className="auth-divider">
+              <span className="divider-text">
+                {isRtl ? 'أو أنشئ حسابك برمز البريد (بدون كلمة مرور)' : 'or sign up with Email OTP (passwordless)'}
+              </span>
+            </div>
 
-            {/* Password */}
-            <FormField
-              id="reg-password"
-              label={t('auth.passwordLabel', 'كلمة المرور')}
-              required
-              error={errors.password}
-              hint={t('auth.passwordHint', '6 أحرف على الأقل.')}
-            >
-              <div className="auth-input-wrapper">
-                <i className="bi bi-shield-lock auth-input-icon"></i>
-                <input
-                  id="reg-password"
-                  type={showPassword ? 'text' : 'password'}
-                  autoComplete="new-password"
-                  dir="ltr"
-                  placeholder="••••••••"
-                  className={`form-control auth-input ${errors.password ? 'is-invalid' : ''}`}
-                  value={userForm.password}
-                  onChange={setUserField('password')}
-                  required
-                />
-                <button
-                  type="button"
-                  className="auth-password-toggle"
-                  onClick={() => setShowPassword((prev) => !prev)}
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
-                  tabIndex={-1}
-                >
-                  <i className={`bi ${showPassword ? 'bi-eye-slash' : 'bi-eye'}`}></i>
+            {userOtpStep === 'email' ? (
+              <form onSubmit={sendUserOtp} noValidate className="auth-form">
+                <FormField id="reg-name" label={t('auth.fullNameLabel', 'الاسم بالكامل')} required error={errors.fullName}>
+                  <div className="auth-input-wrapper">
+                    <i className="bi bi-person auth-input-icon"></i>
+                    <input
+                      id="reg-name"
+                      type="text"
+                      autoComplete="name"
+                      placeholder={t('auth.fullNamePlaceholder', 'مثال: أحمد محمود')}
+                      className={`form-control auth-input ${errors.fullName ? 'is-invalid' : ''}`}
+                      value={userForm.fullName}
+                      onChange={setUserField('fullName')}
+                      required
+                    />
+                  </div>
+                </FormField>
+
+                <FormField id="reg-email" label={t('auth.emailLabel', 'البريد الإلكتروني (Gmail)')} required error={errors.email}>
+                  <div className="auth-input-wrapper">
+                    <i className="bi bi-envelope auth-input-icon"></i>
+                    <input
+                      id="reg-email"
+                      type="email"
+                      autoComplete="email"
+                      dir="ltr"
+                      placeholder="name@gmail.com"
+                      className={`form-control auth-input ${errors.email ? 'is-invalid' : ''}`}
+                      value={userForm.email}
+                      onChange={setUserField('email')}
+                      required
+                    />
+                  </div>
+                </FormField>
+
+                <button type="submit" className="btn-auth-submit mt-2" disabled={busy}>
+                  {busy ? (
+                    <span className="btn-loading-flex">
+                      <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                      <span>{isRtl ? 'جارٍ إرسال الرمز…' : 'Sending code…'}</span>
+                    </span>
+                  ) : (
+                    <span className="btn-label-flex">
+                      <span>{isRtl ? 'إرسال رمز التحقق' : 'Send Verification Code'}</span>
+                      <i className={`bi ${isRtl ? 'bi-arrow-left' : 'bi-arrow-right'} ms-2`}></i>
+                    </span>
+                  )}
                 </button>
-              </div>
-            </FormField>
+              </form>
+            ) : (
+              <form onSubmit={submitUser} noValidate className="auth-form">
+                <div className="otp-target-banner mb-3">
+                  <div>
+                    <small className="text-muted d-block">{isRtl ? 'تم إرسال الرمز إلى:' : 'Code sent to:'}</small>
+                    <strong dir="ltr">{userForm.email}</strong>
+                  </div>
+                  <button
+                    type="button"
+                    className="btn btn-link btn-sm p-0 text-decoration-none"
+                    onClick={() => {
+                      setUserOtpStep('email');
+                      setUserForm((f) => ({ ...f, code: '' }));
+                      setUserDebugOtp('');
+                    }}
+                  >
+                    {isRtl ? 'تغيير البريد' : 'Change'}
+                  </button>
+                </div>
 
-            {/* Phone (Optional) */}
-            <FormField id="reg-phone" label={t('auth.phoneLabel', 'رقم الهاتف (اختياري)')} error={errors.phoneNumber}>
-              <div className="auth-input-wrapper">
-                <i className="bi bi-telephone auth-input-icon"></i>
-                <input
-                  id="reg-phone"
-                  type="tel"
-                  autoComplete="tel"
-                  dir="ltr"
-                  placeholder={t('auth.phonePlaceholder', '+20 100 000 0000')}
-                  className={`form-control auth-input ${errors.phoneNumber ? 'is-invalid' : ''}`}
-                  value={userForm.phoneNumber}
-                  onChange={setUserField('phoneNumber')}
-                />
-              </div>
-            </FormField>
+                {userDebugOtp && (
+                  <div className="alert alert-info py-2 px-3 small mb-3" role="status">
+                    <i className="bi bi-code-square me-1"></i>
+                    <span>{isRtl ? 'رمز التطوير (Dev Mode):' : 'Dev Code:'} </span>
+                    <strong dir="ltr" className="ms-1">{userDebugOtp}</strong>
+                  </div>
+                )}
 
-            {/* Submit Button */}
-            <button type="submit" className="btn-auth-submit" disabled={busy}>
-              {busy ? (
-                <span className="btn-loading-flex">
-                  <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                  <span>{t('auth.creatingAccount', 'جارٍ إنشاء الحساب…')}</span>
-                </span>
-              ) : (
-                <span className="btn-label-flex">
-                  <span>{t('auth.registerBtn', 'إنشاء الحساب')}</span>
-                  <i className={`bi ${isRtl ? 'bi-arrow-left' : 'bi-arrow-right'} ms-2`}></i>
-                </span>
-              )}
-            </button>
-          </form>
+                <FormField id="reg-otp-code" label={isRtl ? 'رمز التحقق (6 أرقام)' : '6-Digit Verification Code'} required error={errors.code}>
+                  <div className="auth-input-wrapper">
+                    <i className="bi bi-shield-check auth-input-icon"></i>
+                    <input
+                      id="reg-otp-code"
+                      type="text"
+                      inputMode="numeric"
+                      autoComplete="one-time-code"
+                      maxLength={6}
+                      dir="ltr"
+                      placeholder="123456"
+                      className={`form-control auth-input otp-code-input ${errors.code ? 'is-invalid' : ''}`}
+                      value={userForm.code}
+                      onChange={(e) => setUserForm((f) => ({ ...f, code: normalizeDigits(e.target.value) }))}
+                      autoFocus
+                      required
+                    />
+                  </div>
+                </FormField>
+
+                <button type="submit" className="btn-auth-submit mt-2" disabled={busy}>
+                  {busy ? (
+                    <span className="btn-loading-flex">
+                      <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                      <span>{t('auth.creatingAccount', 'جارٍ إنشاء الحساب…')}</span>
+                    </span>
+                  ) : (
+                    <span className="btn-label-flex">
+                      <span>{t('auth.registerBtn', 'تأكيد وإنشاء الحساب')}</span>
+                      <i className={`bi ${isRtl ? 'bi-arrow-left' : 'bi-arrow-right'} ms-2`}></i>
+                    </span>
+                  )}
+                </button>
+
+                <div className="otp-resend-row mt-3 text-center">
+                  {userCountdown > 0 ? (
+                    <span className="text-muted small">
+                      {isRtl
+                        ? `إعادة الإرسال خلال ${userCountdown} ثانية`
+                        : `Resend in ${userCountdown}s`}
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      className="btn btn-link btn-sm p-0 fw-semibold"
+                      onClick={sendUserOtp}
+                      disabled={busy}
+                    >
+                      <i className="bi bi-arrow-clockwise me-1"></i>
+                      {isRtl ? 'إعادة إرسال الرمز' : 'Resend code'}
+                    </button>
+                  )}
+                </div>
+              </form>
+            )}
+          </div>
         ) : (
           /* ================= BROKER REGISTRATION FORM ================= */
           <form onSubmit={submitBroker} noValidate className="auth-form broker-form">

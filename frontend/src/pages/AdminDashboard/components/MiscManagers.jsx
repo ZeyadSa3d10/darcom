@@ -10,7 +10,7 @@ import { locationService } from '../../../services/locationService.js';
 import ConfirmDialog from './ConfirmDialog.jsx';
 import './MiscManagers.css';
 
-export function InquiriesManager() {
+export function InquiriesManager({ refreshTrigger = 0 }) {
   const { t, isRtl } = useSettings();
   const toast = useToast();
   const [items, setItems] = useState([]);
@@ -34,6 +34,11 @@ export function InquiriesManager() {
   useEffect(() => {
     load(1);
   }, [load]);
+
+  useEffect(() => {
+    if (refreshTrigger > 0) load(page);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refreshTrigger]);
 
   const markRead = async (id) => {
     try {

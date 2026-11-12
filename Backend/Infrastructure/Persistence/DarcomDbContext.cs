@@ -1,16 +1,17 @@
 using Domain.Entities;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.Persistence;
 
-public sealed class DarcomDbContext : DbContext
+public sealed class DarcomDbContext : IdentityDbContext<User, Role, int>
 {
     public DarcomDbContext(DbContextOptions<DarcomDbContext> options) : base(options)
     {
     }
 
-    public DbSet<Role> Roles => Set<Role>();
-    public DbSet<User> Users => Set<User>();
+    public DbSet<UserRefreshToken> UserRefreshTokens => Set<UserRefreshToken>();
+    public DbSet<EmailOtpCode> EmailOtpCodes => Set<EmailOtpCode>();
     public DbSet<Agent> Agents => Set<Agent>();
     public DbSet<BrokerProfile> BrokerProfiles => Set<BrokerProfile>();
 
@@ -52,6 +53,8 @@ public sealed class DarcomDbContext : DbContext
     public DbSet<Document> Documents => Set<Document>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<SiteContent> SiteContents => Set<SiteContent>();
+    public DbSet<ScheduledJobRecord> ScheduledJobRecords => Set<ScheduledJobRecord>();
+    public DbSet<JobDispatchLog> JobDispatchLogs => Set<JobDispatchLog>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

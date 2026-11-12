@@ -27,7 +27,7 @@ const STATUS_BADGES = {
   Rejected: { text: 'مرفوض', class: 'badge-rejected' },
 };
 
-export default function ListingRequestsManager() {
+export default function ListingRequestsManager({ refreshTrigger = 0 }) {
   const { isRtl } = useSettings();
   const toast = useToast();
 
@@ -74,7 +74,7 @@ export default function ListingRequestsManager() {
 
   useEffect(() => {
     loadRequests();
-  }, [loadRequests]);
+  }, [loadRequests, refreshTrigger]);
 
   const openStatusModal = (req) => {
     setSelectedRequest(req);

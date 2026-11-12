@@ -1,7 +1,7 @@
 using Application.Common;
 using Application.DTOs;
-using Application.Services;
-using Application.Validators;
+using Application.Features.Inquiries.Commands;
+using Application.Features.Inquiries.Queries;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -12,16 +12,7 @@ namespace API.Controllers;
 [Route("api/[controller]")]
 public sealed class InquiriesController : ApiBaseController
 {
-    private readonly IInquiryService _inquiries;
-
-    public InquiriesController(IInquiryService inquiries)
-    {
-        _inquiries = inquiries;
-    }
-
     /// <summary>Public contact-agent form. Rate-limited against spam.</summary>
-    /// <response code="201">Inquiry sent.</response>
-    /// <response code="404">Property not found.</response>
     [HttpPost("properties/{propertyId:int}")]
     [EnableRateLimiting("auth")]
     [ProducesResponseType(typeof(ApiResponse<object?>), 201)]
@@ -29,24 +20,16 @@ public sealed class InquiriesController : ApiBaseController
     public Task<ActionResult<ApiResponse<object?>>> Submit(
         int propertyId,
         [FromBody] CreateInquiryRequest request,
-        [FromServices] CreateInquiryValidator validator,
         CancellationToken ct)
-    {
-        var userId = TryGetCurrentUserId();
-        return ValidateAndExecute(validator, request, () => _inquiries.SubmitAsync(propertyId, request, userId, ct), ct);
-    }
+        => SendAsync(new CreateInquiryCommand(propertyId, TryGetCurrentUserId(), request), ct);
 
-    /// <response code="200">Paginated inquiries (admin).</response>
     [HttpGet]
     [Authorize(Roles = "Admin")]
     [ProducesResponseType(typeof(ApiResponse<PagedResult<InquiryDto>>), 200)]
-    public async Task<ActionResult<ApiResponse<PagedResult<InquiryDto>>>> List(
+    public Task<ActionResult<ApiResponse<PagedResult<InquiryDto>>>> List(
         [FromQuery] int? propertyId,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 12,
         CancellationToken ct = default)
-    {
-        var result = await _inquiries.AdminListAsync(propertyId, page, pageSize, ct);
-        return Ok(ApiResponse<PagedResult<InquiryDto>>.Ok(result.Data!));
-    }
+        => SendAsync(new GetAllInquiriesQuery(propertyId, page, pageSize), ct);
 }

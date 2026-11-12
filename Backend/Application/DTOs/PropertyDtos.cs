@@ -96,7 +96,9 @@ public sealed record PropertyDetailsDto(
     int? OwnerId = null,
     string? OwnerName = null,
     string? OwnerPhone = null,
-    string? OwnerType = null);
+    string? OwnerType = null,
+    DateTime? PublishAt = null,
+    DateTime? ExpiresAt = null);
 
 /// <summary>All listing filters from website.md #10 + North Coast Village/Zone/BuildingNumber.</summary>
 public sealed class PropertyQuery
@@ -172,6 +174,8 @@ public sealed class CreatePropertyRequest
     public int? PropertyListingRequestId { get; set; }
     public string? OwnerName { get; set; }
     public string? OwnerPhone { get; set; }
+    public DateTime? PublishAt { get; set; }
+    public DateTime? ExpiresAt { get; set; }
 }
 
 public sealed class UpdatePropertyRequest
@@ -214,4 +218,6 @@ public sealed class UpdatePropertyRequest
     public bool? IsVerified { get; set; }
     public string? OwnerName { get; set; }
     public string? OwnerPhone { get; set; }
+    public DateTime? PublishAt { get; set; }
+    public DateTime? ExpiresAt { get; set; }
 }

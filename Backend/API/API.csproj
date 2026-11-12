@@ -6,10 +6,10 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <NoWarn>$(NoWarn);NU1901;NU1902;NU1903;NU1904</NoWarn>
     <WarningsNotAsErrors>NU1901;NU1902;NU1903;NU1904</WarningsNotAsErrors>
+    <UserSecretsId>4d8c27d1-2716-450e-af9c-35c85e01a1a6</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="FluentValidation.AspNetCore" Version="11.3.1" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.12" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.5" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.12">

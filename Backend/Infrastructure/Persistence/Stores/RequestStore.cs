@@ -296,7 +296,11 @@ public sealed class RequestStore : IRequestStore
             .FirstOrDefaultAsync(p => p.Id == id, ct);
 
     public Task<List<int>> GetAdminUserIdsAsync(CancellationToken ct = default)
-        => _db.Users.Where(u => u.Role.Name == "Admin" && u.IsActive).Select(u => u.Id).ToListAsync(ct);
+        => (from ur in _db.UserRoles
+            join r in _db.Roles on ur.RoleId equals r.Id
+            join u in _db.Users on ur.UserId equals u.Id
+            where r.Name == "Admin" && u.IsActive
+            select u.Id).ToListAsync(ct);
 
     // User Property Listing Requests ("اعرض عقارك")
     public async Task AddListingRequestAsync(PropertyListingRequest request, CancellationToken ct = default)

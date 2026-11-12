@@ -51,32 +51,25 @@ public sealed class AdminController : ApiBaseController
     /// <summary>Operational metrics for the dashboard overview.</summary>
     [HttpGet("dashboard")]
     [ProducesResponseType(typeof(ApiResponse<DashboardDto>), 200)]
-    public async Task<ActionResult<ApiResponse<DashboardDto>>> Dashboard(CancellationToken ct)
-    {
-        var result = await _admin.GetDashboardAsync(ct);
-        return Ok(ApiResponse<DashboardDto>.Ok(result.Data!));
-    }
+    public Task<ActionResult<ApiResponse<DashboardDto>>> Dashboard(CancellationToken ct)
+        => SendAsync(new Application.Features.Admin.Queries.GetAdminDashboardQuery(), ct);
 
     /// <summary>All properties in any status (admin search). Reuses the catalog search.</summary>
     [HttpGet("properties")]
     [ProducesResponseType(typeof(ApiResponse<PagedResult<PropertyListDto>>), 200)]
     public Task<ActionResult<ApiResponse<PagedResult<PropertyListDto>>>> Properties(
         [FromQuery] PropertyQuery query,
-        [FromServices] PropertyQueryValidator validator,
         CancellationToken ct)
-        => ValidateAndExecute(validator, query, () => _properties.SearchAsync(query, true, ct), ct);
+        => SendAsync(new Application.Features.Properties.Queries.GetPropertiesQuery(query, true), ct);
 
     [HttpGet("purchase-requests")]
     [ProducesResponseType(typeof(ApiResponse<PagedResult<PurchaseRequestDto>>), 200)]
-    public async Task<ActionResult<ApiResponse<PagedResult<PurchaseRequestDto>>>> PurchaseRequests(
+    public Task<ActionResult<ApiResponse<PagedResult<PurchaseRequestDto>>>> PurchaseRequests(
         [FromQuery] string? status,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 12,
         CancellationToken ct = default)
-    {
-        var result = await _requests.AllPurchasesAsync(status, page, pageSize, ct);
-        return Ok(ApiResponse<PagedResult<PurchaseRequestDto>>.Ok(result.Data!));
-    }
+        => SendAsync(new Application.Features.Bookings.Queries.GetAllPurchasesQuery(status, page, pageSize), ct);
 
     /// <summary>Drive the request state machine. Illegal transitions are rejected (422).</summary>
     [HttpPut("purchase-requests/{id:int}/status")]
@@ -85,22 +78,17 @@ public sealed class AdminController : ApiBaseController
     public Task<ActionResult<ApiResponse<PurchaseRequestDto>>> SetPurchaseStatus(
         int id,
         [FromBody] UpdateRequestStatusRequest request,
-        [FromServices] UpdateRequestStatusValidator validator,
         CancellationToken ct)
-        => ValidateAndExecute(validator, request,
-            () => _requests.SetPurchaseStatusAsync(CurrentUserId(), id, request, ClientIp(), ct), ct);
+        => SendAsync(new Application.Features.Bookings.Commands.UpdatePurchaseStatusCommand(CurrentUserId(), id, request, ClientIp()), ct);
 
     [HttpGet("booking-requests")]
     [ProducesResponseType(typeof(ApiResponse<PagedResult<BookingRequestDto>>), 200)]
-    public async Task<ActionResult<ApiResponse<PagedResult<BookingRequestDto>>>> BookingRequests(
+    public Task<ActionResult<ApiResponse<PagedResult<BookingRequestDto>>>> BookingRequests(
         [FromQuery] string? status,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 12,
         CancellationToken ct = default)
-    {
-        var result = await _requests.AllBookingsAsync(status, page, pageSize, ct);
-        return Ok(ApiResponse<PagedResult<BookingRequestDto>>.Ok(result.Data!));
-    }
+        => SendAsync(new Application.Features.Bookings.Queries.GetAllBookingsQuery(status, page, pageSize), ct);
 
     [HttpPut("booking-requests/{id:int}/status")]
     [ProducesResponseType(typeof(ApiResponse<BookingRequestDto>), 200)]
@@ -108,54 +96,38 @@ public sealed class AdminController : ApiBaseController
     public Task<ActionResult<ApiResponse<BookingRequestDto>>> SetBookingStatus(
         int id,
         [FromBody] UpdateRequestStatusRequest request,
-        [FromServices] UpdateRequestStatusValidator validator,
         CancellationToken ct)
-        => ValidateAndExecute(validator, request,
-            () => _requests.SetBookingStatusAsync(CurrentUserId(), id, request, ClientIp(), ct), ct);
+        => SendAsync(new Application.Features.Bookings.Commands.UpdateBookingStatusCommand(CurrentUserId(), id, request, ClientIp()), ct);
 
-    /// <summary>Confirmed rental periods for a property (Requirement 9).</summary>
+    /// <summary>Confirmed rental periods for a property.</summary>
     [HttpGet("properties/{propertyId:int}/rental-periods")]
     [ProducesResponseType(typeof(ApiResponse<List<RentalPeriodDto>>), 200)]
-    public async Task<ActionResult<ApiResponse<List<RentalPeriodDto>>>> PropertyRentalPeriods(
+    public Task<ActionResult<ApiResponse<List<RentalPeriodDto>>>> PropertyRentalPeriods(
         int propertyId, CancellationToken ct)
-    {
-        var result = await _properties.GetRentalPeriodsAsync(CurrentUserId(), true, propertyId, ct);
-        return Ok(ApiResponse<List<RentalPeriodDto>>.Ok(result.Data!));
-    }
+        => SendAsync(new Application.Features.Properties.Queries.GetRentalPeriodsQuery(CurrentUserId(), true, propertyId), ct);
 
     [HttpPost("properties/{propertyId:int}/rental-periods")]
     [ProducesResponseType(typeof(ApiResponse<RentalPeriodDto>), 201)]
     [ProducesResponseType(typeof(ApiResponse<RentalPeriodDto>), 409)]
     [ProducesResponseType(typeof(ApiResponse<RentalPeriodDto>), 422)]
-    public async Task<ActionResult<ApiResponse<RentalPeriodDto>>> AddPropertyRentalPeriod(
+    public Task<ActionResult<ApiResponse<RentalPeriodDto>>> AddPropertyRentalPeriod(
         int propertyId, [FromBody] CreateRentalPeriodRequest request, CancellationToken ct)
-    {
-        var result = await _properties.AddAdminRentalPeriodAsync(CurrentUserId(), propertyId, request, ct);
-        return StatusCode(result.StatusCode, result.Succeeded
-            ? ApiResponse<RentalPeriodDto>.Ok(result.Data!, result.Message)
-            : ApiResponse<RentalPeriodDto>.Fail(result.Message, result.Errors));
-    }
+        => SendAsync(new Application.Features.Properties.Commands.AddRentalPeriodCommand(CurrentUserId(), propertyId, request), ct);
 
     [HttpDelete("properties/{propertyId:int}/rental-periods/{periodId:int}")]
     [ProducesResponseType(typeof(ApiResponse<object?>), 200)]
     [ProducesResponseType(404)]
-    public async Task<ActionResult<ApiResponse<object?>>> DeletePropertyRentalPeriod(
+    public Task<ActionResult<ApiResponse<object?>>> DeletePropertyRentalPeriod(
         int propertyId, int periodId, CancellationToken ct)
-    {
-        var result = await _properties.DeleteAdminRentalPeriodAsync(CurrentUserId(), propertyId, periodId, ct);
-        return StatusCode(result.StatusCode, result.Succeeded
-            ? ApiResponse<object?>.Ok(result.Message)
-            : ApiResponse<object?>.Fail(result.Message, result.Errors));
-    }
+        => SendAsync(new Application.Features.Properties.Commands.DeleteRentalPeriodCommand(CurrentUserId(), propertyId, periodId), ct);
 
-    /// <summary>Approve a pending-review property → Published (notifies the owner, writes audit).</summary>
-    /// <response code="409">Not pending review.</response>
+    /// <summary>Approve a pending-review property -> Published (notifies owner, writes audit).</summary>
     [HttpPut("properties/{id:int}/approve")]
     [ProducesResponseType(typeof(ApiResponse<PropertyDetailsDto>), 200)]
     [ProducesResponseType(typeof(ApiResponse<PropertyDetailsDto>), 409)]
     public Task<ActionResult<ApiResponse<PropertyDetailsDto>>> ApproveProperty(
         int id, CancellationToken ct)
-        => ExecuteTransactional(() => _seller.ApproveAsync(CurrentUserId(), id, ClientIp(), ct));
+        => SendAsync(new Application.Features.Properties.Commands.ApprovePropertyCommand(CurrentUserId(), id, ClientIp()), ct);
 
     [HttpPut("properties/{id:int}/reject")]
     [ProducesResponseType(typeof(ApiResponse<PropertyDetailsDto>), 200)]
@@ -163,89 +135,56 @@ public sealed class AdminController : ApiBaseController
     public Task<ActionResult<ApiResponse<PropertyDetailsDto>>> RejectProperty(
         int id,
         [FromBody] RejectPropertyRequest request,
-        [FromServices] RejectPropertyValidator validator,
         CancellationToken ct)
-        => ValidateAndExecute(validator, request,
-            () => _seller.RejectAsync(CurrentUserId(), id, request.Reason, ClientIp(), ct), ct);
+        => SendAsync(new Application.Features.Properties.Commands.RejectPropertyCommand(CurrentUserId(), id, request.Reason, ClientIp()), ct);
 
     /// <summary>Searchable user table. Role changes are audited.</summary>
     [HttpGet("users")]
     [ProducesResponseType(typeof(ApiResponse<PagedResult<AdminUserDto>>), 200)]
-    public async Task<ActionResult<ApiResponse<PagedResult<AdminUserDto>>>> Users(
+    public Task<ActionResult<ApiResponse<PagedResult<AdminUserDto>>>> Users(
         [FromQuery] string? search,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
         CancellationToken ct = default)
-    {
-        var result = await _admin.GetUsersAsync(search, page, pageSize, ct);
-        return Ok(ApiResponse<PagedResult<AdminUserDto>>.Ok(result.Data!));
-    }
+        => SendAsync(new Application.Features.Admin.Queries.GetAdminUsersQuery(search, page, pageSize), ct);
 
     [HttpPut("users/{id:int}/role")]
     [ProducesResponseType(typeof(ApiResponse<AdminUserDto>), 200)]
     [ProducesResponseType(typeof(ApiResponse<AdminUserDto>), 422)]
-    public async Task<ActionResult<ApiResponse<AdminUserDto>>> SetUserRole(
+    public Task<ActionResult<ApiResponse<AdminUserDto>>> SetUserRole(
         int id, [FromBody] SetUserRoleRequest request, CancellationToken ct)
-    {
-        if (string.IsNullOrWhiteSpace(request.Role))
-            return StatusCode(422, ApiResponse<AdminUserDto>.Fail("Role is required.",
-                new() { new("Role is required.", "role") }));
-        var result = await _admin.SetUserRoleAsync(CurrentUserId(), id, request.Role.Trim(), ClientIp(), ct);
-        return StatusCode(result.StatusCode, result.Succeeded
-            ? ApiResponse<AdminUserDto>.Ok(result.Data!, result.Message)
-            : ApiResponse<AdminUserDto>.Fail(result.Message, result.Errors));
-    }
+        => SendAsync(new Application.Features.Admin.Commands.SetUserRoleCommand(
+            CurrentUserId(), id, request with { Role = request.Role?.Trim() ?? string.Empty }, ClientIp()), ct);
 
     [HttpGet("agents")]
     [ProducesResponseType(typeof(ApiResponse<List<AdminAgentDto>>), 200)]
-    public async Task<ActionResult<ApiResponse<List<AdminAgentDto>>>> Agents(CancellationToken ct)
-    {
-        var result = await _admin.GetAgentsAsync(ct);
-        return Ok(ApiResponse<List<AdminAgentDto>>.Ok(result.Data!));
-    }
+    public Task<ActionResult<ApiResponse<List<AdminAgentDto>>>> Agents(CancellationToken ct)
+        => SendAsync(new Application.Features.Admin.Queries.GetAdminAgentsQuery(), ct);
 
     [HttpGet("reviews")]
     [ProducesResponseType(typeof(ApiResponse<PagedResult<AdminReviewDto>>), 200)]
-    public async Task<ActionResult<ApiResponse<PagedResult<AdminReviewDto>>>> Reviews(
+    public Task<ActionResult<ApiResponse<PagedResult<AdminReviewDto>>>> Reviews(
         [FromQuery] bool? approved,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
         CancellationToken ct = default)
-    {
-        var result = await _admin.GetReviewsAsync(approved, page, pageSize, ct);
-        return Ok(ApiResponse<PagedResult<AdminReviewDto>>.Ok(result.Data!));
-    }
+        => SendAsync(new Application.Features.Admin.Queries.GetAdminReviewsQuery(approved, page, pageSize), ct);
 
     [HttpPut("reviews/{id:int}/approval")]
     [ProducesResponseType(typeof(ApiResponse<object?>), 200)]
-    public async Task<ActionResult<ApiResponse<object?>>> SetReviewApproval(
+    public Task<ActionResult<ApiResponse<object?>>> SetReviewApproval(
         int id, [FromBody] SetReviewApprovalRequest request, CancellationToken ct)
-    {
-        var result = await _admin.SetReviewApprovalAsync(CurrentUserId(), id, request.Approved, ClientIp(), ct);
-        return StatusCode(result.StatusCode, result.Succeeded
-            ? ApiResponse<object?>.Ok(result.Message)
-            : ApiResponse<object?>.Fail(result.Message, result.Errors));
-    }
+        => SendAsync(new Application.Features.Admin.Commands.SetReviewApprovalCommand(CurrentUserId(), id, request.Approved, ClientIp()), ct);
 
     [HttpDelete("reviews/{id:int}")]
     [ProducesResponseType(typeof(ApiResponse<object?>), 200)]
-    public async Task<ActionResult<ApiResponse<object?>>> DeleteReview(int id, CancellationToken ct)
-    {
-        var result = await _admin.DeleteReviewAsync(CurrentUserId(), id, ClientIp(), ct);
-        return StatusCode(result.StatusCode, result.Succeeded
-            ? ApiResponse<object?>.Ok(result.Message)
-            : ApiResponse<object?>.Fail(result.Message, result.Errors));
-    }
+    public Task<ActionResult<ApiResponse<object?>>> DeleteReview(int id, CancellationToken ct)
+        => SendAsync(new Application.Features.Admin.Commands.DeleteReviewCommand(CurrentUserId(), id, ClientIp()), ct);
 
     [HttpPut("inquiries/{id:int}/read")]
     [ProducesResponseType(typeof(ApiResponse<object?>), 200)]
-    public async Task<ActionResult<ApiResponse<object?>>> MarkInquiryRead(int id, CancellationToken ct)
-    {
-        var result = await _admin.MarkInquiryReadAsync(id, ct);
-        return StatusCode(result.StatusCode, result.Succeeded
-            ? ApiResponse<object?>.Ok(result.Message)
-            : ApiResponse<object?>.Fail(result.Message, result.Errors));
-    }
+    public Task<ActionResult<ApiResponse<object?>>> MarkInquiryRead(int id, CancellationToken ct)
+        => SendAsync(new Application.Features.Inquiries.Commands.MarkInquiryReadCommand(id), ct);
 
     [HttpGet("audit-logs")]
     [ProducesResponseType(typeof(ApiResponse<PagedResult<AuditLogDto>>), 200)]
@@ -462,15 +401,12 @@ public sealed class AdminController : ApiBaseController
 
     [HttpGet("brokers")]
     [ProducesResponseType(typeof(ApiResponse<PagedResult<BrokerProfileDto>>), 200)]
-    public async Task<ActionResult<ApiResponse<PagedResult<BrokerProfileDto>>>> GetBrokers(
+    public Task<ActionResult<ApiResponse<PagedResult<BrokerProfileDto>>>> GetBrokers(
         [FromQuery] string? status,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
         CancellationToken ct = default)
-    {
-        var result = await _requests.AllBrokersAsync(status, page, pageSize, ct);
-        return Ok(ApiResponse<PagedResult<BrokerProfileDto>>.Ok(result.Data!));
-    }
+        => SendAsync(new Application.Features.Admin.Queries.GetAdminBrokersQuery(status, page, pageSize), ct);
 
     [HttpPut("brokers/{id:int}/status")]
     [ProducesResponseType(typeof(ApiResponse<BrokerProfileDto>), 200)]
@@ -478,21 +414,17 @@ public sealed class AdminController : ApiBaseController
     public Task<ActionResult<ApiResponse<BrokerProfileDto>>> SetBrokerStatus(
         int id,
         [FromBody] SetBrokerStatusRequest request,
-        [FromServices] SetBrokerStatusValidator validator,
         CancellationToken ct)
-        => ValidateAndExecute(validator, request, () => _requests.SetBrokerStatusAsync(CurrentUserId(), id, request, ct), ct);
+        => SendAsync(new Application.Features.Admin.Commands.SetBrokerStatusCommand(CurrentUserId(), id, request), ct);
 
     [HttpGet("broker-requests")]
     [ProducesResponseType(typeof(ApiResponse<PagedResult<BrokerPropertyRequestDto>>), 200)]
-    public async Task<ActionResult<ApiResponse<PagedResult<BrokerPropertyRequestDto>>>> GetBrokerRequests(
+    public Task<ActionResult<ApiResponse<PagedResult<BrokerPropertyRequestDto>>>> GetBrokerRequests(
         [FromQuery] string? status,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
         CancellationToken ct = default)
-    {
-        var result = await _requests.AllBrokerRequestsAsync(status, page, pageSize, ct);
-        return Ok(ApiResponse<PagedResult<BrokerPropertyRequestDto>>.Ok(result.Data!));
-    }
+        => SendAsync(new Application.Features.Admin.Queries.GetAllBrokerRequestsQuery(status, page, pageSize), ct);
 
     [HttpPut("broker-requests/{id:int}/status")]
     [ProducesResponseType(typeof(ApiResponse<BrokerPropertyRequestDto>), 200)]
@@ -500,9 +432,8 @@ public sealed class AdminController : ApiBaseController
     public Task<ActionResult<ApiResponse<BrokerPropertyRequestDto>>> SetBrokerRequestStatus(
         int id,
         [FromBody] UpdateRequestStatusRequest request,
-        [FromServices] UpdateRequestStatusValidator validator,
         CancellationToken ct)
-        => ValidateAndExecute(validator, request, () => _requests.SetBrokerRequestStatusAsync(CurrentUserId(), id, request, ct), ct);
+        => SendAsync(new Application.Features.Admin.Commands.SetBrokerRequestStatusCommand(CurrentUserId(), id, request), ct);
 
     /// <summary>Stream sensitive broker ID card images securely to Admin only.</summary>
     [HttpGet("brokers/{id:int}/id-document")]
@@ -534,30 +465,22 @@ public sealed class AdminController : ApiBaseController
     /// <summary>Workflow 1 submissions: List all 4-field property listing requests submitted by brokers.</summary>
     [HttpGet("broker-submissions")]
     [ProducesResponseType(typeof(ApiResponse<PagedResult<BrokerPropertySubmissionDto>>), 200)]
-    public async Task<ActionResult<ApiResponse<PagedResult<BrokerPropertySubmissionDto>>>> GetBrokerSubmissions(
+    public Task<ActionResult<ApiResponse<PagedResult<BrokerPropertySubmissionDto>>>> GetBrokerSubmissions(
         [FromQuery] string? status,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
         CancellationToken ct = default)
-    {
-        var result = await _requests.AllBrokerSubmissionsAsync(status, page, pageSize, ct);
-        return Ok(ApiResponse<PagedResult<BrokerPropertySubmissionDto>>.Ok(result.Data!));
-    }
+        => SendAsync(new Application.Features.Admin.Queries.GetAllBrokerSubmissionsQuery(status, page, pageSize), ct);
 
     /// <summary>Update status and inspection notes for a broker property submission.</summary>
     [HttpPut("broker-submissions/{id:int}/status")]
     [ProducesResponseType(typeof(ApiResponse<BrokerPropertySubmissionDto>), 200)]
     [ProducesResponseType(typeof(ApiResponse<BrokerPropertySubmissionDto>), 422)]
-    public async Task<ActionResult<ApiResponse<BrokerPropertySubmissionDto>>> SetBrokerSubmissionStatus(
+    public Task<ActionResult<ApiResponse<BrokerPropertySubmissionDto>>> SetBrokerSubmissionStatus(
         int id,
         [FromBody] UpdateBrokerSubmissionStatusRequest request,
         CancellationToken ct)
-    {
-        var result = await _requests.SetBrokerSubmissionStatusAsync(CurrentUserId(), id, request, ct);
-        return StatusCode(result.StatusCode, result.Succeeded
-            ? ApiResponse<BrokerPropertySubmissionDto>.Ok(result.Data!, result.Message)
-            : ApiResponse<BrokerPropertySubmissionDto>.Fail(result.Message, result.Errors));
-    }
+        => SendAsync(new Application.Features.Admin.Commands.SetBrokerSubmissionStatusCommand(CurrentUserId(), id, request), ct);
 
     // ==========================================
     // Property Requirement Leads (Requirement 10)
@@ -565,15 +488,12 @@ public sealed class AdminController : ApiBaseController
 
     [HttpGet("requirements")]
     [ProducesResponseType(typeof(ApiResponse<PagedResult<PropertyRequirementDto>>), 200)]
-    public async Task<ActionResult<ApiResponse<PagedResult<PropertyRequirementDto>>>> GetRequirements(
+    public Task<ActionResult<ApiResponse<PagedResult<PropertyRequirementDto>>>> GetRequirements(
         [FromQuery] string? status,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
         CancellationToken ct = default)
-    {
-        var result = await _requests.AllRequirementsAsync(status, page, pageSize, ct);
-        return Ok(ApiResponse<PagedResult<PropertyRequirementDto>>.Ok(result.Data!));
-    }
+        => SendAsync(new Application.Features.ViewingRequests.Queries.GetAllRequirementsQuery(status, page, pageSize), ct);
 
     [HttpPut("requirements/{id:int}/status")]
     [ProducesResponseType(typeof(ApiResponse<PropertyRequirementDto>), 200)]
@@ -581,9 +501,8 @@ public sealed class AdminController : ApiBaseController
     public Task<ActionResult<ApiResponse<PropertyRequirementDto>>> SetRequirementStatus(
         int id,
         [FromBody] UpdateRequirementStatusRequest request,
-        [FromServices] UpdateRequirementStatusValidator validator,
         CancellationToken ct)
-        => ValidateAndExecute(validator, request, () => _requests.SetRequirementStatusAsync(CurrentUserId(), id, request, ct), ct);
+        => SendAsync(new Application.Features.ViewingRequests.Commands.UpdateRequirementStatusCommand(CurrentUserId(), id, request), ct);
 
     // ==========================================
     // Property Listing Requests ("اعرض عقارك")
@@ -591,27 +510,19 @@ public sealed class AdminController : ApiBaseController
 
     [HttpGet("property-listing-requests")]
     [ProducesResponseType(typeof(ApiResponse<PagedResult<PropertyListingRequestDto>>), 200)]
-    public async Task<ActionResult<ApiResponse<PagedResult<PropertyListingRequestDto>>>> GetListingRequests(
+    public Task<ActionResult<ApiResponse<PagedResult<PropertyListingRequestDto>>>> GetListingRequests(
         [FromQuery] string? status,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
         CancellationToken ct = default)
-    {
-        var result = await _requests.AllListingRequestsAsync(status, page, pageSize, ct);
-        return Ok(ApiResponse<PagedResult<PropertyListingRequestDto>>.Ok(result.Data!));
-    }
+        => SendAsync(new Application.Features.ViewingRequests.Queries.GetAllListingRequestsQuery(status, page, pageSize), ct);
 
     [HttpGet("property-listing-requests/{id:int}")]
     [ProducesResponseType(typeof(ApiResponse<PropertyListingRequestDto>), 200)]
     [ProducesResponseType(typeof(ApiResponse<PropertyListingRequestDto>), 404)]
-    public async Task<ActionResult<ApiResponse<PropertyListingRequestDto>>> GetListingRequestById(
+    public Task<ActionResult<ApiResponse<PropertyListingRequestDto>>> GetListingRequestById(
         int id, CancellationToken ct = default)
-    {
-        var result = await _requests.GetListingRequestByIdAsync(id, CurrentUserId(), true, ct);
-        return StatusCode(result.StatusCode, result.Succeeded
-            ? ApiResponse<PropertyListingRequestDto>.Ok(result.Data!)
-            : ApiResponse<PropertyListingRequestDto>.Fail(result.Message, result.Errors));
-    }
+        => SendAsync(new Application.Features.ViewingRequests.Queries.GetListingRequestByIdQuery(id, CurrentUserId(), true), ct);
 
     [HttpPut("property-listing-requests/{id:int}/status")]
     [ProducesResponseType(typeof(ApiResponse<PropertyListingRequestDto>), 200)]
@@ -619,21 +530,19 @@ public sealed class AdminController : ApiBaseController
     public Task<ActionResult<ApiResponse<PropertyListingRequestDto>>> SetListingRequestStatus(
         int id,
         [FromBody] UpdateListingRequestStatusRequest request,
-        [FromServices] UpdateListingRequestStatusValidator validator,
         CancellationToken ct)
-        => ValidateAndExecute(validator, request, () => _requests.SetListingRequestStatusAsync(CurrentUserId(), id, request, ct), ct);
+        => SendAsync(new Application.Features.ViewingRequests.Commands.UpdateListingRequestStatusCommand(CurrentUserId(), id, request), ct);
 
     [HttpPost("property-listing-requests/{id:int}/create-property")]
     [ProducesResponseType(typeof(ApiResponse<PropertyDetailsDto>), 201)]
     [ProducesResponseType(typeof(ApiResponse<PropertyDetailsDto>), 422)]
-    public async Task<ActionResult<ApiResponse<PropertyDetailsDto>>> CreatePropertyFromListingRequest(
+    public Task<ActionResult<ApiResponse<PropertyDetailsDto>>> CreatePropertyFromListingRequest(
         int id,
         [FromBody] CreatePropertyRequest request,
-        [FromServices] CreatePropertyValidator validator,
         CancellationToken ct)
     {
         request.PropertyListingRequestId = id;
-        return await ValidateAndExecute(validator, request, () => _properties.CreateAsync(CurrentUserId(), "Admin", request, ct), ct);
+        return SendAsync(new Application.Features.Properties.Commands.CreatePropertyCommand(CurrentUserId(), "Admin", request), ct);
     }
 
     private string? ClientIp()

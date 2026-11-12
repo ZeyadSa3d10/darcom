@@ -15,8 +15,23 @@ import RequirementsManager from './components/RequirementsManager.jsx';
 import ListingRequestsManager from './components/ListingRequestsManager.jsx';
 import { InquiriesManager, ReviewsManager, CatalogManager, AuditViewer } from './components/MiscManagers.jsx';
 import CmsManager from './components/CmsManager.jsx';
+import AdminNotificationBell from './components/AdminNotificationBell.jsx';
+import { useAdminNotifications } from '../../hooks/useAdminNotifications.js';
 import { useSeo } from '../../hooks/useSeo.js';
 import './AdminDashboard.css';
+
+function resolveTargetTab(eventType, entityType) {
+  const key = `${eventType || ''}|${entityType || ''}`.toLowerCase();
+  if (key.includes('booking')) return 'rentals';
+  if (key.includes('purchase')) return 'purchases';
+  if (key.includes('listing-request') || key.includes('propertylistingrequest')) return 'listing-requests';
+  if (key.includes('broker')) return 'brokers';
+  if (key.includes('viewing') || key.includes('requirement')) return 'requirements';
+  if (key.includes('inquiry') || key.includes('contact')) return 'inquiries';
+  if (key.includes('user')) return 'users';
+  if (key.includes('property')) return key.includes('pending') ? 'approvals' : 'properties';
+  return 'overview';
+}
 
 export default function AdminDashboard() {
   const { t, isRtl } = useSettings();
@@ -68,6 +83,47 @@ export default function AdminDashboard() {
     loadStats();
   }, [loadStats]);
 
+  const [tabRefresh, setTabRefresh] = useState({});
+  const [liveAlert, setLiveAlert] = useState(null);
+
+  const handleRealtimeNotification = useCallback((payload) => {
+    loadStats();
+    const target = resolveTargetTab(payload?.eventType, payload?.relatedEntityType);
+    setTabRefresh((prev) => {
+      const next = { ...prev, [target]: (prev[target] || 0) + 1 };
+      if (target === 'approvals' || target === 'properties') {
+        next.approvals = (prev.approvals || 0) + 1;
+        next.properties = (prev.properties || 0) + 1;
+      }
+      return next;
+    });
+    if (payload?.title) {
+      setLiveAlert({
+        id: payload.notificationId || Date.now(),
+        title: payload.title,
+        message: payload.message || '',
+        targetTab: target,
+      });
+    }
+  }, [loadStats]);
+
+  useEffect(() => {
+    if (!liveAlert) return undefined;
+    const timer = setTimeout(() => setLiveAlert(null), 6000);
+    return () => clearTimeout(timer);
+  }, [liveAlert]);
+
+  const {
+    notifications,
+    unreadCount,
+    connectionState,
+    markRead,
+    markAllRead,
+  } = useAdminNotifications({
+    enabled: true,
+    onNotification: handleRealtimeNotification,
+  });
+
   const go = (next) => {
     setTab(next);
     setMenuOpen(false);
@@ -116,7 +172,49 @@ export default function AdminDashboard() {
             <span>{t('admin.menu', isRtl ? 'القائمة' : 'Menu')}</span>
           </button>
           <h1 className="font-display">{activeTab?.label}</h1>
+          <AdminNotificationBell
+            notifications={notifications}
+            unreadCount={unreadCount}
+            connectionState={connectionState}
+            onMarkRead={markRead}
+            onMarkAllRead={markAllRead}
+            onSelectNotification={(item) => {
+              const target = resolveTargetTab(item.type, item.relatedEntityType);
+              setTab(target);
+            }}
+          />
         </div>
+
+        {liveAlert && (
+          <div className="admin-live-toast" role="status">
+            <div>
+              <strong>{liveAlert.title}</strong>
+              {liveAlert.message && <span className="ms-2 opacity-75">{liveAlert.message}</span>}
+            </div>
+            <div className="d-flex align-items-center gap-2">
+              {liveAlert.targetTab && liveAlert.targetTab !== tab && (
+                <button
+                  type="button"
+                  className="admin-live-toast-action"
+                  onClick={() => {
+                    setTab(liveAlert.targetTab);
+                    setLiveAlert(null);
+                  }}
+                >
+                  {isRtl ? 'عرض' : 'View'}
+                </button>
+              )}
+              <button
+                type="button"
+                className="admin-live-toast-close"
+                aria-label="Close"
+                onClick={() => setLiveAlert(null)}
+              >
+                <i className="bi bi-x-lg" />
+              </button>
+            </div>
+          </div>
+        )}
 
         {tab === 'overview' && (
           <>
@@ -133,22 +231,22 @@ export default function AdminDashboard() {
                 <h2 className="admin-subhead font-display">
                   {t('admin.needsAttention', isRtl ? 'تتطلب المراجعة والاعتماد' : 'Needs attention')}
                 </h2>
-                <ApprovalQueue onChanged={loadStats} />
+                <ApprovalQueue onChanged={loadStats} refreshTrigger={tabRefresh.approvals || 0} />
               </>
             )}
           </>
         )}
 
-        {tab === 'approvals' && <ApprovalQueue onChanged={loadStats} />}
-        {tab === 'properties' && <PropertiesManager onChanged={loadStats} />}
-        {tab === 'listing-requests' && <ListingRequestsManager />}
+        {tab === 'approvals' && <ApprovalQueue onChanged={loadStats} refreshTrigger={tabRefresh.approvals || 0} />}
+        {tab === 'properties' && <PropertiesManager onChanged={loadStats} refreshTrigger={tabRefresh.properties || 0} />}
+        {tab === 'listing-requests' && <ListingRequestsManager refreshTrigger={tabRefresh['listing-requests'] || 0} />}
         {tab === 'villages' && <VillagesManager />}
-        {tab === 'purchases' && <RequestsManager kind="purchase" onChanged={loadStats} />}
-        {tab === 'rentals' && <RequestsManager kind="booking" onChanged={loadStats} />}
-        {tab === 'brokers' && <BrokersManager />}
-        {tab === 'requirements' && <RequirementsManager />}
-        {tab === 'users' && <UsersManager onChanged={loadStats} />}
-        {tab === 'inquiries' && <InquiriesManager />}
+        {tab === 'purchases' && <RequestsManager kind="purchase" onChanged={loadStats} refreshTrigger={tabRefresh.purchases || 0} />}
+        {tab === 'rentals' && <RequestsManager kind="booking" onChanged={loadStats} refreshTrigger={tabRefresh.rentals || 0} />}
+        {tab === 'brokers' && <BrokersManager refreshTrigger={tabRefresh.brokers || 0} />}
+        {tab === 'requirements' && <RequirementsManager refreshTrigger={tabRefresh.requirements || 0} />}
+        {tab === 'users' && <UsersManager onChanged={loadStats} refreshTrigger={tabRefresh.users || 0} />}
+        {tab === 'inquiries' && <InquiriesManager refreshTrigger={tabRefresh.inquiries || 0} />}
         {tab === 'reviews' && <ReviewsManager onChanged={loadStats} />}
         {tab === 'catalog' && <CatalogManager />}
         {tab === 'cms' && <CmsManager />}

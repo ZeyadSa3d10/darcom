@@ -10,7 +10,7 @@ import ConfirmDialog from './ConfirmDialog.jsx';
 
 const ROLES = ['Admin', 'Agent', 'Seller', 'Buyer'];
 
-export default function UsersManager({ onChanged }) {
+export default function UsersManager({ onChanged, refreshTrigger = 0 }) {
   const { t, isRtl } = useSettings();
   const toast = useToast();
   const [q, setQ] = useState('');
@@ -51,6 +51,11 @@ export default function UsersManager({ onChanged }) {
   useEffect(() => {
     load(1, '');
   }, [load]);
+
+  useEffect(() => {
+    if (refreshTrigger > 0) load(page, q);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refreshTrigger]);
 
   const search = (e) => {
     e.preventDefault();

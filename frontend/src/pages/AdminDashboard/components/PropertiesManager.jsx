@@ -16,7 +16,7 @@ import './PropertiesManager.css';
 const STATUSES = ['', 'Draft', 'PendingReview', 'Published', 'Featured', 'Reserved', 'Sold', 'Rented', 'Archived', 'Rejected'];
 const LIFECYCLE = ['Draft', 'Published', 'Featured', 'Reserved', 'Sold', 'Rented', 'Archived'];
 
-export default function PropertiesManager({ onChanged }) {
+export default function PropertiesManager({ onChanged, refreshTrigger = 0 }) {
   const { t, isRtl } = useSettings();
   const toast = useToast();
   const [q, setQ] = useState('');
@@ -136,6 +136,11 @@ export default function PropertiesManager({ onChanged }) {
     load(1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (refreshTrigger > 0) load(page, q, status);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refreshTrigger]);
 
   const search = (e) => {
     e.preventDefault();

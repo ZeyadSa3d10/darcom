@@ -5,7 +5,7 @@ import { useToast } from '../../../components/Toast/Toast.jsx';
 import { useSettings } from '../../../context/SettingsContext.jsx';
 import { adminService } from '../../../services/adminService.js';
 
-export default function RequirementsManager() {
+export default function RequirementsManager({ refreshTrigger = 0 }) {
   const { isRtl } = useSettings();
   const toast = useToast();
 
@@ -38,7 +38,7 @@ export default function RequirementsManager() {
 
   useEffect(() => {
     loadData();
-  }, [loadData]);
+  }, [loadData, refreshTrigger]);
 
   const openStatusModal = (req) => {
     setActiveReq(req);

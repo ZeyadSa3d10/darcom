@@ -1,7 +1,7 @@
 using Domain.Entities;
 using Domain.Enums;
 using Infrastructure.Persistence;
-using Infrastructure.Security;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -19,25 +19,37 @@ public static class DataSeeder
     {
         using var scope = services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<DarcomDbContext>();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
+        var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<Role>>();
 
         await db.Database.MigrateAsync();
+
+        foreach (var roleName in new[] { "Admin", "Agent", "Seller", "Buyer", "Broker" })
+        {
+            if (!await roleManager.RoleExistsAsync(roleName))
+                await roleManager.CreateAsync(new Role { Name = roleName });
+        }
 
         var adminEmail = config["Admin:Email"] ?? "admin@darcom.local";
         var adminPassword = config["Admin:Password"] ?? "ChangeMe123!";
         var adminName = config["Admin:FullName"] ?? "Darcom Admin";
 
-        if (!await db.Users.AnyAsync(u => u.Email == adminEmail))
+        if (await userManager.FindByEmailAsync(adminEmail) is null)
         {
-            db.Users.Add(new User
+            var admin = new User
             {
                 FullName = adminName,
                 Email = adminEmail,
-                PasswordHash = PasswordHasher.Hash(adminPassword),
-                RoleId = 1,
+                UserName = adminEmail,
+                EmailConfirmed = true,
                 IsActive = true
-            });
-            await db.SaveChangesAsync();
-            logger.LogInformation("Seeded admin user {Email}.", adminEmail);
+            };
+            var res = await userManager.CreateAsync(admin, adminPassword);
+            if (res.Succeeded)
+            {
+                await userManager.AddToRoleAsync(admin, "Admin");
+                logger.LogInformation("Seeded admin user {Email}.", adminEmail);
+            }
         }
 
         if (!await db.Agents.AnyAsync())
@@ -50,56 +62,60 @@ public static class DataSeeder
             await db.SaveChangesAsync();
         }
 
-        if (!await db.Users.AnyAsync(u => u.Email == "buyer@darcom.local"))
+        if (await userManager.FindByEmailAsync("buyer@darcom.local") is null)
         {
-            db.Users.Add(new User
+            var buyer = new User
             {
                 FullName = "Demo Buyer",
                 Email = "buyer@darcom.local",
-                PasswordHash = PasswordHasher.Hash("Buyer123!"),
-                RoleId = 4,
+                UserName = "buyer@darcom.local",
+                EmailConfirmed = true,
                 IsActive = true
-            });
-            await db.SaveChangesAsync();
+            };
+            if ((await userManager.CreateAsync(buyer, "Buyer123!")).Succeeded)
+                await userManager.AddToRoleAsync(buyer, "Buyer");
         }
 
-        if (!await db.Users.AnyAsync(u => u.Email == "seller@darcom.local"))
+        if (await userManager.FindByEmailAsync("seller@darcom.local") is null)
         {
-            db.Users.Add(new User
+            var seller = new User
             {
                 FullName = "Demo Owner",
                 Email = "seller@darcom.local",
-                PasswordHash = PasswordHasher.Hash("Seller123!"),
-                RoleId = 3,
+                UserName = "seller@darcom.local",
+                EmailConfirmed = true,
                 IsActive = true
-            });
-            await db.SaveChangesAsync();
+            };
+            if ((await userManager.CreateAsync(seller, "Seller123!")).Succeeded)
+                await userManager.AddToRoleAsync(seller, "Seller");
         }
 
-        if (!await db.Users.AnyAsync(u => u.Email == "broker@darcom.local"))
+        if (await userManager.FindByEmailAsync("broker@darcom.local") is null)
         {
             var brokerUser = new User
             {
                 FullName = "Demo Broker",
                 Email = "broker@darcom.local",
-                PasswordHash = PasswordHasher.Hash("Broker123!"),
-                RoleId = 5,
+                UserName = "broker@darcom.local",
+                EmailConfirmed = true,
                 IsActive = true
             };
-            db.Users.Add(brokerUser);
-            await db.SaveChangesAsync();
-
-            db.BrokerProfiles.Add(new BrokerProfile
+            if ((await userManager.CreateAsync(brokerUser, "Broker123!")).Succeeded)
             {
-                UserId = brokerUser.Id,
-                AgencyName = "North Coast Premier Realty",
-                LicenseNumber = "EG-NC-9872",
-                NationalId = "29001011234567",
-                DocumentUrl = "https://example.com/docs/broker-license.pdf",
-                Status = BrokerStatus.Approved,
-                ApprovedAt = DateTime.UtcNow
-            });
-            await db.SaveChangesAsync();
+                await userManager.AddToRoleAsync(brokerUser, "Broker");
+
+                db.BrokerProfiles.Add(new BrokerProfile
+                {
+                    UserId = brokerUser.Id,
+                    AgencyName = "North Coast Premier Realty",
+                    LicenseNumber = "EG-NC-9872",
+                    NationalId = "29001011234567",
+                    DocumentUrl = "https://example.com/docs/broker-license.pdf",
+                    Status = BrokerStatus.Approved,
+                    ApprovedAt = DateTime.UtcNow
+                });
+                await db.SaveChangesAsync();
+            }
         }
 
         if (!await db.Villages.AnyAsync())

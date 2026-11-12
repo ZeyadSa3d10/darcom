@@ -68,6 +68,37 @@ public sealed class EngagementStore : IEngagementStore
             IsRead = false
         }, ct);
 
+    public async Task<Notification?> AddNotificationWithMetaAsync(
+        int userId,
+        string title,
+        string body,
+        string? type,
+        int? relatedEntityId,
+        string? relatedEntityType,
+        string? eventKey,
+        CancellationToken ct = default)
+    {
+        if (!string.IsNullOrWhiteSpace(eventKey)
+            && await _db.Notifications.AnyAsync(n => n.UserId == userId && n.EventKey == eventKey, ct))
+        {
+            return null;
+        }
+
+        var entity = new Notification
+        {
+            UserId = userId,
+            Title = title,
+            Body = body,
+            Type = type,
+            RelatedEntityId = relatedEntityId,
+            RelatedEntityType = relatedEntityType,
+            EventKey = eventKey,
+            IsRead = false
+        };
+        await _db.Notifications.AddAsync(entity, ct);
+        return entity;
+    }
+
     public async Task<PagedResult<NotificationDto>> GetNotificationsAsync(int userId, int page, int pageSize, CancellationToken ct = default)
     {
         var query = _db.Notifications.AsNoTracking()
@@ -78,7 +109,9 @@ public sealed class EngagementStore : IEngagementStore
         var items = await query
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .Select(n => new NotificationDto(n.Id, n.Title, n.Body, n.Type, n.IsRead, n.CreatedAt))
+            .Select(n => new NotificationDto(
+                n.Id, n.Title, n.Body, n.Type, n.IsRead, n.CreatedAt,
+                n.RelatedEntityId, n.RelatedEntityType, n.ReadAt))
             .ToListAsync(ct);
         return new PagedResult<NotificationDto>(items, page, pageSize, total, totalPages);
     }
@@ -92,16 +125,21 @@ public sealed class EngagementStore : IEngagementStore
             .FirstOrDefaultAsync(n => n.Id == notificationId && n.UserId == userId, ct);
         if (notification is null) return false;
         notification.IsRead = true;
+        notification.ReadAt ??= DateTime.UtcNow;
         return true;
     }
 
     public async Task MarkAllReadAsync(int userId, CancellationToken ct = default)
     {
+        var now = DateTime.UtcNow;
         var unread = await _db.Notifications
             .Where(n => n.UserId == userId && !n.IsRead)
             .ToListAsync(ct);
         foreach (var n in unread)
+        {
             n.IsRead = true;
+            n.ReadAt ??= now;
+        }
     }
 
     public async Task AddInquiryAsync(PropertyInquiry inquiry, CancellationToken ct = default)

@@ -141,7 +141,15 @@ public sealed record ContactRequest(
 // ---------- Notifications ----------
 
 public sealed record NotificationDto(
-    int Id, string Title, string Body, string? Type, bool IsRead, DateTime CreatedAt);
+    int Id,
+    string Title,
+    string Body,
+    string? Type,
+    bool IsRead,
+    DateTime CreatedAt,
+    int? RelatedEntityId = null,
+    string? RelatedEntityType = null,
+    DateTime? ReadAt = null);
 
 // ---------- Media ----------
 

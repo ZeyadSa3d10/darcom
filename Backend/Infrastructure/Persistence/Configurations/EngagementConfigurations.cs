@@ -87,8 +87,13 @@ public sealed class NotificationConfiguration : IEntityTypeConfiguration<Notific
         b.Property(n => n.Title).HasMaxLength(200).IsRequired();
         b.Property(n => n.Body).HasColumnType("nvarchar(max)").IsRequired();
         b.Property(n => n.Type).HasMaxLength(64);
+        b.Property(n => n.RelatedEntityType).HasMaxLength(64);
+        b.Property(n => n.EventKey).HasMaxLength(160);
         b.HasOne(n => n.User).WithMany(u => u.Notifications)
             .HasForeignKey(n => n.UserId).OnDelete(DeleteBehavior.Cascade);
         b.HasIndex(n => new { n.UserId, n.IsRead });
+        b.HasIndex(n => new { n.UserId, n.EventKey })
+            .IsUnique()
+            .HasFilter("[EventKey] IS NOT NULL");
     }
 }

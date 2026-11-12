@@ -1,19 +1,43 @@
-import api, { setTokens, clearTokens, getRefreshToken } from './api.js';
+import api, { setAccessToken, clearTokens, refreshAccessToken } from './api.js';
 
 const unwrap = (res) => res.data?.data;
 
 export const authService = {
+  async getConfig() {
+    const res = await api.get('/auth/config');
+    return res.data;
+  },
+
+  async sendEmailOtp(email) {
+    const res = await api.post('/auth/email-otp/send', { email });
+    return res.data;
+  },
+
+  async verifyEmailOtp(payload) {
+    const res = await api.post('/auth/email-otp/verify', payload);
+    const data = unwrap(res);
+    if (data?.accessToken) setAccessToken(data.accessToken);
+    return res.data;
+  },
+
+  async googleLogin(idToken) {
+    const res = await api.post('/auth/google', { idToken });
+    const data = unwrap(res);
+    if (data?.accessToken) setAccessToken(data.accessToken);
+    return res.data;
+  },
+
   async register(payload) {
     const res = await api.post('/auth/register', payload);
     const data = unwrap(res);
-    if (data?.accessToken) setTokens(data.accessToken, data.refreshToken);
+    if (data?.accessToken) setAccessToken(data.accessToken);
     return res.data;
   },
 
   async registerBroker(payload) {
     const res = await api.post('/auth/register-broker', payload);
     const data = unwrap(res);
-    if (data?.accessToken) setTokens(data.accessToken, data.refreshToken);
+    if (data?.accessToken) setAccessToken(data.accessToken);
     return res.data;
   },
 
@@ -30,7 +54,7 @@ export const authService = {
   async login(payload) {
     const res = await api.post('/auth/login', payload);
     const data = unwrap(res);
-    if (data?.accessToken) setTokens(data.accessToken, data.refreshToken);
+    if (data?.accessToken) setAccessToken(data.accessToken);
     return res.data;
   },
 
@@ -43,13 +67,20 @@ export const authService = {
     clearTokens();
   },
 
+  async revokeAll() {
+    try {
+      await api.post('/auth/revoke-all');
+    } finally {
+      clearTokens();
+    }
+  },
+
   async refresh() {
-    const refreshToken = getRefreshToken();
-    if (!refreshToken) throw { success: false, message: 'No session to refresh.', errors: [] };
-    const res = await api.post('/auth/refresh', { refreshToken });
-    const data = unwrap(res);
-    if (data?.accessToken) setTokens(data.accessToken, data.refreshToken);
-    return res.data;
+    const data = await refreshAccessToken();
+    if (!data?.accessToken) {
+      throw { success: false, message: 'Session expired.', errors: [] };
+    }
+    return { success: true, data };
   },
 
   forgotPassword: (payload) => api.post('/auth/forgot-password', payload).then((r) => r.data),

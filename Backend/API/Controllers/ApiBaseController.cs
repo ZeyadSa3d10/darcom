@@ -2,13 +2,33 @@ using System.Security.Claims;
 using Application.Common;
 using Application.Services;
 using FluentValidation;
+using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
 namespace API.Controllers;
 
-/// <summary>Base controller: consistent envelope + manual FluentValidation (never frontend-only).</summary>
+/// <summary>Base controller: consistent envelope + MediatR dispatch + FluentValidation.</summary>
 public abstract class ApiBaseController : ControllerBase
 {
+    private IMediator? _mediator;
+    protected IMediator Mediator => _mediator ??= HttpContext.RequestServices.GetRequiredService<IMediator>();
+
+    protected async Task<ActionResult<ApiResponse<TOut>>> SendAsync<TOut>(
+        IRequest<ServiceResult<TOut>> request,
+        CancellationToken ct)
+    {
+        try
+        {
+            var result = await Mediator.Send(request, ct);
+            return StatusCode(result.StatusCode, result.Succeeded
+                ? ApiResponse<TOut>.Ok(result.Data!, result.Message)
+                : ApiResponse<TOut>.Fail(result.Message, result.Errors));
+        }
+        catch (RequestFailure ex)
+        {
+            return StatusCode(ex.StatusCode, ApiResponse<TOut>.Fail(ex.Message, ex.Errors));
+        }
+    }
     protected async Task<ActionResult<ApiResponse<TOut>>> ValidateAndExecute<TIn, TOut>(
         IValidator<TIn> validator,
         TIn request,

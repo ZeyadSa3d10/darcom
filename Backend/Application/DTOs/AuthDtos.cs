@@ -8,7 +8,13 @@ public sealed record RegisterRequest(
 
 public sealed record LoginRequest(string Email, string Password);
 
-public sealed record RefreshRequest(string RefreshToken);
+public sealed record SendEmailOtpRequest(string Email);
+
+public sealed record VerifyEmailOtpRequest(string Email, string Code, string? FullName = null);
+
+public sealed record GoogleLoginRequest(string IdToken);
+
+public sealed record RefreshRequest(string? RefreshToken = null);
 
 public sealed record ForgotPasswordRequest(string Email);
 
@@ -23,6 +29,18 @@ public sealed record UserDto(
 
 public sealed record AuthResponse(
     string AccessToken,
-    string RefreshToken,
+    string? RefreshToken,
     DateTime ExpiresAt,
     UserDto User);
+
+public sealed record AuthTokenBundle(
+    string AccessToken,
+    string RefreshToken,
+    DateTime AccessExpiresAt,
+    DateTime RefreshExpiresAt,
+    UserDto User);
+
+public sealed record SendEmailOtpResponse(
+    int CooldownSeconds,
+    int ExpiryMinutes,
+    string? DebugCode = null);

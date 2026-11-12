@@ -26,7 +26,7 @@ function getInitials(name) {
 
 export default function Profile() {
   const { t, isRtl } = useSettings();
-  const { user, refreshUser, logout, isAdmin } = useAuth();
+  const { user, refreshUser, logout, revokeAll, isAdmin } = useAuth();
   const toast = useToast();
 
   useSeo({
@@ -1479,6 +1479,31 @@ export default function Profile() {
                   </button>
                 </div>
               </form>
+
+              <div className="settings-card-surface mt-4">
+                <div className="settings-card-header">
+                  <div className="settings-icon-bubble">
+                    <i className="bi bi-box-arrow-right"></i>
+                  </div>
+                  <div>
+                    <h3>{isRtl ? 'إدارة الجلسات النشطة' : 'Active Sessions Security'}</h3>
+                    <p>{isRtl ? 'إلغاء جميع رموز التحديث النشطة وتسجيل الخروج من جميع الأجهزة الأخرى.' : 'Revoke all active refresh tokens and sign out from every device.'}</p>
+                  </div>
+                </div>
+                <div className="settings-form-actions">
+                  <button
+                    type="button"
+                    className="btn btn-outline-danger"
+                    onClick={async () => {
+                      await revokeAll();
+                      toast.success(isRtl ? 'تم تسجيل الخروج من جميع الأجهزة بنجاح.' : 'Signed out from all devices.');
+                    }}
+                  >
+                    <i className="bi bi-shield-x me-1"></i>
+                    <span>{isRtl ? 'تسجيل الخروج من جميع الأجهزة' : 'Sign out of all devices'}</span>
+                  </button>
+                </div>
+              </div>
             </div>
           </section>
         )}

@@ -1,18 +1,27 @@
 using System.Text;
 using System.Threading.RateLimiting;
+using API.Hubs;
 using API.Middleware;
+using API.Security;
+using Application;
+using Application.BackgroundJobs;
+using Hangfire;
 using Application.Security;
 using Application.Services;
 using Application.Storage;
 using Application.Stores;
 using Application.Validators;
+using Domain.Entities;
 using FluentValidation;
+using Infrastructure.BackgroundJobs;
+using Infrastructure.Notifications;
 using Infrastructure.Persistence;
 using Infrastructure.Persistence.Seed;
 using Infrastructure.Persistence.Stores;
 using Infrastructure.Security;
 using Infrastructure.Storage;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
@@ -24,13 +33,40 @@ var builder = WebApplication.CreateBuilder(args);
 // Controllers (kept thin — business logic lives in Application/Infrastructure).
 builder.Services.AddControllers();
 builder.Services.AddMemoryCache();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddDataProtection();
 
 // SQL Server via EF Core. Connection string from configuration (never hard-coded).
 builder.Services.AddDbContext<DarcomDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("Default")));
 
-// JWT options (bound from configuration) + auth services.
+// ASP.NET Core Identity configured with custom User/Role (int PKs preserving existing Users/Roles tables)
+// and legacy PBKDF2 hash compatibility for smooth password upgrade.
+builder.Services.AddScoped<IPasswordHasher<User>, LegacyCompatiblePasswordHasher>();
+builder.Services.AddIdentityCore<User>(options =>
+{
+    options.User.RequireUniqueEmail = true;
+    options.SignIn.RequireConfirmedEmail = false;
+    options.Lockout.AllowedForNewUsers = true;
+    options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
+    options.Lockout.MaxFailedAccessAttempts = 5;
+    options.Password.RequireDigit = true;
+    options.Password.RequireLowercase = true;
+    options.Password.RequireUppercase = true;
+    options.Password.RequireNonAlphanumeric = false;
+    options.Password.RequiredLength = 8;
+})
+.AddRoles<Role>()
+.AddEntityFrameworkStores<DarcomDbContext>()
+.AddSignInManager<SignInManager<User>>()
+.AddDefaultTokenProviders();
+
+// Auth / OTP / SMTP / Google options (bound from configuration / env / user-secrets).
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptions.Section));
+builder.Services.Configure<EmailOtpOptions>(builder.Configuration.GetSection(EmailOtpOptions.Section));
+builder.Services.Configure<SmtpOptions>(builder.Configuration.GetSection(SmtpOptions.Section));
+builder.Services.Configure<GoogleAuthOptions>(builder.Configuration.GetSection(GoogleAuthOptions.Section));
+
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserService, UserService>();
@@ -48,8 +84,18 @@ builder.Services.AddScoped<IRequestStore, RequestStore>();
 builder.Services.AddScoped<IEngagementStore, EngagementStore>();
 builder.Services.AddScoped<IAdminStore, AdminStore>();
 builder.Services.AddScoped<IAuditWriter, AuditWriter>();
-builder.Services.AddScoped<IPasswordHasher, PasswordHasherService>();
 builder.Services.AddScoped<IOtpService, OtpService>();
+builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();
+builder.Services.AddScoped<IEmailOtpService, EmailOtpService>();
+builder.Services.AddScoped<IGoogleTokenValidator, GoogleTokenValidator>();
+builder.Services.AddHttpClient<IGoogleOAuthService, GoogleOAuthService>();
+
+// MediatR + CQRS + FluentValidation Pipeline + SignalR Real-Time Admin Notifications
+builder.Services.AddApplicationLayer();
+builder.Services.AddHangfireInfrastructure(builder.Configuration);
+builder.Services.AddSignalR();
+builder.Services.AddScoped<IAdminRealtimeNotifier, AdminNotificationDispatcher>();
+builder.Services.AddScoped<IRealtimeHubPublisher, SignalRAdminHubPublisher>();
 builder.Services.AddSingleton<IPrivateDocumentStorage>(_ =>
     new PrivateDocumentStorage(Path.Combine(builder.Environment.ContentRootPath, "App_Data", "private-documents")));
 builder.Services.AddScoped<ISiteContentService, SiteContentService>();
@@ -75,8 +121,7 @@ builder.Services.AddSingleton<IStorageProvider>(sp =>
     };
 });
 
-// FluentValidation validators (validated manually in ApiBaseController for a consistent envelope).
-builder.Services.AddValidatorsFromAssemblyContaining<RegisterValidator>();
+// Validators and MediatR handlers/behaviors are registered via AddApplicationLayer().
 
 // Swagger / OpenAPI with JWT Bearer support.
 builder.Services.AddEndpointsApiExplorer();
@@ -108,7 +153,7 @@ builder.Services.AddCors(options =>
         policy.WithOrigins(allowedOrigins).AllowAnyHeader().AllowAnyMethod().AllowCredentials());
 });
 
-// Rate limiting for auth and public submission endpoints (website.md #29).
+// Rate limiting for auth, OTP, and public submission endpoints.
 builder.Services.AddRateLimiter(options =>
 {
     options.AddFixedWindowLimiter("auth", o =>
@@ -117,20 +162,36 @@ builder.Services.AddRateLimiter(options =>
         o.Window = TimeSpan.FromMinutes(1);
         o.QueueLimit = 0;
     });
+    options.AddPolicy("otp", httpContext =>
+    {
+        var ip = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        return RateLimitPartition.GetFixedWindowLimiter(ip, _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 5,
+            Window = TimeSpan.FromMinutes(5),
+            QueueLimit = 0
+        });
+    });
     options.AddFixedWindowLimiter("submit", o =>
     {
         o.PermitLimit = 15;
         o.Window = TimeSpan.FromMinutes(1);
         o.QueueLimit = 0;
     });
-    options.OnRejected = (context, _) =>
+    options.OnRejected = async (context, ct) =>
     {
         context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
-        return ValueTask.CompletedTask;
+        context.HttpContext.Response.ContentType = "application/json";
+        await context.HttpContext.Response.WriteAsJsonAsync(new
+        {
+            success = false,
+            message = "تم إرسال طلبات كثيرة جداً. يرجى الانتظار قليلاً والمحاولة لاحقاً.",
+            errors = Array.Empty<object>()
+        }, ct);
     };
 });
 
-// JWT skeleton — real AuthService/token logic lands in PHASE-02.
+// JWT Bearer Authentication
 var jwtKey = builder.Configuration["JWT:Key"];
 if (builder.Environment.IsProduction() && string.IsNullOrWhiteSpace(jwtKey))
 {
@@ -139,20 +200,39 @@ if (builder.Environment.IsProduction() && string.IsNullOrWhiteSpace(jwtKey))
 }
 if (!string.IsNullOrWhiteSpace(jwtKey))
 {
-    builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-        .AddJwtBearer(o =>
+    builder.Services.AddAuthentication(options =>
+    {
+        options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+        options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+        options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+    })
+    .AddJwtBearer(o =>
+    {
+        o.TokenValidationParameters = new TokenValidationParameters
         {
-            o.TokenValidationParameters = new TokenValidationParameters
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ClockSkew = TimeSpan.FromSeconds(30),
+            ValidIssuer = builder.Configuration["JWT:Issuer"],
+            ValidAudience = builder.Configuration["JWT:Audience"],
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
+        };
+        o.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
             {
-                ValidateIssuer = true,
-                ValidateAudience = true,
-                ValidateLifetime = true,
-                ValidateIssuerSigningKey = true,
-                ValidIssuer = builder.Configuration["JWT:Issuer"],
-                ValidAudience = builder.Configuration["JWT:Audience"],
-                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
-            };
-        });
+                var accessToken = context.Request.Query["access_token"];
+                var path = context.HttpContext.Request.Path;
+                if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs"))
+                {
+                    context.Token = accessToken;
+                }
+                return Task.CompletedTask;
+            }
+        };
+    });
 }
 
 var app = builder.Build();
@@ -186,7 +266,21 @@ app.UseStaticFiles(new StaticFileOptions
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+var hangfireOpts = app.Configuration.GetSection(HangfireOptions.Section).Get<HangfireOptions>() ?? new HangfireOptions();
+if (hangfireOpts.Enabled && hangfireOpts.EnableDashboard)
+{
+    app.UseHangfireDashboard("/hangfire", new DashboardOptions
+    {
+        DashboardTitle = "Darcom Background Jobs",
+        DisplayStorageConnectionString = false,
+        Authorization = [new HangfireAdminDashboardAuthorizationFilter()],
+        IsReadOnlyFunc = _ => hangfireOpts.ReadOnlyDashboardInProduction && !app.Environment.IsDevelopment()
+    });
+}
+
 app.MapControllers();
+app.MapHub<AdminNotificationHub>("/hubs/admin-notifications");
 
 // PHASE-01 seed (migrate + seed lookups/admin/demo data when enabled).
 if (builder.Configuration.GetValue("SeedOnStartup", false))

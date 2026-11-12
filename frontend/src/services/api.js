@@ -1,33 +1,39 @@
 import axios from 'axios';
 
-// Token storage keys (single source of truth — AuthContext uses the same).
-export const ACCESS_KEY = 'darcom.accessToken';
-export const REFRESH_KEY = 'darcom.refreshToken';
+// In-memory Access Token ONLY. Refresh Token lives exclusively in an HttpOnly Cookie
+// managed by the backend — never persisted in localStorage/sessionStorage.
+let inMemoryAccessToken = null;
 
-export const getAccessToken = () => localStorage.getItem(ACCESS_KEY);
-export const getRefreshToken = () => localStorage.getItem(REFRESH_KEY);
-export const setTokens = (access, refresh) => {
-  if (access) localStorage.setItem(ACCESS_KEY, access);
-  if (refresh) localStorage.setItem(REFRESH_KEY, refresh);
+// Clean up any legacy localStorage tokens from pre-Identity builds.
+if (typeof window !== 'undefined') {
+  try {
+    localStorage.removeItem('darcom.accessToken');
+    localStorage.removeItem('darcom.refreshToken');
+  } catch {
+    // Ignore storage access errors in restricted modes.
+  }
+}
+
+export const getAccessToken = () => inMemoryAccessToken;
+export const setAccessToken = (access) => {
+  inMemoryAccessToken = access || null;
 };
 export const clearTokens = () => {
-  localStorage.removeItem(ACCESS_KEY);
-  localStorage.removeItem(REFRESH_KEY);
+  inMemoryAccessToken = null;
 };
 
-// Fired when the session cannot be recovered (expired refresh, revoked, ...).
-// AuthContext subscribes and resets user state.
 export const SESSION_EXPIRED_EVENT = 'darcom:session-expired';
 export const notifySessionExpired = () => window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT));
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5153/api',
+  baseURL: import.meta.env.VITE_API_URL || '/api',
   timeout: 15000,
+  withCredentials: true,
   headers: { 'Content-Type': 'application/json' },
   paramsSerializer: { indexes: null },
 });
 
-// Attach JWT to every request and ensure FormData gets proper multipart boundary.
+// Attach in-memory JWT Access Token to every request and preserve multipart FormData boundaries.
 api.interceptors.request.use((config) => {
   const token = getAccessToken();
   if (token) config.headers.Authorization = `Bearer ${token}`;
@@ -37,28 +43,30 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Refresh-once retry: on 401 (non-auth endpoints) try the refresh token a single
-// time, replay the original request, else clear the session and notify.
+// Single-flight refresh promise prevents concurrent token rotation races.
 let refreshPromise = null;
-async function tryRefresh() {
+
+export async function refreshAccessToken() {
   if (!refreshPromise) {
-    const refreshToken = getRefreshToken();
-    if (!refreshToken) return null;
     refreshPromise = axios
       .post(
         `${api.defaults.baseURL}/auth/refresh`,
-        { refreshToken },
-        { timeout: 10000 }
+        {},
+        { timeout: 10000, withCredentials: true }
       )
       .then((res) => {
         const data = res.data?.data;
         if (data?.accessToken) {
-          setTokens(data.accessToken, data.refreshToken);
-          return data.accessToken;
+          setAccessToken(data.accessToken);
+          return data;
         }
+        clearTokens();
         return null;
       })
-      .catch(() => null)
+      .catch(() => {
+        clearTokens();
+        return null;
+      })
       .finally(() => {
         refreshPromise = null;
       });
@@ -73,24 +81,24 @@ api.interceptors.response.use(
     const status = error.response?.status;
     const url = original.url || '';
 
-    const isAuthEndpoint = url.includes('/auth/login') ||
+    const isAuthEndpoint =
+      url.includes('/auth/login') ||
       url.includes('/auth/register') ||
-      url.includes('/auth/refresh');
+      url.includes('/auth/refresh') ||
+      url.includes('/auth/email-otp') ||
+      url.includes('/auth/google');
 
     if (status === 401 && !original._retried && !isAuthEndpoint) {
       original._retried = true;
-      const fresh = await tryRefresh();
-      if (fresh) {
-        original.headers = { ...original.headers, Authorization: `Bearer ${fresh}` };
+      const refreshed = await refreshAccessToken();
+      if (refreshed?.accessToken) {
+        original.headers = { ...original.headers, Authorization: `Bearer ${refreshed.accessToken}` };
         return api(original);
       }
       clearTokens();
       notifySessionExpired();
     }
 
-    // Normalize to the backend envelope { success:false, message, errors }.
-    // Network failures (no response) get a synthetic offline-friendly shape.
-    // The HTTP status is attached so callers can branch on it (e.g. CMS 404s).
     if (error.response?.data) {
       const body = error.response.data;
       return Promise.reject(

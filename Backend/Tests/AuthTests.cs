@@ -1,31 +1,42 @@
 using Application.Common;
 using Application.DTOs;
 using Application.Validators;
+using Domain.Entities;
 using Infrastructure.Security;
+using Microsoft.AspNetCore.Identity;
 
 namespace Tests;
 
-/// <summary>PHASE-02 backend tests: hashing, validators, response envelope.</summary>
+/// <summary>Identity password hasher, auth validators, and response envelope tests.</summary>
 public sealed class AuthTests
 {
     [Fact]
-    public void PasswordHasher_RoundTrip()
+    public void IdentityPasswordHasher_RoundTrip()
     {
-        var hash = PasswordHasher.Hash("StrongPass1");
-        Assert.True(PasswordHasher.Verify("StrongPass1", hash));
+        var hasher = new LegacyCompatiblePasswordHasher();
+        var user = new User { Email = "sara@example.com", UserName = "sara@example.com" };
+        var hash = hasher.HashPassword(user, "StrongPass1");
+
+        Assert.Equal(PasswordVerificationResult.Success, hasher.VerifyHashedPassword(user, hash, "StrongPass1"));
     }
 
     [Fact]
-    public void PasswordHasher_Rejects_Wrong_Password()
+    public void IdentityPasswordHasher_Rejects_Wrong_Password()
     {
-        var hash = PasswordHasher.Hash("StrongPass1");
-        Assert.False(PasswordHasher.Verify("WrongPass1", hash));
+        var hasher = new LegacyCompatiblePasswordHasher();
+        var user = new User { Email = "sara@example.com", UserName = "sara@example.com" };
+        var hash = hasher.HashPassword(user, "StrongPass1");
+
+        Assert.Equal(PasswordVerificationResult.Failed, hasher.VerifyHashedPassword(user, hash, "WrongPass1"));
     }
 
     [Fact]
-    public void PasswordHasher_Rejects_Garbage_Hash()
+    public void IdentityPasswordHasher_Rejects_Garbage_Hash()
     {
-        Assert.False(PasswordHasher.Verify("anything", "not-a-hash"));
+        var hasher = new LegacyCompatiblePasswordHasher();
+        var user = new User { Email = "sara@example.com", UserName = "sara@example.com" };
+
+        Assert.Equal(PasswordVerificationResult.Failed, hasher.VerifyHashedPassword(user, "not-a-hash", "anything"));
     }
 
     [Fact]
@@ -37,16 +48,36 @@ public sealed class AuthTests
     }
 
     [Theory]
-    [InlineData("", "sara@example.com", "StrongPass1")]   // missing name
-    [InlineData("Sara", "not-an-email", "StrongPass1")]   // bad email
-    [InlineData("Sara", "sara@example.com", "weak")]      // weak password
-    [InlineData("Sara", "sara@example.com", "alllowercase1")] // no uppercase
+    [InlineData("", "sara@example.com", "StrongPass1")]
+    [InlineData("Sara", "not-an-email", "StrongPass1")]
+    [InlineData("Sara", "sara@example.com", "weak")]
+    [InlineData("Sara", "sara@example.com", "alllowercase1")]
     public async Task RegisterValidator_Rejects_Invalid_Requests(string name, string email, string password)
     {
         var v = new RegisterValidator();
         var result = await v.ValidateAsync(new RegisterRequest(name, email, password, null));
         Assert.False(result.IsValid);
         Assert.NotEmpty(result.Errors);
+    }
+
+    [Fact]
+    public async Task EmailOtpValidators_Validate_Email_And_Code()
+    {
+        var sendVal = new SendEmailOtpValidator();
+        Assert.False((await sendVal.ValidateAsync(new SendEmailOtpRequest("not-an-email"))).IsValid);
+        Assert.True((await sendVal.ValidateAsync(new SendEmailOtpRequest("user@gmail.com"))).IsValid);
+
+        var verifyVal = new VerifyEmailOtpValidator();
+        Assert.False((await verifyVal.ValidateAsync(new VerifyEmailOtpRequest("user@gmail.com", ""))).IsValid);
+        Assert.True((await verifyVal.ValidateAsync(new VerifyEmailOtpRequest("user@gmail.com", "123456", "Sara"))).IsValid);
+    }
+
+    [Fact]
+    public async Task GoogleLoginValidator_Rejects_Empty_Token()
+    {
+        var v = new GoogleLoginValidator();
+        Assert.False((await v.ValidateAsync(new GoogleLoginRequest(""))).IsValid);
+        Assert.True((await v.ValidateAsync(new GoogleLoginRequest("valid.id.token"))).IsValid);
     }
 
     [Fact]

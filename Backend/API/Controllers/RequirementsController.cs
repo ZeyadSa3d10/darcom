@@ -1,7 +1,7 @@
 using Application.Common;
 using Application.DTOs;
-using Application.Services;
-using Application.Validators;
+using Application.Features.ViewingRequests.Commands;
+using Application.Features.ViewingRequests.Queries;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -16,13 +16,6 @@ namespace API.Controllers;
 [Route("api/[controller]")]
 public sealed class RequirementsController : ApiBaseController
 {
-    private readonly IRequestService _requests;
-
-    public RequirementsController(IRequestService requests)
-    {
-        _requests = requests;
-    }
-
     /// <summary>Submit a property requirement lead (public or authenticated).</summary>
     [HttpPost]
     [AllowAnonymous]
@@ -30,27 +23,16 @@ public sealed class RequirementsController : ApiBaseController
     [ProducesResponseType(typeof(ApiResponse<PropertyRequirementDto>), 422)]
     public Task<ActionResult<ApiResponse<PropertyRequirementDto>>> Create(
         [FromBody] CreatePropertyRequirementRequest request,
-        [FromServices] CreatePropertyRequirementValidator validator,
         CancellationToken ct)
-    {
-        int? userId = null;
-        try { userId = CurrentUserId(); } catch { /* anonymous */ }
-
-        return ValidateAndExecute(validator, request,
-            () => _requests.CreateRequirementAsync(userId, request, ct), ct);
-    }
+        => SendAsync(new CreateRequirementCommand(TryGetCurrentUserId(), request), ct);
 
     /// <summary>Authenticated user views their submitted property requirements.</summary>
     [HttpGet("my")]
     [Authorize]
     [ProducesResponseType(typeof(ApiResponse<PagedResult<PropertyRequirementDto>>), 200)]
-    public async Task<ActionResult<ApiResponse<PagedResult<PropertyRequirementDto>>>> My(
+    public Task<ActionResult<ApiResponse<PagedResult<PropertyRequirementDto>>>> My(
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 12,
         CancellationToken ct = default)
-    {
-        var result = await _requests.MyRequirementsAsync(CurrentUserId(), page, pageSize, ct);
-        return Ok(ApiResponse<PagedResult<PropertyRequirementDto>>.Ok(result.Data!));
-    }
+        => SendAsync(new GetMyRequirementsQuery(CurrentUserId(), page, pageSize), ct);
 }
-

@@ -1,34 +1,24 @@
 using Domain.Common;
+using Microsoft.AspNetCore.Identity;
 
 namespace Domain.Entities;
 
-public sealed class Role : EntityBase
+public sealed class Role : IdentityRole<int>
 {
-    public string Name { get; set; } = string.Empty; // Admin, Broker, Seller (Owner), Buyer (Customer), Agent
     public string? Description { get; set; }
-
-    public ICollection<User> Users { get; set; } = new List<User>();
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime? UpdatedAt { get; set; }
 }
 
-public sealed class User : EntityBase
+public sealed class User : IdentityUser<int>
 {
     public string FullName { get; set; } = string.Empty;
-    public string Email { get; set; } = string.Empty;
-    public string? PhoneNumber { get; set; }
-    public string PasswordHash { get; set; } = string.Empty;
-    public int RoleId { get; set; }
     public bool IsActive { get; set; } = true;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime? UpdatedAt { get; set; }
 
-    // Refresh-token rotation storage (auth logic lands in PHASE-02).
-    public string? RefreshToken { get; set; }
-    public DateTime? RefreshTokenExpiry { get; set; }
-
-    // Password-reset token storage (single-use, short-lived).
-    public string? PasswordResetToken { get; set; }
-    public DateTime? PasswordResetExpiry { get; set; }
-
-    public Role Role { get; set; } = null!;
     public BrokerProfile? BrokerProfile { get; set; }
+    public ICollection<UserRefreshToken> RefreshTokens { get; set; } = new List<UserRefreshToken>();
     public ICollection<Favorite> Favorites { get; set; } = new List<Favorite>();
     public ICollection<Notification> Notifications { get; set; } = new List<Notification>();
     public ICollection<Property> OwnedProperties { get; set; } = new List<Property>();
@@ -37,6 +27,37 @@ public sealed class User : EntityBase
     public ICollection<BrokerPropertySubmission> BrokerSubmissions { get; set; } = new List<BrokerPropertySubmission>();
     public ICollection<BrokerPropertyRequest> BrokerRequests { get; set; } = new List<BrokerPropertyRequest>();
     public ICollection<PropertyListingRequest> PropertyListingRequests { get; set; } = new List<PropertyListingRequest>();
+}
+
+public sealed class UserRefreshToken : EntityBase
+{
+    public int UserId { get; set; }
+    public string TokenHash { get; set; } = string.Empty;
+    public DateTime ExpiresAt { get; set; }
+    public string? CreatedByIp { get; set; }
+    public DateTime? RevokedAt { get; set; }
+    public string? RevokedByIp { get; set; }
+    public string? ReplacedByTokenHash { get; set; }
+    public string? RevocationReason { get; set; }
+
+    public bool IsRevoked => RevokedAt.HasValue;
+    public bool IsExpired => DateTime.UtcNow >= ExpiresAt;
+    public bool IsActive => !IsRevoked && !IsExpired;
+
+    public User User { get; set; } = null!;
+}
+
+public sealed class EmailOtpCode : EntityBase
+{
+    public string NormalizedEmail { get; set; } = string.Empty;
+    public string CodeHash { get; set; } = string.Empty;
+    public string Salt { get; set; } = string.Empty;
+    public DateTime ExpiresAt { get; set; }
+    public int AttemptCount { get; set; }
+    public int MaxAttempts { get; set; } = 5;
+    public bool IsUsed { get; set; }
+    public DateTime? UsedAt { get; set; }
+    public string? RequestIp { get; set; }
 }
 
 public enum BrokerStatus

@@ -11,13 +11,13 @@ namespace Application.Services;
 
 public interface ITokenService
 {
-    (string Token, DateTime ExpiresAt) CreateAccessToken(User user, string roleName);
+    (string Token, DateTime ExpiresAt) CreateAccessToken(User user, IEnumerable<string> roles);
     string CreateRefreshToken();
+    string HashRefreshToken(string refreshToken);
 }
 
 public sealed class TokenService : ITokenService
 {
-
     private readonly JwtOptions _options;
 
     public TokenService(IOptions<JwtOptions> options)
@@ -25,18 +25,25 @@ public sealed class TokenService : ITokenService
         _options = options.Value;
     }
 
-    public (string Token, DateTime ExpiresAt) CreateAccessToken(User user, string roleName)
+    public (string Token, DateTime ExpiresAt) CreateAccessToken(User user, IEnumerable<string> roles)
     {
         var expiresAt = DateTime.UtcNow.AddMinutes(_options.AccessTokenMinutes);
-        var claims = new[]
+        var claims = new List<Claim>
         {
-            new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
-            new Claim(JwtRegisteredClaimNames.Email, user.Email),
-            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-            new Claim(ClaimTypes.Role, roleName),
-            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+            new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
+            new(JwtRegisteredClaimNames.Email, user.Email ?? string.Empty),
+            new(JwtRegisteredClaimNames.Name, user.FullName),
+            new(ClaimTypes.Name, user.FullName),
+            new(ClaimTypes.NameIdentifier, user.Id.ToString()),
+            new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
         };
-          
+
+        foreach (var role in roles.Distinct(StringComparer.OrdinalIgnoreCase))
+        {
+            if (!string.IsNullOrWhiteSpace(role))
+                claims.Add(new Claim(ClaimTypes.Role, role));
+        }
+
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_options.Key));
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
         var token = new JwtSecurityToken(
@@ -44,11 +51,18 @@ public sealed class TokenService : ITokenService
             audience: _options.Audience,
             claims: claims,
             expires: expiresAt,
-            signingCredentials: credentials);         
+            signingCredentials: credentials);
 
         return (new JwtSecurityTokenHandler().WriteToken(token), expiresAt);
     }
 
     public string CreateRefreshToken()
-        => Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
-} 
+        => Convert.ToBase64String(RandomNumberGenerator.GetBytes(64))
+            .Replace('+', '-').Replace('/', '_').TrimEnd('=');
+
+    public string HashRefreshToken(string refreshToken)
+    {
+        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(refreshToken));
+        return Convert.ToBase64String(bytes);
+    }
+}

@@ -4,6 +4,7 @@ using Application.Stores;
 using Domain.Entities;
 using Domain.Enums;
 using Infrastructure.Persistence;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.Persistence.Stores;
@@ -11,10 +12,14 @@ namespace Infrastructure.Persistence.Stores;
 public sealed class AdminStore : IAdminStore
 {
     private readonly DarcomDbContext _db;
+    private readonly UserManager<User> _userManager;
+    private readonly RoleManager<Role> _roleManager;
 
-    public AdminStore(DarcomDbContext db)
+    public AdminStore(DarcomDbContext db, UserManager<User> userManager, RoleManager<Role> roleManager)
     {
         _db = db;
+        _userManager = userManager;
+        _roleManager = roleManager;
     }
 
     public async Task<DashboardDto> GetDashboardAsync(CancellationToken ct = default)
@@ -42,38 +47,72 @@ public sealed class AdminStore : IAdminStore
 
     public async Task<PagedResult<AdminUserDto>> GetUsersAsync(string? search, int page, int pageSize, CancellationToken ct = default)
     {
-        var query = _db.Users.AsNoTracking().Include(u => u.Role).AsQueryable();
+        var query = _db.Users.AsNoTracking().AsQueryable();
         if (!string.IsNullOrWhiteSpace(search))
         {
             var term = search.ToLowerInvariant();
-            query = query.Where(u => u.FullName.ToLower().Contains(term) || u.Email.ToLower().Contains(term));
+            query = query.Where(u => u.FullName.ToLower().Contains(term) || (u.Email != null && u.Email.ToLower().Contains(term)));
         }
         query = query.OrderByDescending(u => u.CreatedAt);
         var total = await query.CountAsync(ct);
         var totalPages = Math.Max(1, (int)Math.Ceiling(total / (double)pageSize));
-        var items = await query.Skip((page - 1) * pageSize).Take(pageSize)
-            .Select(u => new AdminUserDto(u.Id, u.FullName, u.Email, u.PhoneNumber, u.Role.Name, u.IsActive, u.CreatedAt))
+
+        var items = await (from u in query.Skip((page - 1) * pageSize).Take(pageSize)
+                           let roleName = (from ur in _db.UserRoles
+                                           join r in _db.Roles on ur.RoleId equals r.Id
+                                           where ur.UserId == u.Id
+                                           select r.Name).FirstOrDefault()
+                           select new AdminUserDto(
+                               u.Id,
+                               u.FullName,
+                               u.Email ?? string.Empty,
+                               u.PhoneNumber,
+                               roleName ?? "Buyer",
+                               u.IsActive,
+                               u.CreatedAt))
             .ToListAsync(ct);
+
         return new PagedResult<AdminUserDto>(items, page, pageSize, total, totalPages);
     }
 
     public async Task<AdminUserDto?> GetUserAsync(int userId, CancellationToken ct = default)
-        => await _db.Users.AsNoTracking().Include(u => u.Role)
-            .Where(u => u.Id == userId)
-            .Select(u => new AdminUserDto(u.Id, u.FullName, u.Email, u.PhoneNumber, u.Role.Name, u.IsActive, u.CreatedAt))
+        => await (from u in _db.Users.AsNoTracking()
+                  where u.Id == userId
+                  let roleName = (from ur in _db.UserRoles
+                                  join r in _db.Roles on ur.RoleId equals r.Id
+                                  where ur.UserId == u.Id
+                                  select r.Name).FirstOrDefault()
+                  select new AdminUserDto(
+                      u.Id,
+                      u.FullName,
+                      u.Email ?? string.Empty,
+                      u.PhoneNumber,
+                      roleName ?? "Buyer",
+                      u.IsActive,
+                      u.CreatedAt))
             .FirstOrDefaultAsync(ct);
 
     public async Task<(int Id, string OldRole)?> SetUserRoleAsync(int userId, string roleName, CancellationToken ct = default)
     {
-        var user = await _db.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.Id == userId, ct);
+        var user = await _userManager.FindByIdAsync(userId.ToString());
         if (user is null) return null;
-        var role = await _db.Roles.FirstOrDefaultAsync(r => r.Name == roleName, ct);
-        if (role is null) return null;
-        var old = user.Role?.Name ?? string.Empty;
-        user.RoleId = role.Id;
+        if (!await _roleManager.RoleExistsAsync(roleName)) return null;
+
+        var currentRoles = await _userManager.GetRolesAsync(user);
+        var oldRole = currentRoles.FirstOrDefault() ?? string.Empty;
+
+        if (currentRoles.Count > 0)
+        {
+            var removeRes = await _userManager.RemoveFromRolesAsync(user, currentRoles);
+            if (!removeRes.Succeeded) return null;
+        }
+
+        var addRes = await _userManager.AddToRoleAsync(user, roleName);
+        if (!addRes.Succeeded) return null;
+
         user.UpdatedAt = DateTime.UtcNow;
-        await _db.SaveChangesAsync(ct);
-        return (user.Id, old);
+        await _userManager.UpdateAsync(user);
+        return (user.Id, oldRole);
     }
 
     public Task<List<AdminAgentDto>> GetAgentsAsync(CancellationToken ct = default)
